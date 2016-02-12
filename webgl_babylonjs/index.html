@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>BabylonJS #webgl Awesomeness! </title>
+		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+		<meta name="author" content="Hakim El Hattab">
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/default.css" id="theme">
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+		<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+		<script>
+			if( window.location.search.match( /print-pdf/gi ) ) {
+				var link = document.createElement( 'link' );
+				link.rel = 'stylesheet';
+				link.type = 'text/css';
+				link.href = 'css/print/pdf.css';
+				document.getElementsByTagName( 'head' )[0].appendChild( link );
+			}
+		</script>
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+
+						<h1>BabylonJS Basics</h1>
+						<h3>Lights, Camera, Meshes, Action</h3>
+						<div><a href="http://twitter.com/seacloud9" target="_blank">by Brendon A. Smith</a></div>
+						<div>
+							<img src="https://pbs.twimg.com/media/CPOU4LJWsAADdl8.jpg" style="height:300px;" />
+						</div>
+
+				</section>
+				
+				<section>
+					<h2>Disclaimer</h2>
+					<div>
+						<br>
+					</div>
+					<div style="text-align: left; ">I am here on my own behalf and my views reflect only my own</div>
+					<div style="text-align: left; ">and not my employer. &nbsp;Everything that will be demonstrated</div>
+					<div style="text-align: left; ">here will be free and open source.  All contents will be available&nbsp;</div>
+					<div style="text-align: left; ">for free on <a href="https://github.com/seacloud9" targe="_blank">gitHub.com</a>.</div>
+				</section>
+				<section>
+					<h2>Why webGL?</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;">Ubiquitous</span>
+							</li>
+							<li>
+								<span style="text-align: center;">GL (graphics language) is powerful</span>
+							</li>
+							<li>
+								<span style="text-align: center;">You only need a browser and a notepad, no need for expensive software</span>
+							</li>
+						</ul>
+					</div>
+				</section>
+
+				<section>
+					<h2>BabylonJS What is it?</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;">BabylonJS was created by <a href="https://blogs.msdn.microsoft.com/eternalcoding/" target="_blank">David Cathue</a> /  <a href="https://twitter.com/deltakosh" target="_blank">DeltaKosh</a> at Microsoft</span>
+							</li>
+							<li>
+								<span style="text-align: center;">It is a performant webGL engine </span>
+							</li>
+							<li>
+								<span style="text-align: center;">Enables developers to rapidly create interactive 3D content</span>
+							</li>
+							<li>
+								<span style="text-align: center;">What was babylonJS written in? <a href="http://www.typescriptlang.org/" target="">TypeScript</a></span>
+							</li>
+							<li>
+								<span style="text-align: center;">Fast and it is easy to create a project with it</span>
+							</li>
+							<li>
+								<span style="text-align: center;">Has excellent <a href="http://doc.babylonjs.com/" target="_blank">documentation</a></span>
+							</li>
+							<li>
+								<span style="text-align: center;">How is it different from threeJS?</span>
+								<ul>
+									<li>No Canvas Fallback</li>
+									<li>No CSS renderer </li>
+									<li>Basic Collisions baked in</li>
+									<li>Audio Analyzer Class included </li>
+									<li>Physics made easy</li>
+								</ul>
+							</li>
+
+						</ul>
+					</div>
+				</section>
+
+
+				<section>
+					<h2>What is a <a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/babylon.scene.ts" target="_blank">scene</a> and what does it consist of?</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;">Lights</span>
+							</li>
+							<li>
+								<span style="text-align: center;">Cameras</span>
+							</li>
+							<li>
+								<span style="text-align: center;">Meshes</span>
+							</li>
+							<li>
+								<span style="text-align: center;">Materials</span>
+							</li>
+							<li>
+								<span style="text-align: center;">Action/Game loop/Render Loop</span>
+							</li>
+							<li>
+								<span style="text-align: center;">Is there a quick start?  <a href="http://babylonjs-playground.com/" target="_blank">Playground</a></span>
+							</li>
+
+						</ul>
+					</div>
+				</section>
+
+				<section>
+					<h2>Lights, what kind are provided by default?</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Lights/babylon.directionalLight.ts" target="_blank">DirectionalLight</a>  </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Lights/babylon.light.ts" target="_blank">HemisphericLight</a> | <a href="http://babylonjs-playground.com/" target="_blank">playground</a></span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Lights/babylon.pointLight.ts" target="_blank">PointLight</a> | <a href="http://www.babylonjs-playground.com/?4" target="_blank">playground</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Lights/babylon.spotLight.ts" target="_blank">SpotLight</a> | <a href="http://www.babylonjs-playground.com/#21IIM9#1" target="_blank">playground</a> </span>
+							</li>
+							<li>
+								
+							<span style="text-align: center;"> <a href="https://blogs.msdn.microsoft.com/eternalcoding/2013/07/08/babylon-js-using-lights-in-your-babylon-js-game/" target="_blank">More on Lights</a></span>
+							</li>
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>Cameras, what kind are provided by default?</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;"> <a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Cameras/babylon.anaglyphCamera.js" target="_blank">AnaglyphCamera</a> | <a href="http://babylonjs.com/Demos/SPS/" target="_blank"> example</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Cameras/babylon.arcRotateCamera.ts" target="_blank">ArcRotateCamera</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Cameras/babylon.followCamera.ts" target="_blank">FollowCamera</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Cameras/babylon.stereoscopicCameras.ts" target="_blank">StereoscopicCamera</a>  </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/tree/master/src/Cameras/VR" target="_blank">VR cameras</a> / gamepad cameras </span>
+							</li>
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>Meshes, what primitives are baked in?</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Mesh/babylon.mesh.ts" target="_blank">Box</a> | <a href="http://www.babylonjs-playground.com/#PEY56" target="_blank">playground</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Mesh/babylon.mesh.ts" target="_blank">Sphere</a>  | <a href="http://www.babylonjs-playground.com/#PEY56" target="_blank">playground</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Mesh/babylon.mesh.ts" target="_blank">Plane</a>  | <a href="http://www.babylonjs-playground.com/#PEY56" target="_blank">playground</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Mesh/babylon.mesh.ts" target="_blank">Tourus</a>  | <a href="http://www.babylonjs-playground.com/#PEY56" target="_blank">playground</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Mesh/babylon.mesh.ts" target="_blank">Knot</a>  | <a href="http://www.babylonjs-playground.com/#PEY56" target="_blank">playground</a>  </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Mesh/babylon.mesh.ts" target="_blank">Lines</a>  | <a href="http://www.babylonjs-playground.com/#PEY56" target="_blank">playground</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Mesh/babylon.mesh.vertexData.ts" target="_blank">HeightMap</a>  | <a href="http://www.babylonjs-playground.com/?15" target="_blank">playground</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Mesh/babylon.mesh.ts" target="_blank">Ribbon</a>   | <a href="http://www.babylonjs-playground.com/#3XMWZ#2" target="_blank">playground</a> </span>
+							</li>
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>What are Meshes? | how are they built?</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Mesh/babylon.mesh.vertexData.ts" target="_blank">VertexData Class</a></span>
+								<ul>
+									
+									<li>
+										<span style="text-align: center;">Position (<a href="https://en.wikipedia.org/wiki/Vector" target="_blank">vectors</a>)</span>
+									</li>
+									<li>
+										<a href="https://en.wikipedia.org/wiki/Normal_(geometry)" target="_blank"><span style="text-align: center;">Normals (direction vectors for materials)</span></a>
+									</li>
+									<li>
+										<a href="https://en.wikipedia.org/wiki/UV_mapping" target="_blank"><span style="text-align: center;">UVs</span></a>
+									</li>
+									<li>
+										<a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Creating_3D_objects_using_WebGL">
+										<span style="text-align: center;">Faces (triangles)</span></a>
+									</li>
+									<li>
+									<a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Creating_3D_objects_using_WebGL">
+										<span style="text-align: center;">Indices ( triangle points )</span></a>
+									</li>
+									<li>
+									<a href="http://0fps.net/2012/06/30/meshing-in-a-minecraft-game/">
+										<span style="text-align: center;">Learn more about the fine art of meshing | on <a href="https://github.com/mikolalysenko/greedy-mesher" target="_blank">github</a></span></a>
+									
+									</li>
+
+								</ul>
+							</li>
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>What about Assets created with third party tools?</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;"><a href="http://doc.babylonjs.com/exporters" target="_blank">Asset pipeline explained</a></span>
+							</li>
+							<li>
+								<span style="text-align: center;">What formats are supported by the <a href="https://github.com/BabylonJS/Babylon.js/tree/master/loaders" target="_blank">loader</a>?</span>
+								<ul>
+									<li><a href="https://www.khronos.org/gltf" target="_blank">glTF</a></li>
+									<li><a href="https://en.wikipedia.org/wiki/Wavefront_.obj_file" target="_blank">OBJ</a></li>
+									<li> <a href="https://en.wikipedia.org/wiki/STL_(file_format)" target="_blank">STL</a></li>
+								</ul>
+							</li>
+							<li>
+								<span style="text-align: center;">How can I <a href="https://github.com/BabylonJS/Babylon.js/tree/master/Exporters" target="_blank">export</a> my models from a third party tool?</span>
+								<ul>
+									<li>3DS Max</li>
+									<li>Blender3d</li>
+									<li>FBX</li>
+									<li>Cheetah3d</li>
+									<li>Unity</li>
+									<li>XNA - OBJ</li>
+								</ul>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="http://doc.babylonjs.com/generals/File_Format_Map_(.babylon)" target="_blank">.babylon format</a></span>
+							</li>
+							
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>How do I paint my meshes?</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;">What do materials do? </span>
+							</li>
+							<li>
+								<span style="text-align: center;"> <a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Materials/babylon.standardMaterial.ts" target="_blank">Standard Material</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"> <a href="https://github.com/BabylonJS/Babylon.js/tree/master/src/Materials/Textures/Procedurals" target="_blank">Procedurally Generated Materials</a> | <a href="http://babylonjs.com/Demos/Procedural/" target="_blank">example</a> | <a href="https://github.com/BabylonJS/Samples/blob/master/Demos/Procedural/proceduralTexture.js" target="_blank">code</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"> <a href="https://github.com/BabylonJS/Babylon.js/blob/7b1343c0e06aa46447c272802d9247cb8f6cd2cb/materialsLibrary/materials/pbr/babylon.pbrMaterial.ts" target="_blank">Physically Based Materials</a> | <a href="http://www.babylonjs.com/Demos/PBR/" target="_blank">demo</a>  </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Materials/babylon.shaderMaterial.ts" target="_blank">Shader Materials</a> | <a href="http://www.babylonjs.com/cyos/" target="_blank">cyos</a> | <a href="http://babylonjs.com/Demos/VertexData/" target="_blank">example</a> | <a href="https://github.com/BabylonJS/Samples/blob/master/Demos/VertexData/clouds.js" target="_blank">code</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Materials/Textures/babylon.dynamicTexture.ts" target="_blank">Textures and Dynamic Texture</a> </span>
+							</li>
+
+							<li>
+							<span style="text-align: center;"><a href="https://blogs.msdn.microsoft.com/eternalcoding/2013/07/01/babylon-js-unleash-the-standardmaterial-for-your-babylon-js-game/" target="_blank">
+							Deep Dive into Standard Materials</a>
+							</span>
+							</li>
+							<li>
+							<span style="text-align: center;"><a href="https://github.com/stackgl/shader-school" target="_blank">
+							Learn more about shaders | <a href="https://blogs.msdn.microsoft.com/eternalcoding/2013/08/06/babylon-js-creating-a-convincing-world-for-your-game-with-custom-shaders-height-maps-and-skyboxes/" target="_blank">More about shaders</a>
+							</span>
+							</li>
+							<li>
+							<span style="text-align: center;"><a href="http://shadertoy.com" target="_blank">
+							Shader Toy</a>
+							</span>
+							</li>
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>Special FX?</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Lights/Shadows/babylon.shadowGenerator.ts" target="_blank">Shadows</a> | <a href="http://www.babylonjs-playground.com/?15" target="_blank">playground</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/PostProcess/babylon.blurPostProcess.ts" target="_blank">Bloom</a> | <a href="http://www.babylonjs.com/Demos/PPBLOOM/" target="_blank">Example</a> | <a href="https://github.com/BabylonJS/Samples/blob/master/Demos/PPBloom/postprocessBloom.js" target="_blank">Code</a></span>
+							</li>
+							<li>
+								<span style="text-align: center;"> <a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/PostProcess/babylon.convolutionPostProcess.ts" target="_blank">Convolution</a>  | <a href="http://babylonjs.com/Demos/PPConvolution/" target="_blank">Example</a> | <a href="https://github.com/BabylonJS/Samples/blob/master/Demos/PPConvolution/postprocessConvolution.js" target="_blank">Code</a>  </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/PostProcess/babylon.refractionPostProcess.ts" target="_blank"> Refraction</a> | <a href="http://www.babylonjs.com/Demos/PPRef/" target="_blank">Example</a> | <a href="http://babylonhx.github.io/refraction/" target="_blank">Example2</a>  </span>
+							</li>
+							<li>
+								<span style="text-align: center;"> <a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/PostProcess/babylon.volumetricLightScatteringPostProcess.ts" target="_blank">God Rays</a>  | <a href="http://www.babylonjs-playground.com/#24K2OO#1">playground</a> | <a href="http://babylonhx.github.io/volumetriclighting/" target="_blank">Example2</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Materials/babylon.standardMaterial.ts" target="_blank"> Fresnel</a>  | <a href="http://www.babylonjs-playground.com/#1AVKGI" target="_blank">playground</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/blob/master/src/Materials/Textures/babylon.videoTexture.ts" target="_blank"> Video</a>  | <a href="http://www.babylonjs-playground.com/#CHQ4T#1" target="_blank">playground</a> </span>
+							</li>
+								<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/tree/master/src/Particles" target="_blank"> Particles</a>  | <a href="http://www.babylonjs-playground.com/?12" target="_blank">playground</a> </span>
+							</li>
+							
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>What about action, how do I make this stuff move and collide?</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;">Where does the action happen?  <a href="http://www.richardlord.net/blog/what-is-an-entity-framework" target="_blank">Game Loop</a> / <a href="https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame" target="_blank">Request Animation Frame</a></span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="http://www.richardlord.net/blog/why-use-an-entity-framework" target="_blank">How can design patterns save me?</a></span>
+							</li>
+							<li>
+								<span style="text-align: center;">BabylonJS comes with collisions baked in</span>
+							</li>
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/tree/master/src/Collisions" target="_blank">Collisions</a> | <a href="http://www.babylonjs-playground.com/?9" target="_blank">playground</a></span>
+							</li>
+
+							<li>
+								<span style="text-align: center;"><a href="https://github.com/BabylonJS/Babylon.js/tree/master/src/Collisions" target="_blank">Collisions 2</a> | <a href="http://www.babylonjs-playground.com/#1MZ1HU#4" target="_blank">playground simple fps</a></span>
+							</li>
+
+							
+							<li>
+								<span style="text-align: center;">Physics | <a href="http://babylonjs.com/Demos/Physics/" target="_blank">example</a> | <a href="https://github.com/BabylonJS/Samples/tree/master/Demos/Physics" target="_blank">code</a>   </span>
+							</li>
+							<li>
+							<span style="text-align: center;"> <a href="https://github.com/lo-th/Oimo.js/" target="_blank">Oimo</a>    </span>
+
+								
+							</li>
+							<li>
+							<span style="text-align: center;"> <a href="http://www.cannonjs.org/" target="_blank">cannonjs</a>    </span>
+								
+							</li>
+							<li>
+								<span style="text-align: center;">
+								<a href="http://www.sitepoint.com/understanding-collisions-physics-babylon-js-oimo-js/" target="_blank">Tell me more about physics</a>
+								</span>
+								
+							</li>
+							<li>
+								<span style="text-align: center;">
+								<a href="http://www.sitepoint.com/using-babylon-js-build-3d-games-web/" target="_blank">
+									Help me build a game
+								</a>
+								</span>
+								
+							</li>
+
+							
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>babylonJS builiding quickly</h2>
+					<div>
+						<ul>
+							<li>
+								<span style="text-align: center;">Speed up the process by using the <a href="http://www.babylonjs-playground.com/?9" target="_blank">playground</a> </span>
+							</li>
+							<li>
+								<span style="text-align: center;">Speed up the process by using <a href="https://github.com/jakubbilko/generator-babylon" target="_blank">generators</a></span>
+							</li>
+							<li>
+								<span style="text-align: center;">Create materials quickly <a href="http://materialeditor.raananweber.com/" target="_blank">online </a>  </span>
+							</li>
+							<li>
+								<span style="text-align: center;">Create shaders quickly <a href="http://www.babylonjs.com/cyos/" target="_blank">online </a>  </span>
+							</li>
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>Mobile</h2>
+					<div>
+						<ul>
+							<li>
+									<span style="text-align: center;">
+									<a href="https://www.ludei.com/" target="_blank">Ludei</a>&nbsp;</span>
+								</li>
+							<li>
+								<span style="text-align: center;"><a href="https://blogs.msdn.microsoft.com/davrous/2014/05/12/creating-a-html5-phone-tablet-pc-game-using-the-universal-apps-project-for-windows-stores/" target="">Universal Apps</a></span>
+							</li>
+							<li>
+									<span style="text-align: center;">
+									<a href="http://haxe.org" target="_blank">Haxe?</a>&nbsp;</span>
+								</li>
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>Haxe what is it?</h2>
+					<div>
+						<ul>
+							<li>
+									<span style="text-align: center;">
+									<a href="http://haxe.org/" target="_blank">Haxe crossplatform toolkit</a>&nbsp;</span>
+								</li>
+							<li>
+								<span style="text-align: center;">Similar to dart / c# / actionScript / and typeScript</span>
+							</li>
+							<li>
+									<span style="text-align: center;">
+									Strongly Typed</span>
+								</li>
+								<li>
+									<span style="text-align: center;">
+									<a href="https://www.npmjs.com/package/haxe" target="_blank">Compatiable with node?</a> </span>
+								</li>
+								<li>
+									<span style="text-align: center;">
+									<a href="https://www.npmjs.com/package/haxe" target="_blank">Future Proof? Emscripten / Soon Web Binary (flash all over?)</a> </span>
+								</li>
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>How does it work?</h2>
+					<div>
+						<ul>
+						<li>
+							<span style="text-align: center;">
+									<a href="https://notes.underscorediscovery.com/haxe-from-1000ft/" target="_blank">1000ft view</a>&nbsp;</span>
+
+						</li>
+							<li>
+									<span style="text-align: center;">
+									<a href="http://haxe.org/" target="_blank">Simple Command Line Interface</a>&nbsp;</span>
+								</li>
+							<li>
+								<span style="text-align: center;">
+								<a href="https://github.com/native-toolkit/" target="_blank">
+								Backends</a>
+								</span>
+							</li>
+							<li>
+									<span style="text-align: center;">
+									FrontEnds (the fun stuff)</span>
+								</li>
+								<li>Haxe Frameworks
+									<ul>
+										<li>
+									<span style="text-align: center;">
+									<a href="https://github.com/haxenme" target="_blank">
+									NME</a> </span></li>
+									<li>
+									<span style="text-align: center;">
+									<a href="https://github.com/openfl" target="_blank">
+									openFL</a> | <a href="https://github.com/openfl/lime" target="_blank">lime
+									</a>
+									</span></li>
+									<li>
+									<span style="text-align: center;">
+									<a href="https://github.com/KTXSoftware" target="_blank">
+									kha </a></span></li>
+									<li>
+									<span style="text-align: center;">
+									<a href="https://github.com/underscorediscovery/snow" target="_blank">
+									Snow</a> | <a href="https://github.com/underscorediscovery/luxe" target="_blank">Luxe</a> </span></li>
+
+									</ul>
+								</li>
+						</ul>
+					</div>
+				</section>
+
+				<section>
+					<h2>BabylonHX</h2>
+					<div>
+						<ul>
+						<li>
+							<span style="text-align: center;">
+									<a href="http://babylonhx.gamestudiohx.com/" target="_blank">Created by Krtolica Vujadin and I</a>&nbsp;</span>
+
+						</li>
+						<li>
+							<span style="text-align: center;">
+									<a href="https://twitter.com/gamestudiohx" target="_blank">Krtolica Vujadin on twitter</a>&nbsp;</span>
+
+						</li>
+							<li>
+									<span style="text-align: center;">
+									<a href="https://github.com/babylonhx/BabylonHx_2.0/blob/master/com/babylonhx/utils/GL.hx" target="_blank">Supports Multiple Back-ends</a>&nbsp;</span>
+								</li>
+
+								<li>
+									<span style="text-align: center;">
+									<a href="https://github.com/babylonhx/BabylonHx_2.0/" target="_blank">Why?</a>&nbsp;</span>
+								</li>
+							
+						</ul>
+					</div>
+				</section>
+
+				<section>
+					<h2>Further Reading</h2>
+					<div>
+						<ul>
+						<li>
+							<span style="text-align: center;">
+									<a href="http://shop.oreilly.com/product/0636920029205.do" target="_blank">Programing 3D</a>&nbsp;</span>
+
+						</li>
+						<li>
+							<span style="text-align: center;">
+									<a href="http://shop.oreilly.com/product/0636920038467.do" target="_blank">Learning VR</a>&nbsp;</span>
+
+						</li>
+							
+							
+						</ul>
+					</div>
+				</section>
+				<section>
+					<h2>Other Libraries</h2>
+					<div style="font-size:19px">
+					<ul>
+						<li>
+							<a href="http://learningwebgl.com/" target="_blank">Learning WebGL</a>
+						</li>
+						<li>
+							<a href="http://schteppe.github.io/cannon.js/" target="_blank">CannonJS physics engine</a>
+							<br>
+						</li>
+						<li>
+						<a href="https://github.com/supereggbert/JigLibJS" target="_blank">JigLib physics engine</a></li>
+						<li>
+						<a href="https://code.google.com/p/bulletjs/" target="_blank">Bullet physics engine</a></li>
+					</li>
+					<li>
+						<a href="https://github.com/kripken/ammo.js" target="_blank">AmmoJS physics engine</a>
+					</li>
+					<li>
+						<a href="http://qiao.github.io/PathFinding.js/visual/" target="_blank">PathFindingJS</a>
+					</li>
+					<li>
+						<a href="http://www.pixijs.com/" target="_blank">PixiJS Library</a>
+					</li>
+					<li>
+						<a href="http://www.photonstorm.com/phaser" target="_blank">PhaserJS Library</a>
+					</li>
+					<li>
+						<a href="http://www.createjs.com/#!/EaselJS" target="_blank">EaselJS Library</a>
+					</li>
+					<li>
+						<a href="http://haxeflixel.com/" target="_blank">Flixel Library</a>
+					</li>
+					<li>
+					<a href="http://learningthreejs.com/" target="_blank">LearningThreeJS Blog</a>?</li>
+					<li>
+						<a href="http://stemkoski.github.io/Three.js/" target="_blank">Stemkoski</a>
+					</li>
+				</ul>
+			</div>
+			</section>
+
+			<section>
+					<h2>Thank You</h2>
+	
+					<ul>
+						<li><span style="text-align: center;">
+							<a href="https://www.khronos.org/" target="_blank">Khronos Group</a></span>
+						</li>
+						<li><span style="text-align: center;">
+							<a href="http://www.autodesk.com/" target="_blank">Autodesk</a></span>
+						</li>
+						<li><span style="text-align: center;">
+						<a href="http://newrelic.com/" target="_blank">Our host New Relic</a>
+						</span>
+						</li>
+						<li><span style="text-align: center;">
+						<a href="https://twitter.com/deltakosh" target="_blank">David Cathue and Microsoft</a>
+						</span>
+						</li>
+					</li>
+					
+				</ul>
+
+			</section>
+				
+
+		</div>
+		
+	</div>
+	<script src="lib/js/head.min.js"></script>
+	<script src="js/reveal.min.js"></script>
+	<script>
+		// Full list of configuration options available here:
+		// https://github.com/hakimel/reveal.js#configuration
+		Reveal.initialize({
+			controls: true,
+			progress: true,
+			history: true,
+			center: true,
+			theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+			transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+			// Parallax scrolling
+			// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+			// parallaxBackgroundSize: '2100px 900px',
+			// Optional libraries used to extend on reveal.js
+			dependencies: [
+				{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+				{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+				{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+				{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+				{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+				{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+			]
+		});
+	</script>
+</body>
+</html>
