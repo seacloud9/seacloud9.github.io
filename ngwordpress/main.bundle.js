@@ -951,7 +951,7 @@ AppModule = __decorate([
         providers: [{
                 provide: __WEBPACK_IMPORTED_MODULE_16_ng2_responsive__["ResponsiveConfig"],
                 useFactory: ResponsiveDefinition
-            }, { provide: __WEBPACK_IMPORTED_MODULE_2__angular_common__["APP_BASE_HREF"], useValue: 'ngwordpress/' }, __WEBPACK_IMPORTED_MODULE_22__shared_services_log_service__["a" /* LogService */], __WEBPACK_IMPORTED_MODULE_23__shared_services_vr_module_service__["a" /* VrModuleService */]],
+            }, { provide: __WEBPACK_IMPORTED_MODULE_2__angular_common__["APP_BASE_HREF"], useValue: '/ngwordpress' }, __WEBPACK_IMPORTED_MODULE_22__shared_services_log_service__["a" /* LogService */], __WEBPACK_IMPORTED_MODULE_23__shared_services_vr_module_service__["a" /* VrModuleService */]],
         bootstrap: [__WEBPACK_IMPORTED_MODULE_8__app_component__["a" /* AppComponent */]]
     })
 ], AppModule);
