@@ -496,7 +496,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var WordpressService = (function () {
     function WordpressService($http) {
         this.$http = $http;
-        this.postsUrl = "http://i-create.org/wp-json/wp/v2/";
+        this.postsUrl = "https://i-create.org/wp-json/wp/v2/";
     }
     WordpressService.prototype.getPosts = function (page) {
         var _this = this;
