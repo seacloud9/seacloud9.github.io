@@ -976,20 +976,20 @@ AppModule = __decorate([
 
 
 var routes = [
-    { path: 'ngwordpress/', component: __WEBPACK_IMPORTED_MODULE_1__home_home_component__["a" /* HomeComponent */] },
-    { path: 'ngwordpress/intro', component: __WEBPACK_IMPORTED_MODULE_5__intro_intro_component__["a" /* IntroComponent */] },
+    { path: '/', component: __WEBPACK_IMPORTED_MODULE_1__home_home_component__["a" /* HomeComponent */] },
+    { path: '/intro', component: __WEBPACK_IMPORTED_MODULE_5__intro_intro_component__["a" /* IntroComponent */] },
     {
-        path: 'ngwordpress/post', component: __WEBPACK_IMPORTED_MODULE_3__post_list_post_list_component__["a" /* PostListComponent */]
+        path: '/post', component: __WEBPACK_IMPORTED_MODULE_3__post_list_post_list_component__["a" /* PostListComponent */]
     },
     {
-        path: 'ngwordpress/page/:page', component: __WEBPACK_IMPORTED_MODULE_3__post_list_post_list_component__["a" /* PostListComponent */]
+        path: '/page/:page', component: __WEBPACK_IMPORTED_MODULE_3__post_list_post_list_component__["a" /* PostListComponent */]
     },
     {
-        path: 'ngwordpress/:year/:month/:day/:slug',
+        path: '/:year/:month/:day/:slug',
         component: __WEBPACK_IMPORTED_MODULE_2__post_detail_post_detail_component__["a" /* PostDetailComponent */]
     },
-    { path: 'ngwordpress/about', component: __WEBPACK_IMPORTED_MODULE_4__about_about_component__["a" /* AboutComponent */] },
-    { path: 'ngwordpress/aframe/:id', component: __WEBPACK_IMPORTED_MODULE_0__wrapper_wrapper_component__["a" /* Wrapper */] },
+    { path: '/about', component: __WEBPACK_IMPORTED_MODULE_4__about_about_component__["a" /* AboutComponent */] },
+    { path: '/aframe/:id', component: __WEBPACK_IMPORTED_MODULE_0__wrapper_wrapper_component__["a" /* Wrapper */] },
 ];
 //# sourceMappingURL=app.routes.js.map
 
