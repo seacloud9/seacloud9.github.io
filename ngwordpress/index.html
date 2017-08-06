@@ -141,9 +141,8 @@
       document.getElementById('sc9BgImg').style.width = (window.innerWidth.toString()) + 'px';
       document.getElementById('sc9BgImg').style.backgroundImage =  "url('"+ _bgImgA.toString() + "')";
       //document.getElementById('sc9BgImg').svgInject();
-      
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('https://raw.githubusercontent.com/seacloud9/seacloud9.github.io/master/ngwordpress/service-worker.js', { insecure: true }).then(function(registration) {
+        navigator.serviceWorker.register('https://seacloud9.github.io/ngwordpress/service-worker.js', { insecure: true }).then(function(registration) {
           console.log('Service Worker registered');
         }).catch(function(err) {
           console.log('Service Worker registration failed: ', err);
