@@ -23,17 +23,17 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/Swiper/3.3.1/css/swiper.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/3.3.1/js/swiper.js"></script>
   <script src="https://aframe.io/releases/0.5.0/aframe.min.js"></script>
-  <script src="http://seacloud9.github.io/ngwordpress/assets/vendor/aframe-godrays-postprocess.js"></script>
-  <script src="http://seacloud9.github.io/ngwordpress/assets/vendor/aframe-orbit-controls-component.min.js"></script>
-  <script src="http://seacloud9.github.io/ngwordpress/assets/vendor/aframe-html-shader.js"></script>
+  <script src="https://seacloud9.github.io/ngwordpress/assets/vendor/aframe-godrays-postprocess.js"></script>
+  <script src="https://seacloud9.github.io/ngwordpress/assets/vendor/aframe-orbit-controls-component.min.js"></script>
+  <script src="https://seacloud9.github.io/ngwordpress/assets/vendor/aframe-html-shader.js"></script>
 </head>
   <body>
       <app-root>
       <div class="sc9Container">
         <div id="sc9BgImg" class="sc9">
           <svg
-            xmlns:svg="http://www.w3.org/2000/svg"
-            xmlns="http://www.w3.org/2000/svg"
+            xmlns:svg="https://www.w3.org/2000/svg"
+            xmlns="https://www.w3.org/2000/svg"
             preserveAspectRatio="xMidYMid meet"
             width="160"
             height="200"
@@ -49,7 +49,7 @@
                   rdf:about="">
                   <dc:format>image/svg+xml</dc:format>
                   <dc:type
-                    rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+                    rdf:resource="https://purl.org/dc/dcmitype/StillImage" />
                   <dc:title>Logo</dc:title>
                 </cc:Work>
               </rdf:RDF>
@@ -115,9 +115,9 @@
       </div>
       </app-root>
     <script>
-      var _imgSc9LdrArr = ['http://seacloud9.github.io/ngwordpress/assets/images/sc9Img1.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img2.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img3.jpg',
-        'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img4.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img5.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img6.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img7.jpg',
-        'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img8.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img9.jpg'
+      var _imgSc9LdrArr = ['https://seacloud9.github.io/ngwordpress/assets/images/sc9Img1.jpg', 'https://seacloud9.github.io/ngwordpress/assets/images/sc9Img2.jpg', 'https://seacloud9.github.io/ngwordpress/assets/images/sc9Img3.jpg',
+        'https://seacloud9.github.io/ngwordpress/assets/images/sc9Img4.jpg', 'https://seacloud9.github.io/ngwordpress/assets/images/sc9Img5.jpg', 'https://seacloud9.github.io/ngwordpress/assets/images/sc9Img6.jpg', 'https://seacloud9.github.io/ngwordpress/assets/images/sc9Img7.jpg',
+        'https://seacloud9.github.io/ngwordpress/assets/images/sc9Img8.jpg', 'https://seacloud9.github.io/ngwordpress/assets/images/sc9Img9.jpg'
       ];
       function catchImgErr(image){
         var _imgA = _imgSc9LdrArr[Math.floor(Math.random()*_imgSc9LdrArr.length)]
@@ -134,20 +134,20 @@
 
 
       catchAllImgageErrors();
-      var _bgImgContainerArr = ['http://seacloud9.github.io/ngwordpress/assets/images/bg1.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/bg2.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/bg3.jpg',
-      'http://seacloud9.github.io/ngwordpress/assets/images/bg4.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/bg5.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/bg6.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/bg7.jpg'];
+      var _bgImgContainerArr = ['https://seacloud9.github.io/ngwordpress/assets/images/bg1.jpg', 'https://seacloud9.github.io/ngwordpress/assets/images/bg2.jpg', 'https://seacloud9.github.io/ngwordpress/assets/images/bg3.jpg',
+      'https://seacloud9.github.io/ngwordpress/assets/images/bg4.jpg', 'https://seacloud9.github.io/ngwordpress/assets/images/bg5.jpg', 'https://seacloud9.github.io/ngwordpress/assets/images/bg6.jpg', 'https://seacloud9.github.io/ngwordpress/assets/images/bg7.jpg'];
       var _bgImgA = _bgImgContainerArr[Math.floor(Math.random()*_bgImgContainerArr.length)]
       document.getElementById('sc9BgImg').style.height = window.innerHeight.toString() + 'px';
       document.getElementById('sc9BgImg').style.width = (window.innerWidth.toString()) + 'px';
       document.getElementById('sc9BgImg').style.backgroundImage =  "url('"+ _bgImgA.toString() + "')";
       //document.getElementById('sc9BgImg').svgInject();
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('http://seacloud9.github.io/ngwordpress/service-worker.js').then(function(registration) {
+        navigator.serviceWorker.register('https://seacloud9.github.io/ngwordpress/service-worker.js').then(function(registration) {
           console.log('Service Worker registered');
         }).catch(function(err) {
           console.log('Service Worker registration failed: ', err);
         });
       }
     </script>
-<script type="text/javascript" src="http://seacloud9.github.io/ngwordpress/inline.bundle.js"></script><script type="text/javascript" src="http://seacloud9.github.io/ngwordpress/polyfills.bundle.js"></script><script type="text/javascript" src="http://seacloud9.github.io/ngwordpress/styles.bundle.js"></script><script type="text/javascript" src="http://seacloud9.github.io/ngwordpress/vendor.bundle.js"></script><script type="text/javascript" src="http://seacloud9.github.io/ngwordpress/main.bundle.js"></script></body>
+<script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/inline.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/polyfills.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/styles.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/vendor.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/main.bundle.js"></script></body>
 </html>
