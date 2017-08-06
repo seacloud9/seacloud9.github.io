@@ -24,9 +24,9 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/Swiper/3.3.1/css/swiper.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/3.3.1/js/swiper.js"></script>
   <script src="https://aframe.io/releases/0.5.0/aframe.min.js"></script>
-  <script src="assets/vendor/aframe-godrays-postprocess.js"></script>
-  <script src="assets/vendor/aframe-orbit-controls-component.min.js"></script>
-  <script src="assets/vendor/aframe-html-shader.js"></script>
+  <script src="http://seacloud9.github.io/ngwordpress/assets/vendor/aframe-godrays-postprocess.js"></script>
+  <script src="http://seacloud9.github.io/ngwordpress/assets/vendor/aframe-orbit-controls-component.min.js"></script>
+  <script src="http://seacloud9.github.io/ngwordpress/assets/vendor/aframe-html-shader.js"></script>
 </head>
   <body>
       <app-root>
@@ -116,9 +116,9 @@
       </div>
       </app-root>
     <script>
-      var _imgSc9LdrArr = ['/assets/images/sc9Img1.jpg', '/assets/images/sc9Img2.jpg', '/assets/images/sc9Img3.jpg',
-        '/assets/images/sc9Img4.jpg', '/assets/images/sc9Img5.jpg', '/assets/images/sc9Img6.jpg', '/assets/images/sc9Img7.jpg',
-        '/assets/images/sc9Img8.jpg', '/assets/images/sc9Img9.jpg'
+      var _imgSc9LdrArr = ['http://seacloud9.github.io/ngwordpress/assets/images/sc9Img1.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img2.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img3.jpg',
+        'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img4.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img5.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img6.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img7.jpg',
+        'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img8.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/sc9Img9.jpg'
       ];
       function catchImgErr(image){
         var _imgA = _imgSc9LdrArr[Math.floor(Math.random()*_imgSc9LdrArr.length)]
@@ -135,8 +135,8 @@
 
 
       catchAllImgageErrors();
-      var _bgImgContainerArr = ['/assets/images/bg1.jpg', '/assets/images/bg2.jpg', '/assets/images/bg3.jpg',
-      '/assets/images/bg4.jpg', '/assets/images/bg5.jpg', '/assets/images/bg6.jpg', '/assets/images/bg7.jpg'];
+      var _bgImgContainerArr = ['http://seacloud9.github.io/ngwordpress/assets/images/bg1.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/bg2.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/bg3.jpg',
+      'http://seacloud9.github.io/ngwordpress/assets/images/bg4.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/bg5.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/bg6.jpg', 'http://seacloud9.github.io/ngwordpress/assets/images/bg7.jpg'];
       var _bgImgA = _bgImgContainerArr[Math.floor(Math.random()*_bgImgContainerArr.length)]
       document.getElementById('sc9BgImg').style.height = window.innerHeight.toString() + 'px';
       document.getElementById('sc9BgImg').style.width = (window.innerWidth.toString()) + 'px';
