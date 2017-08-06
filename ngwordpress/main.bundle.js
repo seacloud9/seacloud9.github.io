@@ -1602,7 +1602,7 @@ module.exports = "<div *xl>\n  <md-grid-list cols=\"4\" gutterSize=\"10px\">\n  
 /***/ 490:
 /***/ (function(module, exports) {
 
-module.exports = "<footer>\n\tbuilt by <a href=\"https://seacloud.com\">SeaCloud9</a>\n</footer>\n"
+module.exports = "<footer>\n\tbuilt by <a href=\"https://github.com/seacloud9/pwa_wordpress_material2_angular2\">SeaCloud9</a>\n</footer>\n"
 
 /***/ }),
 
