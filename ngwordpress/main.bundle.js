@@ -814,39 +814,40 @@ var _a, _b, _c, _d, _e;
 "use strict";
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__angular_platform_browser__ = __webpack_require__(24);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__angular_core__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_forms__ = __webpack_require__(97);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_http__ = __webpack_require__(98);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__angular_router__ = __webpack_require__(51);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__angular_material__ = __webpack_require__(138);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__app_routes__ = __webpack_require__(266);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__app_component__ = __webpack_require__(264);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__shared_layout_header_header_component__ = __webpack_require__(273);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__shared_layout_footer_footer_component__ = __webpack_require__(272);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__post_list_post_list_component__ = __webpack_require__(151);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__home_home_component__ = __webpack_require__(148);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__about_about_component__ = __webpack_require__(147);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_13__shared_pipes_SanitizeHtml__ = __webpack_require__(274);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_14__post_detail_post_detail_component__ = __webpack_require__(150);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_15_ng2_responsive__ = __webpack_require__(469);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_15_ng2_responsive___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_15_ng2_responsive__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_16_ng2share_share_module__ = __webpack_require__(262);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_17_ng_lazyload_image__ = __webpack_require__(454);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_17_ng_lazyload_image___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_17_ng_lazyload_image__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_18_ngx_infinite_scroll__ = __webpack_require__(480);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_19_ng2_toastr_ng2_toastr__ = __webpack_require__(478);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_19_ng2_toastr_ng2_toastr___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_19_ng2_toastr_ng2_toastr__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_20_angular2_useful_swiper__ = __webpack_require__(279);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_20_angular2_useful_swiper___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_20_angular2_useful_swiper__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_21__shared_services_log_service__ = __webpack_require__(70);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_22__shared_services_vr_module_service__ = __webpack_require__(154);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_23__ngrx_store__ = __webpack_require__(57);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_24__shared_reducers__ = __webpack_require__(152);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_25__wrapper_wrapper_component__ = __webpack_require__(156);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_26__dynamic_dynamic_component__ = __webpack_require__(268);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_27__aframe_aframe_component__ = __webpack_require__(99);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_28__post_list_card_post_list_card_component__ = __webpack_require__(269);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_29__intro_intro_component__ = __webpack_require__(149);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_30_ang2_parallax_ng2parallax__ = __webpack_require__(258);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__angular_common__ = __webpack_require__(38);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__angular_forms__ = __webpack_require__(97);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__angular_http__ = __webpack_require__(98);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__angular_router__ = __webpack_require__(51);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__angular_material__ = __webpack_require__(138);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__app_routes__ = __webpack_require__(266);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_8__app_component__ = __webpack_require__(264);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_9__shared_layout_header_header_component__ = __webpack_require__(273);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_10__shared_layout_footer_footer_component__ = __webpack_require__(272);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_11__post_list_post_list_component__ = __webpack_require__(151);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_12__home_home_component__ = __webpack_require__(148);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_13__about_about_component__ = __webpack_require__(147);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_14__shared_pipes_SanitizeHtml__ = __webpack_require__(274);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_15__post_detail_post_detail_component__ = __webpack_require__(150);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_16_ng2_responsive__ = __webpack_require__(469);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_16_ng2_responsive___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_16_ng2_responsive__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_17_ng2share_share_module__ = __webpack_require__(262);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_18_ng_lazyload_image__ = __webpack_require__(454);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_18_ng_lazyload_image___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_18_ng_lazyload_image__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_19_ngx_infinite_scroll__ = __webpack_require__(480);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_20_ng2_toastr_ng2_toastr__ = __webpack_require__(478);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_20_ng2_toastr_ng2_toastr___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_20_ng2_toastr_ng2_toastr__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_21_angular2_useful_swiper__ = __webpack_require__(279);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_21_angular2_useful_swiper___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_21_angular2_useful_swiper__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_22__shared_services_log_service__ = __webpack_require__(70);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_23__shared_services_vr_module_service__ = __webpack_require__(154);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_24__ngrx_store__ = __webpack_require__(57);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_25__shared_reducers__ = __webpack_require__(152);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_26__wrapper_wrapper_component__ = __webpack_require__(156);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_27__dynamic_dynamic_component__ = __webpack_require__(268);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_28__aframe_aframe_component__ = __webpack_require__(99);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_29__post_list_card_post_list_card_component__ = __webpack_require__(269);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_30__intro_intro_component__ = __webpack_require__(149);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_31_ang2_parallax_ng2parallax__ = __webpack_require__(258);
 /* unused harmony export ResponsiveDefinition */
 /* unused harmony export createInstrumentOptions */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return AppModule; });
@@ -856,6 +857,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+
 
 
 
@@ -898,7 +900,7 @@ var config = {
     debounceTime: 100 // allow to debounce checking timer
 };
 function ResponsiveDefinition() {
-    return new __WEBPACK_IMPORTED_MODULE_15_ng2_responsive__["ResponsiveConfig"](config);
+    return new __WEBPACK_IMPORTED_MODULE_16_ng2_responsive__["ResponsiveConfig"](config);
 }
 ;
 function createInstrumentOptions() {
@@ -914,43 +916,43 @@ var AppModule = (function () {
 AppModule = __decorate([
     __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1__angular_core__["NgModule"])({
         declarations: [
-            __WEBPACK_IMPORTED_MODULE_7__app_component__["a" /* AppComponent */],
-            __WEBPACK_IMPORTED_MODULE_8__shared_layout_header_header_component__["a" /* HeaderComponent */],
-            __WEBPACK_IMPORTED_MODULE_9__shared_layout_footer_footer_component__["a" /* FooterComponent */],
-            __WEBPACK_IMPORTED_MODULE_10__post_list_post_list_component__["a" /* PostListComponent */],
-            __WEBPACK_IMPORTED_MODULE_11__home_home_component__["a" /* HomeComponent */],
-            __WEBPACK_IMPORTED_MODULE_12__about_about_component__["a" /* AboutComponent */],
-            __WEBPACK_IMPORTED_MODULE_13__shared_pipes_SanitizeHtml__["a" /* SanitizeHtml */],
-            __WEBPACK_IMPORTED_MODULE_10__post_list_post_list_component__["b" /* SocialDialogComponent */],
-            __WEBPACK_IMPORTED_MODULE_14__post_detail_post_detail_component__["a" /* PostDetailComponent */],
-            __WEBPACK_IMPORTED_MODULE_25__wrapper_wrapper_component__["a" /* Wrapper */],
-            __WEBPACK_IMPORTED_MODULE_26__dynamic_dynamic_component__["a" /* DynamicComponent */],
-            __WEBPACK_IMPORTED_MODULE_27__aframe_aframe_component__["a" /* AframeComponent */],
-            __WEBPACK_IMPORTED_MODULE_28__post_list_card_post_list_card_component__["a" /* PostListCardComponent */],
-            __WEBPACK_IMPORTED_MODULE_30_ang2_parallax_ng2parallax__["a" /* ng2Parallax */],
-            __WEBPACK_IMPORTED_MODULE_29__intro_intro_component__["a" /* IntroComponent */]
+            __WEBPACK_IMPORTED_MODULE_8__app_component__["a" /* AppComponent */],
+            __WEBPACK_IMPORTED_MODULE_9__shared_layout_header_header_component__["a" /* HeaderComponent */],
+            __WEBPACK_IMPORTED_MODULE_10__shared_layout_footer_footer_component__["a" /* FooterComponent */],
+            __WEBPACK_IMPORTED_MODULE_11__post_list_post_list_component__["a" /* PostListComponent */],
+            __WEBPACK_IMPORTED_MODULE_12__home_home_component__["a" /* HomeComponent */],
+            __WEBPACK_IMPORTED_MODULE_13__about_about_component__["a" /* AboutComponent */],
+            __WEBPACK_IMPORTED_MODULE_14__shared_pipes_SanitizeHtml__["a" /* SanitizeHtml */],
+            __WEBPACK_IMPORTED_MODULE_11__post_list_post_list_component__["b" /* SocialDialogComponent */],
+            __WEBPACK_IMPORTED_MODULE_15__post_detail_post_detail_component__["a" /* PostDetailComponent */],
+            __WEBPACK_IMPORTED_MODULE_26__wrapper_wrapper_component__["a" /* Wrapper */],
+            __WEBPACK_IMPORTED_MODULE_27__dynamic_dynamic_component__["a" /* DynamicComponent */],
+            __WEBPACK_IMPORTED_MODULE_28__aframe_aframe_component__["a" /* AframeComponent */],
+            __WEBPACK_IMPORTED_MODULE_29__post_list_card_post_list_card_component__["a" /* PostListCardComponent */],
+            __WEBPACK_IMPORTED_MODULE_31_ang2_parallax_ng2parallax__["a" /* ng2Parallax */],
+            __WEBPACK_IMPORTED_MODULE_30__intro_intro_component__["a" /* IntroComponent */]
         ],
-        entryComponents: [__WEBPACK_IMPORTED_MODULE_10__post_list_post_list_component__["b" /* SocialDialogComponent */], __WEBPACK_IMPORTED_MODULE_26__dynamic_dynamic_component__["a" /* DynamicComponent */], __WEBPACK_IMPORTED_MODULE_27__aframe_aframe_component__["a" /* AframeComponent */]],
+        entryComponents: [__WEBPACK_IMPORTED_MODULE_11__post_list_post_list_component__["b" /* SocialDialogComponent */], __WEBPACK_IMPORTED_MODULE_27__dynamic_dynamic_component__["a" /* DynamicComponent */], __WEBPACK_IMPORTED_MODULE_28__aframe_aframe_component__["a" /* AframeComponent */]],
         imports: [
-            __WEBPACK_IMPORTED_MODULE_16_ng2share_share_module__["a" /* ShareModule */],
-            __WEBPACK_IMPORTED_MODULE_15_ng2_responsive__["ResponsiveModule"],
+            __WEBPACK_IMPORTED_MODULE_17_ng2share_share_module__["a" /* ShareModule */],
+            __WEBPACK_IMPORTED_MODULE_16_ng2_responsive__["ResponsiveModule"],
             __WEBPACK_IMPORTED_MODULE_0__angular_platform_browser__["BrowserModule"],
-            __WEBPACK_IMPORTED_MODULE_2__angular_forms__["a" /* ReactiveFormsModule */],
-            __WEBPACK_IMPORTED_MODULE_3__angular_http__["a" /* HttpModule */],
-            __WEBPACK_IMPORTED_MODULE_17_ng_lazyload_image__["LazyLoadImageModule"],
-            __WEBPACK_IMPORTED_MODULE_18_ngx_infinite_scroll__["a" /* InfiniteScrollModule */],
-            __WEBPACK_IMPORTED_MODULE_20_angular2_useful_swiper__["SwiperModule"],
-            __WEBPACK_IMPORTED_MODULE_5__angular_material__["a" /* MaterialModule */].forRoot(),
-            __WEBPACK_IMPORTED_MODULE_19_ng2_toastr_ng2_toastr__["ToastModule"].forRoot(),
-            __WEBPACK_IMPORTED_MODULE_4__angular_router__["a" /* RouterModule */].forRoot(__WEBPACK_IMPORTED_MODULE_6__app_routes__["a" /* routes */]),
-            __WEBPACK_IMPORTED_MODULE_23__ngrx_store__["b" /* StoreModule */].provideStore(__WEBPACK_IMPORTED_MODULE_24__shared_reducers__)
+            __WEBPACK_IMPORTED_MODULE_3__angular_forms__["a" /* ReactiveFormsModule */],
+            __WEBPACK_IMPORTED_MODULE_4__angular_http__["a" /* HttpModule */],
+            __WEBPACK_IMPORTED_MODULE_18_ng_lazyload_image__["LazyLoadImageModule"],
+            __WEBPACK_IMPORTED_MODULE_19_ngx_infinite_scroll__["a" /* InfiniteScrollModule */],
+            __WEBPACK_IMPORTED_MODULE_21_angular2_useful_swiper__["SwiperModule"],
+            __WEBPACK_IMPORTED_MODULE_6__angular_material__["a" /* MaterialModule */].forRoot(),
+            __WEBPACK_IMPORTED_MODULE_20_ng2_toastr_ng2_toastr__["ToastModule"].forRoot(),
+            __WEBPACK_IMPORTED_MODULE_5__angular_router__["a" /* RouterModule */].forRoot(__WEBPACK_IMPORTED_MODULE_7__app_routes__["a" /* routes */]),
+            __WEBPACK_IMPORTED_MODULE_24__ngrx_store__["b" /* StoreModule */].provideStore(__WEBPACK_IMPORTED_MODULE_25__shared_reducers__)
         ],
         schemas: [__WEBPACK_IMPORTED_MODULE_1__angular_core__["CUSTOM_ELEMENTS_SCHEMA"]],
         providers: [{
-                provide: __WEBPACK_IMPORTED_MODULE_15_ng2_responsive__["ResponsiveConfig"],
+                provide: __WEBPACK_IMPORTED_MODULE_16_ng2_responsive__["ResponsiveConfig"],
                 useFactory: ResponsiveDefinition
-            }, __WEBPACK_IMPORTED_MODULE_21__shared_services_log_service__["a" /* LogService */], __WEBPACK_IMPORTED_MODULE_22__shared_services_vr_module_service__["a" /* VrModuleService */]],
-        bootstrap: [__WEBPACK_IMPORTED_MODULE_7__app_component__["a" /* AppComponent */]]
+            }, { provide: __WEBPACK_IMPORTED_MODULE_2__angular_common__["APP_BASE_HREF"], useValue: 'ngwordpress/' }, __WEBPACK_IMPORTED_MODULE_22__shared_services_log_service__["a" /* LogService */], __WEBPACK_IMPORTED_MODULE_23__shared_services_vr_module_service__["a" /* VrModuleService */]],
+        bootstrap: [__WEBPACK_IMPORTED_MODULE_8__app_component__["a" /* AppComponent */]]
     })
 ], AppModule);
 
@@ -976,20 +978,20 @@ AppModule = __decorate([
 
 
 var routes = [
-    { path: '', component: __WEBPACK_IMPORTED_MODULE_1__home_home_component__["a" /* HomeComponent */] },
-    { path: 'intro', component: __WEBPACK_IMPORTED_MODULE_5__intro_intro_component__["a" /* IntroComponent */] },
+    { path: 'ngwordpress', component: __WEBPACK_IMPORTED_MODULE_1__home_home_component__["a" /* HomeComponent */] },
+    { path: 'ngwordpress/intro', component: __WEBPACK_IMPORTED_MODULE_5__intro_intro_component__["a" /* IntroComponent */] },
     {
-        path: 'post', component: __WEBPACK_IMPORTED_MODULE_3__post_list_post_list_component__["a" /* PostListComponent */]
+        path: 'ngwordpress/post', component: __WEBPACK_IMPORTED_MODULE_3__post_list_post_list_component__["a" /* PostListComponent */]
     },
     {
-        path: 'page/:page', component: __WEBPACK_IMPORTED_MODULE_3__post_list_post_list_component__["a" /* PostListComponent */]
+        path: 'ngwordpress/page/:page', component: __WEBPACK_IMPORTED_MODULE_3__post_list_post_list_component__["a" /* PostListComponent */]
     },
     {
-        path: ':year/:month/:day/:slug',
+        path: 'ngwordpress/:year/:month/:day/:slug',
         component: __WEBPACK_IMPORTED_MODULE_2__post_detail_post_detail_component__["a" /* PostDetailComponent */]
     },
-    { path: 'about', component: __WEBPACK_IMPORTED_MODULE_4__about_about_component__["a" /* AboutComponent */] },
-    { path: 'aframe/:id', component: __WEBPACK_IMPORTED_MODULE_0__wrapper_wrapper_component__["a" /* Wrapper */] },
+    { path: 'ngwordpress/about', component: __WEBPACK_IMPORTED_MODULE_4__about_about_component__["a" /* AboutComponent */] },
+    { path: 'ngwordpress/aframe/:id', component: __WEBPACK_IMPORTED_MODULE_0__wrapper_wrapper_component__["a" /* Wrapper */] },
 ];
 //# sourceMappingURL=app.routes.js.map
 
