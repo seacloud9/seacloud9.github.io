@@ -142,12 +142,12 @@
       document.getElementById('sc9BgImg').style.backgroundImage =  "url('"+ _bgImgA.toString() + "')";
       //document.getElementById('sc9BgImg').svgInject();
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('https://seacloud9.github.io/ngwordpress/service-worker.js', { insecure: true, scope: '/ngwordpress/' }).then(function(registration) {
+        navigator.serviceWorker.register('/ngwordpress/service-worker.js', { insecure: true, scope: '/ngwordpress/' }).then(function(registration) {
           console.log('Service Worker registered');
         }).catch(function(err) {
           console.log('Service Worker registration failed: ', err);
         });
       }
     </script>
-<script type="text/javascript" src="/ngwordpress/inline.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/polyfills.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/styles.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/vendor.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/main.bundle.js"></script></body>
+<script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/inline.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/polyfills.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/styles.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/vendor.bundle.js"></script><script type="text/javascript" src="https://seacloud9.github.io/ngwordpress/main.bundle.js"></script></body>
 </html>
