@@ -17,12 +17,12 @@ void setup() {
 void drawGrid(){
  final HColorPool colors = new HColorPool(#001449, #012677, #005BC5, #00B4FC, #17F9FF, #4EE98E, #1290C1, #150DAB);
 
-  PShape svg1 = loadShape("/textures/svg/art_01.svg");
-  PShape svg2 = loadShape("/textures/svg/art_02.svg");
-  PShape svg3 = loadShape("/textures/svg/art_03.svg");
-  PShape svg4 = loadShape("/textures/svg/art_04.svg");
-  PShape svg5 = loadShape("/textures/svg/art_05.svg");
-  PShape svg6 = loadShape("/textures/svg/art_06.svg");
+  PShape svg1 = loadShape("../textures/svg/art_01.svg");
+  PShape svg2 = loadShape("../textures/svg/art_02.svg");
+  PShape svg3 = loadShape("../textures/svg/art_03.svg");
+  PShape svg4 = loadShape("../textures/svg/art_04.svg");
+  PShape svg5 = loadShape("../textures/svg/art_05.svg");
+  PShape svg6 = loadShape("../textures/svg/art_06.svg");
 
   pool = new HDrawablePool(121);
   pool.autoAddToStage()
