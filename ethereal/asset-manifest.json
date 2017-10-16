@@ -45,7 +45,7 @@
     }
   ],
   "html.js": "js/app.js",
-  "start_url":"/ethereal/index.html?pwa=true",
+  "start_url":"index.html?pwa=true",
   "index.html": "index.html",
   "background_color": "#eef20e",
   "javascript.js": "js/app.js",
