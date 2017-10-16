@@ -47,6 +47,7 @@
   "html.js": "js/app.js",
   "start_url":"index.html",
   "index.html": "index.html",
+  "background_color": "#eef20e",
   "javascript.js": "js/app.js",
   "theme_color": "#eef20e",
   "display": "standalone",
