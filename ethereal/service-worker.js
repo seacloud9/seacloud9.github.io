@@ -27,13 +27,12 @@ var URLS = {
 }
 
 
-self.addEventListener('fetch', function(evt) {
-  var request = evt.request;
-  var response;
-
-  // only handle GET requests
-  if (request.method !== 'GET') return;
-  evt.respondWith(response);
+self.addEventListener('fetch', function(event) {
+  event.respondWith(
+    fetch(event.request).catch(function() {
+      return caches.match(event.request);
+    })
+  );
 })
 
 function cacheAll(cacheName, urls) {
