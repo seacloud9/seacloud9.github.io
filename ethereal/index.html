@@ -18,11 +18,8 @@
 <div id="sceneContainer" style="height: 100%; width: 100%"></div>
 <script type="text/javascript" src="js/app.js" crossorigin="anonymous"></script>
 <script>
-    if (location.protocol != 'https:')
-    {
-    location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
-    }
-    if ('serviceWorker' in navigator) {
+    var shouldRegister = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    if ('serviceWorker' in navigator && shouldRegister) {
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('/ethereal/service-worker.js').then(function(registration) {
           // Registration was successful
