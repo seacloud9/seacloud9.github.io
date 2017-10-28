@@ -18,6 +18,10 @@
 <div id="sceneContainer" style="height: 100%; width: 100%"></div>
 <script type="text/javascript" src="js/app.js" crossorigin="anonymous"></script>
 <script>
+    if (location.protocol != 'https:')
+    {
+    location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
+    }
     var shouldRegister = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
     if ('serviceWorker' in navigator && shouldRegister) {
       window.addEventListener('load', function() {
