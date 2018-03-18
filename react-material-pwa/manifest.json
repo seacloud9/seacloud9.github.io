@@ -44,8 +44,8 @@
     }
   ],
   "html.js": "/react-material-pwa/js/app.js",
-  "start_url":"/react-material-pwa/index.html",
-  "index.html": "/react-material-pwa/index.html",
+  "start_url":"/react-material-pwa/",
+  "index.html": "/react-material-pwa/",
   "javascript.js": "/react-material-pwa/js/app.js",
   "theme_color": "#eef20e",
   "background_color": "#eef20e",
