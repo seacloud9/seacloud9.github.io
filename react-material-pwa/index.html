@@ -47,7 +47,7 @@
 <script>
     if (location.protocol != 'https:' && window.location.hostname !== 'localhost')
     {
-    //location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
+     location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
     }
     const shouldRegister = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
     if ('serviceWorker' in navigator && shouldRegister) {
