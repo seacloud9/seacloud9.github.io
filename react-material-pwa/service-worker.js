@@ -9,17 +9,17 @@ var CACHE_NAMES = {
 
 var URLS = {
   app: [
-    '/react-material-pwa/',
-    '/react-material-pwa/js/app.js',
-    '/react-material-pwa/index.html',
-    '/react-material-pwa/manifest.json',
-    "/react-material-pwa/Images/icon/icon-96x96.png",
-    "/react-material-pwa/Images/icon/icon-128x128.png",
-    "/react-material-pwa/Images/icon/icon-144x144.png",
-    "/react-material-pwa/Images/icon/icon-152x152.png",
-    "/react-material-pwa/Images/icon/icon-192x192.png",
-    "/react-material-pwa/Images/icon/icon-384x384.png",
-    "/react-material-pwa/Images/icon/icon-512x512.png"
+    './',
+    './js/app.js',
+    './index.html',
+    './manifest.json',
+    "./Images/icon/icon-96x96.png",
+    "./Images/icon/icon-128x128.png",
+    "./Images/icon/icon-144x144.png",
+    "./Images/icon/icon-152x152.png",
+    "./Images/icon/icon-192x192.png",
+    "./Images/icon/icon-384x384.png",
+    "./Images/icon/icon-512x512.png"
   ],
   vendor: [
 
