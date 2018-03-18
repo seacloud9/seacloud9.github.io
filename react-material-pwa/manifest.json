@@ -1,6 +1,6 @@
 {
   "name": ":.::react material pwa:.:::.:: ",
-  "short_name": "react material pwa",
+  "short_name": "react-wp-pwa",
   "icons": [
     {
       "src": "/react-material-pwa/Images/icon/icon-72x72.png",
@@ -47,8 +47,8 @@
   "start_url":"/react-material-pwa/",
   "index.html": "/react-material-pwa/",
   "javascript.js": "/react-material-pwa/js/app.js",
-  "theme_color": "#eef20e",
-  "background_color": "#eef20e",
+  "theme_color": "#0e9af1",
+  "background_color": "#0e9af1",
   "display": "standalone",
   "orientation": "portrait"
 }
