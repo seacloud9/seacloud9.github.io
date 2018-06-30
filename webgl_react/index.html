@@ -1,0 +1,438 @@
+
+
+<!doctype html>
+<html lang="en">
+   <head>
+      <meta charset="utf-8">
+      <title>React #webXR Awesomeness! </title>
+      <meta name="description" content="React and webXR">
+      <meta name="author" content="Brendon Smith">
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <link rel="stylesheet" href="css/reveal.min.css">
+      <link rel="stylesheet" href="css/theme/default.css" id="theme">
+      <!-- For syntax highlighting -->
+      <link rel="stylesheet" href="lib/css/zenburn.css">
+      <!-- If the query includes 'print-pdf', include the PDF print sheet -->
+      <script>
+         if( window.location.search.match( /print-pdf/gi ) ) {
+         	var link = document.createElement( 'link' );
+         	link.rel = 'stylesheet';
+         	link.type = 'text/css';
+         	link.href = 'css/print/pdf.css';
+         	document.getElementsByTagName( 'head' )[0].appendChild( link );
+         }
+      </script>
+      <!--[if lt IE 9]>
+      <script src="http://seacloud9.github.io/webgl_react/lib/js/html5shiv.js"></script>
+      <![endif]-->
+   </head>
+   <body>
+      <div class="reveal">
+         <div class="slides">
+            <section>
+               <h1>React and XR</h1>
+               <h3>webXR and Native XR</h3>
+               <div><a href="http://twitter.com/seacloud9" target="_blank">by Brendon A. Smith</a></div>
+               <div>
+                  <img src="https://pbs.twimg.com/media/CPOU4LJWsAADdl8.jpg" style="height:300px;" />
+               </div>
+            </section>
+            <section>
+               <h2>Disclaimer</h2>
+               <div>
+                  <br>
+               </div>
+               <div style="text-align: left; ">I am here on my own behalf and my views reflect only my own</div>
+               <div style="text-align: left; ">and not my employer. &nbsp;Everything that will be demonstrated</div>
+               <div style="text-align: left; ">here will be free and open source.  All contents will be available&nbsp;</div>
+               <div style="text-align: left; ">for free on <a href="https://github.com/seacloud9" targe="_blank">gitHub.com</a>.</div>
+            </section>
+            <section>
+               <h2>Why react?</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;">Virtual DOM, Tree Reconciliation, Memory Optimizations</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">The use of reusable, compassable, and stateful components</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">The nature of reactive updates</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Many things you do in react can be ported over to native</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">You can share buisness logic between web and native clients</span>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>What do I need to start? No need for expensive tools!</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;">Node</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">git</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">your favorite ide (Visual Code Studio)</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">patience and passion</span>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>webXR and React</h2>
+               <div style='display:flex; flex-direction: column'>
+                  <div style='display:flex; flex:0.8; justify-content: center; align-items: center; text-align: center'><img src='http://seacloud9.github.io/webgl_react/assets/redpill.gif' /></div>
+                  <div style='display:flex; flex:0.8; justify-content: center; align-items: center; text-align: center'> <a href="https://github.com/ngokevin/aframe-react" target="_blank">aFrame and React</a> &nbsp; or&nbsp;  <a href="https://facebook.github.io/react-360/" target="_blank">React360</a></div>
+               </div>
+            </section>
+            <section>
+               <h2>When should I use aFrame?</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;">You need quick access to lowlevel threeJS quickly. </span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">You would like to utilize custom shaders, post-processing effects</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">You can quickly leverage packages the community built</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Your need an intricate vr environment</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">You can easily add redux and redux-sagas to maintain state!</span>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>What can I do with react and aFrame?</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;"><a href="https://seacloud9.github.io/ethereal/" target="_blank">Interactive Stories and Games</a> </span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Immersive environments that are multiuser</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">You can utilize <a href='https://aframe.io/blog/arjs/' target="_blannk">ARJS</a> with aFrame</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;"><a href='https://developers.google.com/web/progressive-web-apps/' target="_blannk">PWAs</a> that appear native</span>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>Pros and Cons of aFrame and React</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;">Pro lots of freedom to rapidly prototype</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Pro you can easily setup complex environments</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Pro great support for GLTF</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Con setup can be tedious</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Con you may spend lots of time optimizing</span>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>When should I use React360?</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;">When you want to build an interactive story that communicates to the user by utilizing video, images, and minimal amounts of 3d.</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">When you want to display audio and video quickly in an webVR setting.</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">React360 is perfect for marketing material and vr video delivery. </span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">React360 has excellent support for flexbox so it is perfect for projecting 2d in vr scenes</span>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>React360 is perfect for story telling and marketing</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;">React360 is well suited for broadcast and video content</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">React360 is perfect for journalism and vr documentaries</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">React360 is perfect for ephemeral vr conent</span>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>Just how does React360 work?</h2>
+               <div>
+                  <h3><span style="text-align: center;">React360 is built on ReactNative</span></h3>
+                  <span style="text-align: center;">React 360’s architecture mirrors that of React Native, with the React application code running in a background thread — in this case, a Web Worker in the web browser. When the application’s React components are rendered, React 360 utilizes the React Native bridge to serialize any necessary UI changes and pass them to the main thread, which in this case is the browser’s main JavaScript runtime. Here, React 360 utilizes a library from Oculus called OVRUI to translate the payload of pending UI updates into Three.js commands, rendering a 3D scene using WebGL.</span>
+               </div>
+            </section>
+            <section>
+               <h2>Here is a high level view of React360 runtime</h2>
+               <div style='display:flex; flex:1; align-items: center; justify-content: center'>
+                  <a style='display:flex; flex:1; align-items: center; justify-content: center' href="https://facebook.github.io/react-360/docs/runtime.html" target="_blank"><img style="max-height: 500px" src='http://seacloud9.github.io/webgl_react/assets/reactVR.png' /></a>
+               </div>
+            </section>
+            <section>
+               <h2>Pros and Cons of React360</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;">Pro excellent command line interface</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Pro excellent choice for video or panoramic content delivery</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Pro great for creating a mashup where data visualization is important</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Pro performance is well above average</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Pro great support for GLTF</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Con native modules can be a challenge</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Con you may find it difficult to do things that are easy to do in aFrame</span>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>What about react-native and native XR?</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;"><a href='https://expo.io' target='_blank'>Expo</a></span>
+                        <ul>
+                           <li>
+                              <span style="text-align: center;"><a href='https://docs.expo.io/versions/v28.0.0/sdk/AR' target='_blank'>ARKit</a> support!</span>
+                           </li>
+                           <li>
+                              <span style="text-align: center;"><a href='https://docs.expo.io/versions/v28.0.0/sdk/gl-view' target='_blank'>glView</a> with <a href='https://github.com/expo/expo-three' target='_blank'>theeJS</a> support!</span>
+                           </li>
+                           <li>
+                              <span style="text-align: center;">GLTF Support</span>
+                           </li>
+                        </ul>
+                     </li>
+                     <li>
+                        <span style="text-align: center;"><a href='https://viromedia.com/viroreact' target='_blank'>Viroreact</a></span>
+                        <ul>
+                           <li>
+                              <span style="text-align: center;">ARKit and ARcore support</span>
+                           </li>
+                           <li>
+                              <span style="text-align: center;">Native VR support for Daydream, GearVR, Occulus Go, and Cardboard </span>
+                           </li>
+                           <li>
+                              <span style="text-align: center;">GLTF Support</span>
+                           </li>
+                        </ul>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>What can I build with expo?</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;"><a href="https://blog.expo.io/taking-a-stroll-through-sunset-cyberspace-73b125cf6476" target="_blank">Simple 3d Games with threeJS</a></span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">AR apps that can utilize a camera!</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Virtually an 2d Application</span>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>Why expo?</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;">Quickly prototype and share via snack or <a href="https://expo.io/@seacloud9/WpReactNative" target="_blank">qrCode!</a></span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Expo wraps around many of the best react-native pacakges in the community</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;"><a href="https://github.com/jbosse/ignite-expo-boilerplate" target="_blank">Easy setup grab a boilerplate!</a></span>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>Let see somethings you've made?</h2>
+               <div style="display: flex; flex-direction: column; flex: 1">
+                  <video autoplay controls style="height:500px">
+                     <source src="http://seacloud9.github.io/webgl_react/assets/arRibbons.mp4" type="video/mp4" />
+                  </video>
+                  <div>
+                     <span style="text-align: center;"><a href="https://github.com/seacloud9/artkit-boilerplate" target="_blank"> expo ARKit boilerplate</a></span>
+                  </div>
+               </div>
+            </section>
+            <section>
+               <h2>What about ViroReact</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;">You can quickly prototype responsive xr and vr experinces!</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">Their application allows you to rapidly test your prototype with their app! Kind of like expo</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">In general if you love react this looks like a promising work flow for react developers over unity</span>
+					 </li>
+					 <li>
+							<span style="text-align: center;">Supports GLTF!</span>
+					</li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>Helpful Links</h2>
+               <div>
+                  <ul>
+                     <li>
+                        <span style="text-align: center;">
+                        <a href="https://www.smashingmagazine.com/2017/02/getting-started-with-vr-interface-design/" target="_blank">webVR User interface Design</a>&nbsp;</span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">
+                        <a href="https://viromedia.com/viroreact" target="_blank">Viro React</a></span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">
+                        <a href="http://expo.io" target="_blank">Expo.io</a></span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">
+                        <a href="https://github.com/expo/expo-three" target="_blank">expo-three</a></span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">
+                        <a href="https://github.com/nikgraf/awesome-react-360" target="_blank">Awesome React 360</a></span>
+                     </li>
+                     <li>
+                        <span style="text-align: center;">
+                        <a href="https://github.com/facebookincubator/FBX2glTF" target="_blank">FBX 2 GLTF</a></span>
+					 </li>
+					 <li>
+							<span style="text-align: center;">
+							<a href="https://www.udemy.com/react-vr/" target="_blank">Learn ReactVR from Udemy</a></span>
+						 </li>
+					 <li>
+							<span style="text-align: center;">
+							<a href="https://medium.com/coding-artist/" target="_blank">Learn ReactVR</a></span>
+						 </li>
+						 <li>
+								<span style="text-align: center;">
+								<a href="https://blog.pusher.com/6-coolest-react-vr-projects/" target="_blank">Cool Examples of ReactVR</a></span>
+							 </li>
+						 
+						 <li>
+								<span style="text-align: center;">
+								<a href="https://shift.infinite.red/" target="_blank">One of the best ReactNative blogs!</a></span>
+							 </li>
+							 <li>
+									<span style="text-align: center;">
+									<a href="https://blog.expo.io/@Baconbrix" target="_blank">Expo learn arkit and </a></span>
+								 </li>
+                     <li>
+
+							
+                        <span style="text-align: center;">
+                        <a href="https://80.lv/articles/making-zelda-like-vfx-with-unity/" target="_blank">Unity Special FX</a></span>
+                     </li>
+                  </ul>
+               </div>
+            </section>
+            <section>
+               <h2>Thank You</h2>
+               <ul>
+                  <li><span style="text-align: center;">
+                     <a href="https://www.khronos.org/" target="_blank">Khronos Group</a></span>
+                  </li>
+                  <li><span style="text-align: center;">
+                     <a href="http://www.autodesk.com/" target="_blank">Mozilla</a></span>
+                  </li>
+                  <li><span style="text-align: center;">
+                     <a href="http://newrelic.com/" target="_blank">Web XR Meetup Group</a>
+                     </span>
+                  </li>
+               </ul>
+            </section>
+         </div>
+      </div>
+      <script src="http://seacloud9.github.io/webgl_react/lib/js/head.min.js"></script>
+      <script src="http://seacloud9.github.io/webgl_react/js/reveal.min.js"></script>
+      <script>
+         // Full list of configuration options available here:
+         // https://github.com/hakimel/reveal.js#configuration
+         Reveal.initialize({
+         	controls: true,
+         	progress: true,
+         	history: true,
+         	center: true,
+         	theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+         	transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+         	// Parallax scrolling
+         	// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+         	// parallaxBackgroundSize: '2100px 900px',
+         	// Optional libraries used to extend on reveal.js
+         	dependencies: [
+         		{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+         		{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+         		{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+         		{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+         		{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+         		{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+         	]
+         });
+      </script>
+   </body>
+</html>
