@@ -33,7 +33,7 @@
             scene.clearColor = new BABYLON.Color3(0.11, 0.28, 0.45)
             // Creating background layer using a dynamic texture with 2D canvas
             var background = new BABYLON.Layer("back0", null, scene);
-            background.texture = new BABYLON.DynamicTexture("dynamic texture", 512, scene, true);
+            background.texture = new BABYLON.DynamicTexture("dynamic texture", 256, scene, true);
             var textureContext = background.texture.getContext();
             var size = background.texture.getSize();
         
@@ -44,7 +44,7 @@
             gradient.addColorStop(0.5, "#4584b4");
         
             textureContext.fillStyle = gradient;
-            textureContext.fillRect(0, 0, 512, 512);
+            textureContext.fillRect(0, 0, 256, 256);
             background.texture.update();
         
             var camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, -128, 0), scene);
@@ -116,7 +116,7 @@
         
         // Create merged planes
             size = 128;
-            var count = 8000;
+            var count = 1000;
         
             var globalVertexData;
         
