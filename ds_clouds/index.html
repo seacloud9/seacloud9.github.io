@@ -109,7 +109,7 @@
                 uniforms: ["worldViewProjection"],
                 samplers: ["textureSampler"]
             });
-            cloudMaterial.setTexture("textureSampler", new BABYLON.Texture("/textures/cloud.png", scene));
+            cloudMaterial.setTexture("textureSampler", new BABYLON.Texture("https://seacloud9.github.io/ds_clouds/textures/cloud.png", scene));
             cloudMaterial.setFloat("fogNear", -100);
             cloudMaterial.setFloat("fogFar", 3000);
             cloudMaterial.setColor3("fogColor", BABYLON.Color3.FromInts(69, 132, 180));
