@@ -1,0 +1,1 @@
+{"version":3,"file":"main.css","sources":["webpack:///style.css"],"sourcesContent":["#babylonJS{\n    display: flex;\n    flex: 1;\n    width:100%;\n}"],"mappings":"AAAA;AACA;AACA;AACA;AACA;","sourceRoot":""}
