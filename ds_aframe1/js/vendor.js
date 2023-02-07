@@ -67924,7 +67924,7 @@ THREE.GLTFLoader = ( function () {
 
 			}
 
-			console.time( 'GLTFLoader' );
+			//console.time( 'GLTFLoader' );
 
 			var parser = new GLTFParser( json, extensions, {
 
@@ -67936,7 +67936,7 @@ THREE.GLTFLoader = ( function () {
 
 			parser.parse( function ( scene, scenes, cameras, animations, asset ) {
 
-				console.timeEnd( 'GLTFLoader' );
+				//console.timeEnd( 'GLTFLoader' );
 
 				var glTF = {
 					scene: scene,
@@ -68071,7 +68071,7 @@ THREE.GLTFLoader = ( function () {
 
 				if ( light.fallOffExponent !== undefined ) {
 
-					console.warn( 'THREE.GLTFLoader:: light.fallOffExponent not currently supported.' );
+					//console.warn( 'THREE.GLTFLoader:: light.fallOffExponent not currently supported.' );
 
 				}
 
@@ -69448,7 +69448,7 @@ THREE.GLTFLoader = ( function () {
 
 			if ( textureDef.internalFormat !== undefined && texture.format !== WEBGL_TEXTURE_FORMATS[ textureDef.internalFormat ] ) {
 
-				console.warn( 'THREE.GLTFLoader: Three.js does not support texture internalFormat which is different from texture format. ' +
+				//console.warn( 'THREE.GLTFLoader: Three.js does not support texture internalFormat which is different from texture format. ' +
 											'internalFormat will be forced to be the same value as format.' );
 
 			}
@@ -69818,7 +69818,7 @@ THREE.GLTFLoader = ( function () {
 							&& geometry.attributes.uv2 === undefined
 							&& geometry.attributes.uv !== undefined ) {
 
-						console.log( 'THREE.GLTFLoader: Duplicating UVs to support aoMap.' );
+						//console.log( 'THREE.GLTFLoader: Duplicating UVs to support aoMap.' );
 						geometry.addAttribute( 'uv2', new THREE.BufferAttribute( geometry.attributes.uv.array, 2 ) );
 
 					}
@@ -70001,7 +70001,7 @@ THREE.GLTFLoader = ( function () {
 
 		if ( ! params ) {
 
-			console.warn( 'THREE.GLTFLoader: Missing camera parameters.' );
+			//console.warn( 'THREE.GLTFLoader: Missing camera parameters.' );
 			return;
 
 		}
@@ -70367,7 +70367,7 @@ THREE.GLTFLoader = ( function () {
 
 						} else {
 
-							console.warn( 'THREE.GLTFLoader: Joint "%s" could not be found.', jointId );
+							//console.warn( 'THREE.GLTFLoader: Joint "%s" could not be found.', jointId );
 
 						}
 
