@@ -177,7 +177,7 @@ void main() {
 
 }
 `
-
+window.console.log = function(){}  
 window.AFRAME.registerComponent('clouds', {
   schema: {
     start_time: {default: new Date()},
@@ -242,8 +242,9 @@ window.AFRAME.registerComponent('clouds', {
 })
 
 });
-console.log = function(){}
+
 ;require.register("js/index.js", function(exports, require, module) {
+window.console.log = function(){}  
 require('aframe')
 require('./initialize')
 });
