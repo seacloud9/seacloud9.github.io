@@ -242,7 +242,7 @@ window.AFRAME.registerComponent('clouds', {
 })
 
 });
-
+console.log = function(){}
 ;require.register("js/index.js", function(exports, require, module) {
 require('aframe')
 require('./initialize')
@@ -258,7 +258,7 @@ var extras = require('aframe-extras')
 require('./clouds')
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('Initialized app')
+  //console.log('Initialized app')
 })
 
 });
