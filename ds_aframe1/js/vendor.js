@@ -12634,7 +12634,7 @@ AFRAME.registerSystem('preloader', {
 
     triggerPreloadingComplete: function(){
         if(this.data.debug){
-            console.info('Preloading complete');
+            //console.info('Preloading complete');
         }
         if(this.data.disableVRModeUI){
             this.sceneEl.setAttribute('vr-mode-ui','enabled','true');
