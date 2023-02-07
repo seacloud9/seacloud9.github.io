@@ -3115,7 +3115,7 @@ AFRAME.registerSystem("effects", {
             uniforms: uniforms
         });
 
-        if(this.sceneEl.components.debug) console.log(source, material);
+        if(this.sceneEl.components.debug) /*console.log(source, material)*/;
         return material;
     },
 
@@ -12371,7 +12371,7 @@ AFRAME.registerSystem('preloader', {
     init: function () {
 
         if(this.data.debug){
-            console.log('Initialized preloader');
+            //console.log('Initialized preloader');
         }
 
         if(this.data.type === 'bootstrap' && typeof $ === 'undefined'){
@@ -39613,7 +39613,7 @@ function rebuildAttribute (attrib, data, itemSize) {
 
 			event.preventDefault();
 
-			console.log( 'THREE.WebGLRenderer: Context Lost.' );
+			//console.log( 'THREE.WebGLRenderer: Context Lost.' );
 
 			_isContextLost = true;
 
@@ -39621,7 +39621,7 @@ function rebuildAttribute (attrib, data, itemSize) {
 
 		function onContextRestore( /* event */ ) {
 
-			console.log( 'THREE.WebGLRenderer: Context Restored.' );
+			//console.log( 'THREE.WebGLRenderer: Context Restored.' );
 
 			_isContextLost = false;
 
@@ -62213,7 +62213,7 @@ function rebuildAttribute (attrib, data, itemSize) {
 
 	Curve.create = function ( construct, getPoint ) {
 
-		console.log( 'THREE.Curve.create() has been deprecated' );
+		//console.log( 'THREE.Curve.create() has been deprecated' );
 
 		construct.prototype = Object.create( Curve.prototype );
 		construct.prototype.constructor = construct;
@@ -64417,7 +64417,7 @@ THREE.ColladaLoader.prototype = {
 						break;
 
 					default:
-						console.log( child );
+						//console.log( child );
 
 				}
 
@@ -66489,7 +66489,7 @@ THREE.ColladaLoader.prototype = {
 
 				if ( maxcount > 0 ) {
 
-					console.log( 'THREE.ColladaLoader: Geometry has faces with more than 4 vertices.' );
+					//console.log( 'THREE.ColladaLoader: Geometry has faces with more than 4 vertices.' );
 
 				}
 
@@ -66996,7 +66996,7 @@ THREE.ColladaLoader.prototype = {
 
 					} else {
 
-						console.log( 'THREE.ColladaLoader: ' + jointIndex + ' does not exist.' );
+						//console.log( 'THREE.ColladaLoader: ' + jointIndex + ' does not exist.' );
 
 					}
 
@@ -67166,7 +67166,7 @@ THREE.ColladaLoader.prototype = {
 						break;
 
 					default:
-						console.log( child );
+						//console.log( child );
 
 				}
 
