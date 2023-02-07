@@ -3115,7 +3115,7 @@ AFRAME.registerSystem("effects", {
             uniforms: uniforms
         });
 
-        if(this.sceneEl.components.debug) /*console.log(source, material)*/;
+  
         return material;
     },
 
@@ -67749,9 +67749,9 @@ THREE.ColladaLoader.prototype = {
 		parseLibrary( collada, 'library_kinematics_models', 'kinematics_model', parseKinematicsModel );
 		parseLibrary( collada, 'scene', 'instance_kinematics_scene', parseKinematicsScene );
 
-		console.timeEnd( 'THREE.ColladaLoader: Parse' );
+		//console.timeEnd( 'THREE.ColladaLoader: Parse' );
 
-		console.time( 'THREE.ColladaLoader: Build' );
+		//console.time( 'THREE.ColladaLoader: Build' );
 
 		buildLibrary( library.animations, buildAnimation );
 		buildLibrary( library.clips, buildAnimationClip );
@@ -67764,7 +67764,7 @@ THREE.ColladaLoader.prototype = {
 		buildLibrary( library.geometries, buildGeometry );
 		buildLibrary( library.visualScenes, buildVisualScene );
 
-		console.timeEnd( 'THREE.ColladaLoader: Build' );
+		//console.timeEnd( 'THREE.ColladaLoader: Build' );
 
 		setupAnimations();
 		setupKinematics();
@@ -67779,7 +67779,7 @@ THREE.ColladaLoader.prototype = {
 
 		scene.scale.multiplyScalar( asset.unit );
 
-		console.timeEnd( 'THREE.ColladaLoader' );
+		//console.timeEnd( 'THREE.ColladaLoader' );
 
 		return {
 			animations: animations,
@@ -69448,8 +69448,7 @@ THREE.GLTFLoader = ( function () {
 
 			if ( textureDef.internalFormat !== undefined && texture.format !== WEBGL_TEXTURE_FORMATS[ textureDef.internalFormat ] ) {
 
-				//console.warn( 'THREE.GLTFLoader: Three.js does not support texture internalFormat which is different from texture format. ' +
-											'internalFormat will be forced to be the same value as format.' );
+				//console.warn( 'THREE.GLTFLoader: Three.js does not support texture internalFormat which is different from texture format. ' +'internalFormat will be forced to be the same value as format.' );
 
 			}
 
@@ -70528,7 +70527,7 @@ THREE.MTLLoader.prototype = {
 
 	setBaseUrl: function ( path ) {
 
-		console.warn( 'THREE.MTLLoader: .setBaseUrl() is deprecated. Use .setTexturePath( path ) for texture path or .setPath( path ) for general base path instead.' );
+		//console.warn( 'THREE.MTLLoader: .setBaseUrl() is deprecated. Use .setTexturePath( path ) for texture path or .setPath( path ) for general base path instead.' );
 
 		this.setTexturePath( path );
 
