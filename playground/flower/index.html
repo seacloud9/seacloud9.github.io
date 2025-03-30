@@ -1,0 +1,465 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        ;
+        // BabylonJS Playground - 80s Fluorescent Blooming Flower
+// Copy and paste this entire code into the BabylonJS Playground: https://playground.babylonjs.com/
+
+// Store shaders directly in the shader store instead of as strings
+BABYLON.Effect.ShadersStore["flowerVertexShader"] = `
+    precision highp float;
+
+    // Attributes
+    attribute vec3 position;
+    attribute vec3 normal;
+    attribute vec2 uv;
+
+    // Uniforms
+    uniform mat4 world;
+    uniform mat4 viewProjection;
+    uniform float time;
+    uniform float bloomFactor;
+    
+    // Varying
+    varying vec2 vUV;
+    varying vec3 vNormal;
+    varying vec3 vPosition;
+    varying vec3 vColor;
+
+    // Functions
+    mat4 rotationMatrix(vec3 axis, float angle) {
+        axis = normalize(axis);
+        float s = sin(angle);
+        float c = cos(angle);
+        float oc = 1.0 - c;
+        
+        return mat4(
+            oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+            oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+            oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+            0.0,                                0.0,                                0.0,                                1.0
+        );
+    }
+    
+    void main() {
+        vUV = uv;
+        
+        // Petal calculation
+        float petalCount = 12.0;
+        float petalIndex = floor(position.x * petalCount);
+        float petalPhase = petalIndex / petalCount * 3.14159 * 2.0;
+        
+        // All petals use the same color - Hot pink
+        vec3 petalColor = vec3(1.0, 0.2, 0.8);  // Hot pink
+        vColor = petalColor;
+        
+        // Apply some random variation based on position
+        vColor += 0.2 * vec3(
+            sin(position.x * 10.0 + time * 0.5),
+            cos(position.y * 8.0 + time * 0.7),
+            sin(position.z * 12.0 + time * 0.3)
+        );
+        
+        // Blooming animation
+        vec3 pos = position;
+        
+        // Calculate blooming factor (0 to 1)
+        float bloom = min(1.0, bloomFactor);
+        
+        // Rotate petals outward based on blooming factor
+        float angle = bloom * 0.8 * (1.0 + 0.2 * sin(petalPhase + time));
+        mat4 rotation = rotationMatrix(vec3(0.0, 1.0, 0.0), petalPhase);
+        rotation *= rotationMatrix(vec3(1.0, 0.0, 0.0), angle);
+        
+        // Apply blooming transformation
+        pos.y += bloom * 0.5 * sin(position.x * 5.0 + position.z * 5.0 + time);
+        pos.x += bloom * 0.2 * cos(position.y * 3.0 + time * 0.8);
+        pos.z += bloom * 0.2 * sin(position.y * 4.0 + time * 0.6);
+        
+        // Apply rotation
+        vec4 rotatedPos = rotation * vec4(pos, 1.0);
+        pos = rotatedPos.xyz;
+        
+        // Scale outwards as it blooms
+        pos *= 1.0 + bloom * 0.5;
+        
+        // Calculate final position
+        vec4 worldPos = world * vec4(pos, 1.0);
+        gl_Position = viewProjection * worldPos;
+        
+        // Pass variables to fragment shader
+        vNormal = (world * vec4(normal, 0.0)).xyz;
+        vPosition = worldPos.xyz;
+    }
+`;
+
+BABYLON.Effect.ShadersStore["flowerFragmentShader"] = `
+    precision highp float;
+
+    // Varying
+    varying vec2 vUV;
+    varying vec3 vNormal;
+    varying vec3 vPosition;
+    varying vec3 vColor;
+
+    // Uniforms
+    uniform float time;
+    uniform float bloomFactor;
+
+    void main() {
+        // Normalize the normal
+        vec3 n = normalize(vNormal);
+        
+        // Calculate lighting
+        vec3 lightDir = normalize(vec3(sin(time * 0.3), 0.5, cos(time * 0.3)));
+        float diffuse = max(0.0, dot(n, lightDir));
+        
+        // Calculate final color with 80s glow effect
+        vec3 color = vColor * (0.4 + 0.6 * diffuse);
+        
+        // Add pulsing glow based on time
+        float glow = 0.2 + 0.1 * sin(time * 2.0);
+        color += glow * vec3(
+            0.5 + 0.5 * sin(time * 0.5),
+            0.5 + 0.5 * cos(time * 0.7),
+            0.5 + 0.5 * sin(time * 0.9)
+        );
+        
+        // Apply bloom factor for extra intensity
+        color += bloomFactor * 0.3 * vColor;
+        
+        gl_FragColor = vec4(color, 1.0);
+    }
+`;
+
+// Custom function to create a parametric surface (replacement for missing CreateParametricSurface)
+function createParametricSurface(name, options, scene) {
+    const { uCount, vCount, func } = options;
+    
+    // Create vertex data
+    const vertexData = new BABYLON.VertexData();
+    const positions = [];
+    const indices = [];
+    const normals = [];
+    const uvs = [];
+    
+    // Generate vertices
+    for (let v = 0; v <= vCount; v++) {
+        for (let u = 0; u <= uCount; u++) {
+            // Calculate position using the provided function
+            const point = func(u / uCount, v / vCount);
+            positions.push(point.x, point.y, point.z);
+            
+            // Default UVs
+            uvs.push(u / uCount, v / vCount);
+        }
+    }
+    
+    // Generate indices for triangles
+    for (let v = 0; v < vCount; v++) {
+        for (let u = 0; u < uCount; u++) {
+            const p0 = v * (uCount + 1) + u;
+            const p1 = p0 + 1;
+            const p2 = (v + 1) * (uCount + 1) + u;
+            const p3 = p2 + 1;
+            
+            // First triangle
+            indices.push(p0, p2, p1);
+            
+            // Second triangle
+            indices.push(p1, p2, p3);
+        }
+    }
+    
+    // Calculate normals
+    BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+    
+    // Set vertex data
+    vertexData.positions = positions;
+    vertexData.indices = indices;
+    vertexData.normals = normals;
+    vertexData.uvs = uvs;
+    
+    // Create the mesh
+    const mesh = new BABYLON.Mesh(name, scene);
+    vertexData.applyToMesh(mesh);
+    
+    return mesh;
+}
+
+// Create the BabylonJS scene
+const createScene = function () {
+    // Create scene
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0.0, 0.0, 0.1, 1.0);
+    
+    // Create camera
+    const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 3, 5, BABYLON.Vector3.Zero(), scene);
+    camera.attachControl(canvas, true);
+    camera.minZ = 0.1;
+    camera.wheelDeltaPercentage = 0.01;
+    
+    // Create lights
+    const hemisphericLight = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    hemisphericLight.intensity = 0.6;
+    
+    const pointLight = new BABYLON.PointLight("pointLight", new BABYLON.Vector3(0, 2, 0), scene);
+    pointLight.intensity = 0.4;
+    
+    // Create the shader material - using the shader store references now
+    const shaderMaterial = new BABYLON.ShaderMaterial("flower", scene, {
+        vertex: "flower",
+        fragment: "flower",
+    }, {
+        attributes: ["position", "normal", "uv"],
+        uniforms: ["world", "worldView", "worldViewProjection", "view", "viewProjection", "time", "bloomFactor"]
+    });
+    
+    // Add time uniform
+    shaderMaterial.setFloat("time", 0);
+    shaderMaterial.setFloat("bloomFactor", 0);
+    
+    // Create stem material (green)
+    const stemMaterial = new BABYLON.StandardMaterial("stemMaterial", scene);
+    stemMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.5, 0.1);
+    stemMaterial.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+    
+    // Create flower mesh with multiple petals
+    const createFlower = function() {
+        const flower = new BABYLON.Mesh("flower", scene);
+        const petalCount = 12; // Increased from 8 to 12 for better coverage
+        
+        for (let i = 0; i < petalCount; i++) {
+            // Create petal shape
+            // Using our custom function instead of the missing CreateParametricSurface
+            const petal = createParametricSurface("petal" + i, {
+                uCount: 20,
+                vCount: 10,
+                func: (u, v) => {
+                    // Map u,v to x,y,z
+                    const theta = u * Math.PI * 2;
+                    // Modified to make petals wider
+                    const r = 0.7 * (1 - v) * Math.pow(Math.sin(theta * 2), 2);
+                    
+                    // Petal shape equation - removing the offset to make them align better
+                    const x = r * Math.cos(theta);
+                    const y = v * 0.8;
+                    const z = r * Math.sin(theta);
+                    
+                    return new BABYLON.Vector3(x, y, z);
+                }
+            }, scene);
+            
+            // Rotate the petal around the center
+            const angle = (i / petalCount) * Math.PI * 2;
+            petal.rotate(BABYLON.Axis.Y, angle, BABYLON.Space.WORLD);
+            
+            // Add some randomization
+            petal.rotate(BABYLON.Axis.X, (Math.random() - 0.5) * 0.2, BABYLON.Space.WORLD);
+            petal.rotate(BABYLON.Axis.Z, (Math.random() - 0.5) * 0.2, BABYLON.Space.WORLD);
+            
+            // Merge with the flower
+            petal.material = shaderMaterial;
+            petal.parent = flower;
+        }
+        
+        // Create center of the flower
+        const center = BABYLON.MeshBuilder.CreateSphere("center", { diameter: 0.7, segments: 16 }, scene);
+        center.position.y = 0.1;
+        center.material = shaderMaterial;
+        center.parent = flower;
+        
+        // Create stem
+        const stem = BABYLON.MeshBuilder.CreateCylinder("stem", {
+            height: 3.0,
+            diameter: 0.2,
+            tessellation: 12
+        }, scene);
+        
+        // Position stem below the flower
+        stem.position.y = -1.4;
+        stem.material = stemMaterial;
+        stem.parent = flower;
+        
+        // Add a leaf to the stem
+        const leaf = BABYLON.MeshBuilder.CreateDisc("leaf", {
+            radius: 0.5,
+            tessellation: 24,
+            arc: 0.7
+        }, scene);
+        
+        leaf.scaling.y = 2.0; // Make it oval
+        leaf.rotation.x = Math.PI / 2; // Rotate to face outward
+        leaf.rotation.y = Math.PI / 4; // Angle it a bit
+        leaf.position.y = -0.8; // Position on stem
+        leaf.position.x = 0.4; // Offset from stem
+        leaf.material = stemMaterial;
+        leaf.parent = flower;
+        
+        return flower;
+    };
+    
+    const flower = createFlower();
+    
+    // Setup bloom post-process
+    const defaultPipeline = new BABYLON.DefaultRenderingPipeline("default", true, scene, [camera]);
+    defaultPipeline.bloomEnabled = true;
+    defaultPipeline.bloomThreshold = 0.2;
+    defaultPipeline.bloomWeight = 0.8;
+    defaultPipeline.bloomKernel = 64;
+    defaultPipeline.bloomScale = 0.5;
+    
+    // Create animation
+    let time = 0;
+    let bloomFactor = 0;
+    
+    scene.registerBeforeRender(function () {
+        time += engine.getDeltaTime() / 1000;
+        
+        // Animate bloom factor (0 to 1 over 5 seconds)
+        if (bloomFactor < 1) {
+            bloomFactor = Math.min(1, bloomFactor + engine.getDeltaTime() / 5000);
+        }
+        
+        // Update shader uniforms
+        shaderMaterial.setFloat("time", time);
+        shaderMaterial.setFloat("bloomFactor", bloomFactor);
+        
+        // Animate point light
+        pointLight.position.x = 2 * Math.sin(time * 0.3);
+        pointLight.position.z = 2 * Math.cos(time * 0.3);
+        
+        // Animate bloom intensity for pulsing effect
+        defaultPipeline.bloomWeight = 0.8 + 0.3 * Math.sin(time * 2);
+    });
+    
+    return scene;
+};
+
+// The following code is typically in the HTML for the BabylonJS playground
+// This is included for reference but may need to be commented out
+// depending on how you're using this code
+
+// Initialize the Babylon engine and scene
+window.initFunction = async function() {
+    var asyncEngineCreation = async function() {
+        try {
+            return createDefaultEngine();
+        } catch(e) {
+            console.log("the available createEngine function failed. Creating the default engine instead");
+            return createDefaultEngine();
+        }
+    }
+
+    window.engine = await asyncEngineCreation();
+    if (!engine) throw 'engine should not be null.';
+    window.scene = createScene();
+};
+
+// In case this code is used outside of playground
+window.initFunction().then(() => {
+    scene.then(returnedScene => { sceneToRender = returnedScene; });
+    engine.runRenderLoop(function () {
+        if (sceneToRender && sceneToRender.activeCamera) {
+            sceneToRender.render();
+        }
+    });
+});
+
+// Resize
+window.addEventListener("resize", function () {
+    engine.resize();
+});
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions();
+                    if (engineOptions.audioEngine !== false) {
+                        
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,491 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        // ---------------------
+// 1) Floor texture
+// ---------------------
+let floorTextureBase64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAALElEQVR4nGPsdhX+L8orxfD68zMGcmgmSjS//vyMgYkSzaMuGHXBqAuo6AIAnLB/Teva5CUAAAAASUVORK5CYII=";
+
+// ---------------------
+// 2) Wall texture
+// ---------------------
+let wallTextureBase64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAALElEQVR4nGPMzMz8Ly4uzvDy5UsGcmgmSjS/fPmSgYkSzaMuGHXBqAuo6AIAJal/ruRwcdoAAAAASUVORK5CYII=";
+
+// ---------------------
+// 3) Enemy sprite (billboard / 2D sprite-like asset)
+// ---------------------
+let enemyTextureBase64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAZ0lEQVR4nGNgGPKAEZvgJiWl/zfv3WNQV1JiYGBgYEBm+927h6KHiRTNN+/dY9ikpPQfpwGENMPY3QwM/7EaQIxmZDaGAaRqxhoGxLpiGHkBIyHB4hmf5lIkfVhTYjcDw39iNA8OAABwhHgSyKteZgAAAABJRU5ErkJggg==";
+
+// ---------------------
+// 4) Gun sprite (simple HUD “weapon” graphic)
+// ---------------------
+let gunTextureBase64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAIklEQVR4nGNgGAWMuCQaGhr+o/GxqmWi1AWjBgwLA4YBAADUKQQSKFLo8wAAAABJRU5ErkJggg==";
+
+// ---------------------
+// 5) Decoration sprite (e.g., a candle)
+// ---------------------
+let decorationTextureBase64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAIklEQVR4nGNgGP7g/3WG/5QZ8P8/XgOYKDJ91IBRAwYNAAC3XAbkhMKwIwAAAABJRU5ErkJggg==";
+
+// ---------------------
+// NOISE TEXTURE for LavaMaterial
+// (A tiny 14×14 PNG as an example)
+// ---------------------
+let noiseBase64 = "iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAOUlEQVR4nGNgYGBwkYGBgTEd6KDR4GUAAPa/MIb3bTn5yYIM0blCYCBXHcEGiNWQdNGCkiT4IC+MDGOOL4kEH0JADzNAw9nBdR8AAAAABJRU5ErkJggg==";
+
+// ------------------------------------------------------
+// Babylon.js Boilerplate
+// ------------------------------------------------------
+var canvas = document.createElement("canvas");
+canvas.id = "renderCanvas";
+canvas.style.width = "100%";
+canvas.style.height = "100%";
+document.body.appendChild(canvas);
+
+var engine = new BABYLON.Engine(canvas, true);
+
+var createScene = function() {
+    // Create Scene
+    var scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color3(0, 0, 0);
+
+    //-----------------------------------------------------
+    // Lava Sky using LavaMaterial (ensure "babylonjs-materials" is loaded)
+    //-----------------------------------------------------
+    // Create an inside-out skybox
+    var skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {
+        size: 2000.0,
+        sideOrientation: BABYLON.Mesh.BACKSIDE // see from inside
+    }, scene);
+    skybox.infiniteDistance = true;
+    skybox.checkCollisions = false;
+
+    // LavaMaterial
+    var lavaSkyMat = new BABYLON.LavaMaterial("lavaSkyMat", scene);
+    lavaSkyMat.backFaceCulling = false; 
+    lavaSkyMat.noiseTexture = new BABYLON.Texture("data:image/png;base64," + noiseBase64, scene);
+
+    // Tweak the LavaMaterial so it looks bright
+    lavaSkyMat.diffuseColor     = new BABYLON.Color3(1, 0.3, 0);
+    lavaSkyMat.emissiveColor    = new BABYLON.Color3(1, 0.3, 0);
+    lavaSkyMat.fogColor         = new BABYLON.Color3(1, 0, 0);
+    lavaSkyMat.speed            = 1.0;
+    lavaSkyMat.movingSpeed      = 1.0;
+    lavaSkyMat.alpha            = 1.0;
+    // If desired, scale the noise
+    lavaSkyMat.noiseTexture.uScale = 4;
+    lavaSkyMat.noiseTexture.vScale = 4;
+    skybox.material = lavaSkyMat;
+
+    //-----------------------------------------------------
+    // Camera
+    //-----------------------------------------------------
+    var camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 3, -10), scene);
+    camera.attachControl(canvas, true);
+
+    // WASD movement
+    camera.keysUp.push(87);    // W
+    camera.keysDown.push(83);  // S
+    camera.keysLeft.push(65);  // A
+    camera.keysRight.push(68); // D
+
+    // Collisions / gravity
+    scene.collisionsEnabled = true;
+    camera.checkCollisions = true;
+    camera.applyGravity = true;
+    camera.ellipsoid = new BABYLON.Vector3(0.5, 1.0, 0.5);
+    scene.gravity = new BABYLON.Vector3(0, -0.2, 0);
+
+    // Light
+    var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0.5, 1, 0.5), scene);
+
+    //-----------------------------------------------------
+    // Base64 -> Babylon.Textures
+    //-----------------------------------------------------
+    function base64Texture(base64Str) {
+        return new BABYLON.Texture(
+            "data:image/png;base64," + base64Str,
+            scene,
+            false,
+            true,
+            BABYLON.Texture.BILINEAR_SAMPLINGMODE
+        );
+    }
+
+    // Load textures
+    var floorTex = base64Texture(floorTextureBase64);
+    var wallTex  = base64Texture(wallTextureBase64);
+    var enemyTex = base64Texture(enemyTextureBase64);
+    var gunTex   = base64Texture(gunTextureBase64);
+    var decTex   = base64Texture(decorationTextureBase64);
+
+    // Floor material
+    var floorMat = new BABYLON.StandardMaterial("floorMat", scene);
+    floorMat.diffuseTexture = floorTex;
+    floorMat.diffuseTexture.uScale = 4; 
+    floorMat.diffuseTexture.vScale = 4;
+
+    // Wall material
+    var wallMat = new BABYLON.StandardMaterial("wallMat", scene);
+    wallMat.diffuseTexture = wallTex;
+
+    //-----------------------------------------------------
+    // Random Map Generation
+    //-----------------------------------------------------
+    const MAP_WIDTH = 10;
+    const MAP_HEIGHT = 10;
+    let mapData = [];
+    for(let y=0; y<MAP_HEIGHT; y++){
+        mapData[y] = [];
+        for(let x=0; x<MAP_WIDTH; x++){
+            if(x === 0 || x === MAP_WIDTH-1 || y === 0 || y === MAP_HEIGHT-1){
+                mapData[y][x] = 1; // boundary wall
+            } else {
+                let rand = Math.random();
+                if(rand < 0.2){
+                    mapData[y][x] = 1; // wall
+                } else if(rand < 0.25){
+                    mapData[y][x] = 2; // enemy spawn
+                } else {
+                    mapData[y][x] = 0; // floor
+                }
+            }
+        }
+    }
+
+    // We'll keep track of enemies so we can move them
+    let enemies = [];
+
+    //-----------------------------------------------------
+    //  Build Geometry
+    //-----------------------------------------------------
+    let tileSize = 4;
+    for(let y=0; y<MAP_HEIGHT; y++){
+        for(let x=0; x<MAP_WIDTH; x++){
+            let tile = mapData[y][x];
+
+            // Floor
+            let floor = BABYLON.MeshBuilder.CreateGround(
+                "floor_"+x+"_"+y,
+                {width: tileSize, height: tileSize},
+                scene
+            );
+            floor.position.set(x*tileSize, 0, y*tileSize);
+            floor.material = floorMat;
+            floor.checkCollisions = true;
+
+            // Wall
+            if(tile === 1) {
+                let wall = BABYLON.MeshBuilder.CreateBox(
+                    "wall_"+x+"_"+y,
+                    {width: tileSize, depth: tileSize, height: 4},
+                    scene
+                );
+                wall.position.set(x*tileSize, 2, y*tileSize);
+                wall.material = wallMat;
+                wall.checkCollisions = true;
+            }
+            // Enemy or Decoration
+            if(tile === 2) {
+                if(Math.random() < 0.5) {
+                    // Enemy billboard plane
+                    let enemy = BABYLON.MeshBuilder.CreatePlane("enemy_"+x+"_"+y, {width:2, height:2}, scene);
+                    enemy.position.set(x*tileSize, 1, y*tileSize);
+                    let eMat = new BABYLON.StandardMaterial("enemyMat", scene);
+                    eMat.diffuseTexture = enemyTex;
+                    eMat.diffuseTexture.hasAlpha = true;
+                    eMat.backFaceCulling = false;
+                    enemy.material = eMat;
+                    enemy.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+                    enemies.push(enemy);
+                } else {
+                    // Decoration (candle)
+                    let dec = BABYLON.MeshBuilder.CreatePlane("dec_"+x+"_"+y, {width:1, height:2}, scene);
+                    dec.position.set(x*tileSize, 1, y*tileSize);
+                    let dMat = new BABYLON.StandardMaterial("decMat", scene);
+                    dMat.diffuseTexture = decTex;
+                    dMat.diffuseTexture.hasAlpha = true;
+                    dMat.backFaceCulling = false;
+                    dec.material = dMat;
+                    dec.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+                }
+            }
+        }
+    }
+
+    // Randomly place the camera on a free tile
+    function findFreeTile() {
+        while(true) {
+            let rx = Math.floor(Math.random()*MAP_WIDTH);
+            let ry = Math.floor(Math.random()*MAP_HEIGHT);
+            if(mapData[ry][rx] === 0) {
+                return { x: rx, y: ry };
+            }
+        }
+    }
+    let freeSpot = findFreeTile();
+    camera.position.set(freeSpot.x*tileSize, 3, freeSpot.y*tileSize);
+
+    //-----------------------------------------------------
+    //  HUD Gun
+    //-----------------------------------------------------
+    let gun = BABYLON.MeshBuilder.CreatePlane("gun", {width:2, height:2}, scene);
+    gun.material = new BABYLON.StandardMaterial("gunMat", scene);
+    gun.material.diffuseTexture = gunTex;
+    gun.material.diffuseTexture.hasAlpha = true;
+    gun.material.backFaceCulling = false;
+    gun.scaling.set(0.5, 0.5, 0.5);
+    gun.position.z = 2;
+    gun.position.y = -1;
+    gun.parent = camera;
+
+    //-----------------------------------------------------
+    //   GUI Minimap (upper-right)
+    //-----------------------------------------------------
+    var uiTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
+
+    var minimapSize = 150;
+    var mapImage = new BABYLON.GUI.Image("mapImage");
+    mapImage.width = minimapSize + "px";
+    mapImage.height = minimapSize + "px";
+    mapImage.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    mapImage.verticalAlignment   = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    uiTexture.addControl(mapImage);
+
+    // A dynamic texture for the map (drawn bigger so details are clear)
+    const MAP_SCALE = 12;
+    var mapDynamicTexture = new BABYLON.DynamicTexture(
+        "mapDynamicTexture",
+        {width: MAP_WIDTH*MAP_SCALE, height: MAP_HEIGHT*MAP_SCALE},
+        scene,
+        true
+    );
+
+    // We'll only update the map every 100ms to avoid flicker
+    let lastMapUpdateTime = 0;
+    let mapUpdateInterval = 100; // ms
+    let lastMapDataURL = null;   // track the last data URL used
+
+    function drawMap() {
+        let ctx = mapDynamicTexture.getContext();
+        let w = mapDynamicTexture.getSize().width;
+        let h = mapDynamicTexture.getSize().height;
+        ctx.clearRect(0, 0, w, h);
+
+        // Draw floors/walls
+        for(let my=0; my<MAP_HEIGHT; my++){
+            for(let mx=0; mx<MAP_WIDTH; mx++){
+                if(mapData[my][mx] === 1) {
+                    ctx.fillStyle = "#444"; // wall
+                } else {
+                    ctx.fillStyle = "#999"; // floor
+                }
+                ctx.fillRect(mx*MAP_SCALE, my*MAP_SCALE, MAP_SCALE, MAP_SCALE);
+            }
+        }
+
+        // Draw player as a small red square
+        let px = camera.position.x / tileSize;
+        let py = camera.position.z / tileSize;
+        ctx.fillStyle = "#f00";
+        ctx.fillRect(px*MAP_SCALE - 2, py*MAP_SCALE - 2, 4, 4);
+
+        mapDynamicTexture.update();
+
+        // Convert to dataURL
+        let dataURL = ctx.canvas.toDataURL("image/png");
+        // Only update image source if needed
+        if(dataURL !== lastMapDataURL) {
+            mapImage.source = dataURL; 
+            lastMapDataURL = dataURL;
+        }
+    }
+
+    //-----------------------------------------------------
+    //   Projectile Shooting (Space bar)
+    //-----------------------------------------------------
+    let bullets = [];
+
+    scene.onKeyboardObservable.add((kbInfo) => {
+        if(kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN && kbInfo.event.code === "Space") {
+            shootBullet();
+        }
+    });
+
+    function shootBullet() {
+        let bullet = BABYLON.MeshBuilder.CreateSphere("bullet", {diameter: 0.3}, scene);
+        bullet.position = camera.position.clone();
+        let forward = camera.getForwardRay().direction;
+        bullet.position.addInPlace(forward.scale(1));
+
+        let bulletMat = new BABYLON.StandardMaterial("bulletMat", scene);
+        bulletMat.diffuseColor = new BABYLON.Color3(1, 1, 0);
+        bullet.material = bulletMat;
+
+        bullet.direction = forward.clone();
+        bullet.speed = 0.6;
+        bullet.lifeTime = 0;
+
+        bullets.push(bullet);
+    }
+
+    //-----------------------------------------------------
+    //   MAIN GAME LOOP - Move Enemies/Bullets & Update Map
+    //-----------------------------------------------------
+    scene.onBeforeRenderObservable.add(() => {
+        // Update minimap ~ every 100ms
+        let now = performance.now();
+        if(now - lastMapUpdateTime > mapUpdateInterval) {
+            drawMap();
+            lastMapUpdateTime = now;
+        }
+
+        // Enemies move toward the player
+        enemies.forEach((enemy) => {
+            if(!enemy.isDisposed()) {
+                let dir = camera.position.subtract(enemy.position);
+                dir.y = 0;
+                let dist = dir.length();
+                if(dist > 0.5) {
+                    let moveDir = dir.normalize().scale(0.02);
+                    enemy.position.addInPlace(moveDir);
+                }
+            }
+        });
+
+        // Move bullets & check collisions
+        let dt = engine.getDeltaTime() / 16.6667;
+        for(let i = bullets.length - 1; i >= 0; i--){
+            let b = bullets[i];
+            if(b.isDisposed()) {
+                bullets.splice(i,1);
+                continue;
+            }
+            b.position.addInPlace(b.direction.scale(b.speed * dt));
+            b.lifeTime += dt;
+
+            if(b.lifeTime > 60) {
+                b.dispose();
+                bullets.splice(i,1);
+                continue;
+            }
+
+            // Check collisions with enemies
+            for(let j=0; j<enemies.length; j++){
+                let e = enemies[j];
+                if(!e.isDisposed() && b.intersectsMesh(e, false)) {
+                    e.dispose();
+                    b.dispose();
+                    enemies.splice(j,1);
+                    bullets.splice(i,1);
+                    break;
+                }
+            }
+        }
+    });
+
+    return scene;
+};
+
+var scene = createScene();
+engine.runRenderLoop(function() {
+    scene.render();
+});
+
+window.addEventListener("resize", function(){
+    engine.resize();
+});
+
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions();
+                    if (engineOptions.audioEngine !== false) {
+                        
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>

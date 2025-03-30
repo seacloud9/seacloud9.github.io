@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        const createScene = function () {
+    const scene = new BABYLON.Scene(engine);
+    const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 10, BABYLON.Vector3.Zero(), scene);
+    camera.attachControl(canvas, true);
+    
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
+    
+    // Create a particle system for the glitchy objects
+    const particleSystem = new BABYLON.ParticleSystem("particles", 100, scene);
+    particleSystem.particleTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/flare.png", scene);
+    particleSystem.emitter = BABYLON.Vector3.Zero();
+    particleSystem.minEmitBox = new BABYLON.Vector3(-5, -5, -5);
+    particleSystem.maxEmitBox = new BABYLON.Vector3(5, 5, 5);
+    particleSystem.color1 = new BABYLON.Color4(1, 1, 1, 1);
+    particleSystem.color2 = new BABYLON.Color4(0.2, 0.5, 1, 1);
+    particleSystem.colorDead = new BABYLON.Color4(0, 0, 0.2, 0.0);
+    particleSystem.minSize = 0.1;
+    particleSystem.maxSize = 0.5;
+    particleSystem.minLifeTime = 0.3;
+    particleSystem.maxLifeTime = 1.5;
+    particleSystem.emitRate = 100;
+    particleSystem.start();
+
+    // Create custom glitch post-process
+    const glitchPostProcess = new BABYLON.PostProcess("glitch", "glitch", 
+        ["time", "amount", "angle", "seed", "seed_x", "seed_y", "distortion_x", "distortion_y", "col_s"],
+        ["tDisp"], 1.0, camera);
+
+    // Generate displacement texture
+    const dt_size = 64;
+    const data = new Float32Array(dt_size * dt_size * 4);
+    for (let i = 0; i < data.length; i++) {
+        data[i] = Math.random();
+    }
+    const tDisp = new BABYLON.RawTexture(data, dt_size, dt_size, BABYLON.Engine.TEXTUREFORMAT_RGBA, scene, false, false, BABYLON.Texture.NEAREST_SAMPLINGMODE);
+
+    let time = 0;
+    let randX = BABYLON.Scalar.RandomRange(120, 240);
+    let goWild = false;
+    let curF = 0;
+
+    glitchPostProcess.onApply = (effect) => {
+        time += scene.getEngine().getDeltaTime() / 1000.0;
+        effect.setFloat("time", time);
+        effect.setTexture("tDisp", tDisp);
+        
+        effect.setFloat("seed", Math.random());
+        effect.setFloat("byp", 0);
+
+        if (curF % randX == 0 || goWild) {
+            effect.setFloat("amount", Math.random() / 30);
+            effect.setFloat("angle", BABYLON.Scalar.RandomRange(-Math.PI, Math.PI));
+            effect.setFloat("seed_x", BABYLON.Scalar.RandomRange(-1, 1));
+            effect.setFloat("seed_y", BABYLON.Scalar.RandomRange(-1, 1));
+            effect.setFloat("distortion_x", BABYLON.Scalar.RandomRange(0, 1));
+            effect.setFloat("distortion_y", BABYLON.Scalar.RandomRange(0, 1));
+            curF = 0;
+            randX = BABYLON.Scalar.RandomRange(120, 240);
+        } else if (curF % randX < randX / 5) {
+            effect.setFloat("amount", Math.random() / 90);
+            effect.setFloat("angle", BABYLON.Scalar.RandomRange(-Math.PI, Math.PI));
+            effect.setFloat("distortion_x", BABYLON.Scalar.RandomRange(0, 1));
+            effect.setFloat("distortion_y", BABYLON.Scalar.RandomRange(0, 1));
+            effect.setFloat("seed_x", BABYLON.Scalar.RandomRange(-0.3, 0.3));
+            effect.setFloat("seed_y", BABYLON.Scalar.RandomRange(-0.3, 0.3));
+        } else if (!goWild) {
+            effect.setFloat("byp", 1);
+        }
+
+        effect.setFloat("col_s", 0.05);
+        curF++;
+    };
+
+    // Glitch shader
+    BABYLON.Effect.ShadersStore["glitchPixelShader"] = `
+        uniform sampler2D textureSampler;
+        uniform sampler2D tDisp;
+        uniform float byp;
+        uniform float amount;
+        uniform float angle;
+        uniform float seed;
+        uniform float seed_x;
+        uniform float seed_y;
+        uniform float distortion_x;
+        uniform float distortion_y;
+        uniform float col_s;
+        varying vec2 vUV;
+
+        float rand(vec2 co){
+            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+        }
+
+        void main() {
+            if(byp<1.) {
+                vec2 p = vUV;
+                float xs = floor(gl_FragCoord.x / 0.5);
+                float ys = floor(gl_FragCoord.y / 0.5);
+                vec4 normal = texture2D(tDisp, p*seed*seed);
+                if(p.y<distortion_x+col_s && p.y>distortion_x-col_s*seed) {
+                    if(seed_x>0.){
+                        p.y = 1. - (p.y + distortion_y);
+                    }
+                    else {
+                        p.y = distortion_y;
+                    }
+                }
+                if(p.x<distortion_y+col_s && p.x>distortion_y-col_s*seed) {
+                    if(seed_y>0.){
+                        p.x=distortion_x;
+                    }
+                    else {
+                        p.x = 1. - (p.x + distortion_x);
+                    }
+                }
+                p.x+=normal.x*seed_x*(seed/5.);
+                p.y+=normal.y*seed_y*(seed/5.);
+                vec2 offset = amount * vec2( cos(angle), sin(angle));
+                vec4 cr = texture2D(textureSampler, p + offset);
+                vec4 cga = texture2D(textureSampler, p);
+                vec4 cb = texture2D(textureSampler, p - offset);
+                gl_FragColor = vec4(cr.r, cga.g, cb.b, cga.a);
+                vec4 snow = 200.*amount*vec4(rand(vec2(xs * seed,ys * seed*50.))*0.2);
+                gl_FragColor = gl_FragColor+ snow;
+            }
+            else {
+                gl_FragColor=texture2D (textureSampler, vUV);
+            }
+        }
+    `;
+
+    // Add GUI for controlling glitch intensity
+    const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+    const panel = new BABYLON.GUI.StackPanel();
+    panel.width = "220px";
+    panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    advancedTexture.addControl(panel);
+    
+    const header = new BABYLON.GUI.TextBlock();
+    header.text = "Go Wild";
+    header.height = "30px";
+    header.color = "white";
+    panel.addControl(header);
+    
+    const checkbox = new BABYLON.GUI.Checkbox();
+    checkbox.width = "20px";
+    checkbox.height = "20px";
+    checkbox.isChecked = false;
+    checkbox.onIsCheckedChangedObservable.add(function(value) {
+        goWild = value;
+    });
+    panel.addControl(checkbox);
+    
+    return scene;
+};
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions();
+                    if (engineOptions.audioEngine !== false) {
+                        
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>

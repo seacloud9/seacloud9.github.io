@@ -1,0 +1,369 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        /********************************************************************
+ * BABYLON JS + TONE JS
+ *  - 2.5-minute chord progression (64 measures @ 100 BPM).
+ *  - No external audio files (pure Tone.js).
+ *  - "Play Audio" button is centered, disappears after click.
+ *  - Noise-warped sphere + circle of elongated cubes (reactive).
+ *  - PBR materials reflect an HDR skybox.
+ *  - Loader calls removed (no default loading UI).
+ ********************************************************************/
+
+var createScene = function(engine, canvas) {
+    // Create scene (no loader calls)
+    var scene = new BABYLON.Scene(engine);
+
+    /********************************************************
+     * 1) CAMERA & LIGHT
+     ********************************************************/
+    var camera = new BABYLON.ArcRotateCamera(
+        "ArcCamera",
+        BABYLON.Tools.ToRadians(45),
+        BABYLON.Tools.ToRadians(60),
+        1000,
+        new BABYLON.Vector3(0,0,0),
+        scene
+    );
+    camera.attachControl(canvas, true);
+
+    var light = new BABYLON.HemisphericLight("hemiLight", new BABYLON.Vector3(0,1,0), scene);
+    light.intensity = 0.9;
+
+    /********************************************************
+     * 2) GLOBAL FLAGS & VARIABLES
+     ********************************************************/
+    scene._isPlaying = false;  
+    let synth, part, analyser;
+
+    /********************************************************
+     * 3) CREATE "PLAY AUDIO" BUTTON (centered)
+     ********************************************************/
+    var playButton = document.createElement("button");
+    playButton.innerHTML = "Play Audio";
+    playButton.style.position = "absolute";
+    playButton.style.left = "50%";
+    playButton.style.top = "50%";
+    playButton.style.transform = "translate(-50%, -50%)";
+    playButton.style.padding = "16px 24px";
+    playButton.style.fontSize = "18px";
+    playButton.style.cursor = "pointer";
+    document.body.appendChild(playButton);
+
+    playButton.addEventListener("click", async () => {
+        if (!scene._isPlaying) {
+            await Tone.start();
+            Tone.Transport.start("+0.1");
+            scene._isPlaying = true;
+            playButton.style.display = "none";  // hide button after click
+        }
+    });
+
+    /********************************************************
+     * 4) LOAD TONE.JS & SET UP MUSIC
+     ********************************************************/
+    BABYLON.Tools.LoadScript("https://cdn.jsdelivr.net/npm/tone@latest/build/Tone.js", function() {
+        synth = new Tone.PolySynth(Tone.Synth, {
+            volume: -8,
+            oscillator: { type: "sine" },
+            envelope: { attack: 0.001, decay: 0.4, sustain: 0.2, release: 1.2 }
+        }).toDestination();
+
+        // chord progression for 64 bars total
+        const chordProgression = [
+            ["C4","E4","G4"], // measure 0
+            ["G3","B3","D4"], // measure 1
+            ["A3","C4","E4"], // measure 2
+            ["F3","A3","C4"], // measure 3
+            ["D3","F3","A3"], // measure 4
+            ["A3","C4","E4"], // measure 5
+            ["E3","G3","B3"], // measure 6
+            ["G3","B3","D4"], // measure 7
+            ["C4","E4","G4"], // measure 8
+            ["E3","G3","B3"], // measure 9
+            ["A3","C4","E4"], // measure 10
+            ["D3","F3","A3"], // measure 11
+            ["F3","A3","C4"], // measure 12
+            ["G3","B3","D4"], // measure 13
+            ["E3","G3","B3"], // measure 14
+            ["A3","C4","E4"]  // measure 15
+        ];
+
+        const myScore = [];
+        for (let cycle=0; cycle<4; cycle++){
+            for (let i=0; i<16; i++){
+                let measureNumber = cycle*16 + i;
+                myScore.push({
+                    time: measureNumber + ":0",
+                    note: chordProgression[i],
+                    dur: "1m"
+                });
+            }
+        }
+
+        part = new Tone.Part((time, value) => {
+            synth.triggerAttackRelease(value.note, value.dur, time);
+        }, myScore).start(0);
+
+        part.loop = false; // no loop after measure 64
+        Tone.Transport.bpm.value = 100;
+
+        // analyser for audio reactivity
+        analyser = new Tone.Analyser("fft", 32);
+        synth.connect(analyser);
+        scene._toneAnalyser = analyser;
+    });
+
+    /********************************************************
+     * 5) NOISE FUNCTION
+     ********************************************************/
+    function pseudoNoise(x,y,z,w) {
+        return Math.abs(
+            Math.sin(x*12.9898 + y*78.233 + z*45.425 + w*12.0) * 43758.5453
+        ) % 1;
+    }
+
+    /********************************************************
+     * 6) NOISE-WARPED SPHERE
+     ********************************************************/
+    const sphere = BABYLON.MeshBuilder.CreateIcoSphere("noiseSphere", {
+        radius:150, subdivisions:4, updatable:true
+    }, scene);
+
+    let spherePositions = sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    let originalPositions = spherePositions.slice();
+
+    let noiseParam1 = Math.random()*1000;
+    let noiseParam2 = Math.random()*1000;
+
+    /********************************************************
+     * 7) CIRCLE OF ELONGATED CUBES
+     ********************************************************/
+    const numCubes = 32;
+    const ringRadius = 350;
+    const cubes = [];
+
+    for (let i=0; i<numCubes; i++){
+        let angle = (i / numCubes) * 2*Math.PI;
+        let x = ringRadius * Math.cos(angle);
+        let z = ringRadius * Math.sin(angle);
+
+        let box = BABYLON.MeshBuilder.CreateBox("box"+i, {
+            width:10,
+            height:50,
+            depth:10
+        }, scene);
+        box.position.set(x, 0, z);
+        box.lookAt(new BABYLON.Vector3(0, box.position.y, 0));
+        cubes.push(box);
+    }
+
+    /********************************************************
+     * 8) SKYBOX & PBR MATERIAL
+     ********************************************************/
+    var hdrTexture = new BABYLON.CubeTexture("/textures/SpecularHDR.dds", scene);
+    scene.createDefaultSkybox(hdrTexture, true, 10000);
+
+    // sphere PBR
+    let pbrSphere = new BABYLON.PBRMaterial("pbrSphere", scene);
+    pbrSphere.environmentTexture = hdrTexture;
+    pbrSphere.albedoColor = new BABYLON.Color3(0.03, 0.96, 0.6);
+    pbrSphere.metallic = 1.0;
+    pbrSphere.roughness = 0.0;
+    sphere.material = pbrSphere;
+
+    // cubes PBR
+    let pbrBoxes = new BABYLON.PBRMaterial("pbrBoxes", scene);
+    pbrBoxes.environmentTexture = hdrTexture;
+    pbrBoxes.albedoColor = new BABYLON.Color3(0.71, 0.96, 0.03);
+    pbrBoxes.metallic = 1.0;
+    pbrBoxes.roughness = 0.0;
+    cubes.forEach(box => box.material = pbrBoxes);
+
+    /********************************************************
+     * 9) ANIMATION LOOP
+     ********************************************************/
+    let frameNum = 0;
+    scene.registerBeforeRender(function() {
+        // wait until user clicks "Play Audio"
+        if (!scene._isPlaying) {
+            return;
+        }
+
+        frameNum++;
+
+        // noise param changes
+        if (frameNum % 50 < 25){
+            noiseParam1 += BABYLON.Scalar.Lerp(0.15, 0.01, (frameNum % 50)/25);
+        } else {
+            noiseParam2 += BABYLON.Scalar.Lerp(0.15, 0.01, ((frameNum % 50)-25)/25);
+        }
+
+        // (A) Warp sphere
+        let sphereData = sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        for (let i=0; i<sphereData.length; i+=3){
+            let ox = originalPositions[i];
+            let oy = originalPositions[i+1];
+            let oz = originalPositions[i+2];
+            let length = Math.sqrt(ox*ox + oy*oy + oz*oz);
+            let nx = ox/length, ny=oy/length, nz=oz/length;
+
+            let nval = pseudoNoise(nx*0.01+ny*0.01, nz*0.01, noiseParam1, 0);
+            let newRadius = BABYLON.Scalar.Lerp(65,185,nval);
+            sphereData[i]   = nx * newRadius;
+            sphereData[i+1] = ny * newRadius;
+            sphereData[i+2] = nz * newRadius;
+        }
+        sphere.updateVerticesData(BABYLON.VertexBuffer.PositionKind, sphereData);
+        sphere.rotation.x = BABYLON.Tools.ToRadians(frameNum*1.44);
+
+        // (B) Audio amplitude
+        let audioReactiveMult = 1;
+        if (scene._toneAnalyser) {
+            let fftValues = scene._toneAnalyser.getValue();
+            let sum=0, count=0;
+            for (let k=0; k<fftValues.length; k++){
+                if (typeof fftValues[k] === "number"){
+                    sum += Math.max(0, fftValues[k]);
+                    count++;
+                }
+            }
+            let avg = count>0 ? sum/count : 0;
+            audioReactiveMult = 1.0 + (avg*0.02);
+        }
+
+        // (C) Scale cubes
+        for (let i=0; i<cubes.length; i++){
+            let box = cubes[i];
+            let nval = pseudoNoise(i*0.1, frameNum*0.01, noiseParam2, 0);
+            let baseHeight = 1 + nval*20;
+            let finalHeight = baseHeight * audioReactiveMult;
+            box.scaling.y = finalHeight;
+            box.position.y = finalHeight*0.5;  // anchor bottom at y=0
+        }
+    });
+
+    return scene;
+};
+
+/********************************************************
+ * BABYLON ENGINE BOOTSTRAP
+ ********************************************************/
+var canvas = document.createElement("canvas");
+canvas.style.width = "100%";
+canvas.style.height = "100%";
+document.body.appendChild(canvas);
+
+var engine = new BABYLON.Engine(canvas, true, {
+    preserveDrawingBuffer:true,
+    stencil:true
+});
+
+// Create your scene
+var scene = createScene(engine, canvas);
+
+// Render loop
+engine.runRenderLoop(function() {
+    scene.render();
+});
+
+// Resize
+window.addEventListener("resize", function(){
+    engine.resize();
+});
+
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions();
+                    if (engineOptions.audioEngine !== false) {
+                        
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>

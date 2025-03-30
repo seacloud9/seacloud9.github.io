@@ -1,0 +1,3060 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                touch-action: none;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                -webkit-tap-highlight-color: rgba(0,0,0,0);
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+                -ms-touch-action: none;
+                -webkit-tap-highlight-color: rgba(0,0,0,0);
+                outline: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+                -webkit-tap-highlight-color: rgba(0,0,0,0);
+            }
+
+            * {
+                -webkit-tap-highlight-color: transparent;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -khtml-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
+            
+            /* Prevent highlighting of UI elements */
+            .babylonjs-gui {
+                -webkit-tap-highlight-color: transparent !important;
+                outline: none !important;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        const CONFIG = {
+    // Model Paths - set to empty string "" to use default geometric shapes
+    MODELS: {
+        PLAYER: "", // Example: "models/player_ship.glb"
+        ENEMY_TYPES: [
+            "", // Example: "models/enemy_type1.glb"
+            "", // Example: "models/enemy_type2.glb"
+            ""  // Example: "models/enemy_type3.glb"
+        ]
+    },
+    // Game Parameters
+    GAME: {
+        initialLives: 14,
+        initialBombs: 40,
+        baseEnemyCount: 10,
+        levelScoreThreshold: 1500, // CHANGED FROM 3000 to 1500
+        levelScoreMultiplier: 1.25,
+        enemiesPerLevelMultiplier: 2
+    },
+    // Player Ship
+    PLAYER: {
+        speed: 0.4,
+        size: 1,
+        modelScale: 1.0, // Scale when using GLB model
+        color: new BABYLON.Color3(0, 1, 0) // Neon green
+    },
+    // Enemy Settings
+    ENEMY: {
+        baseRadius: 1,
+        modelScale: 1.0, // Scale when using GLB models
+        chaseSpeed: 0.05,
+        driftSpeed: 0.01,
+        spawnDistanceMax: 50,
+        minDistanceFromPlayer: 10,
+        colors: [
+            new BABYLON.Color3(1, 0, 1), // purple
+            new BABYLON.Color3(1, 0, 0), // red
+            new BABYLON.Color3(0, 0, 1)  // blue
+        ]
+    },
+    // Weapon Settings
+    WEAPONS: {
+        bullet: {
+            size: 0.8,
+            speed: 1.0,
+            color: new BABYLON.Color3(1, 0, 0),
+            shotsPerSecond: 6,
+            range: 200
+        },
+        bomb: {
+            initialSize: 0.5,
+            maxScale: 30,
+            expansionSpeed: 0.4,
+            color: new BABYLON.Color3(1, 0, 0.5)
+        }
+    },
+    // Display Settings
+    DISPLAY: {
+        radarRange: 50,
+        radarSize: 180
+    },
+    // UI theme settings
+    UI: {
+        fontFamily: "Press Start 2P",
+        colors: {
+            primary: "#00FFFF",   // cyan
+            secondary: "#FF00FF", // magenta
+            accent: "#FF5588",    // pink
+            background: "rgba(0, 30, 60, 0.7)",
+            text: "#FFFFFF"
+        },
+        buttonStyles: {
+            background: "#550055",
+            hoverBackground: "#FF00FF",
+            textColor: "#FFFFFF",
+            borderColor: "#00FFFF",
+            shadowColor: "#FF00FF"
+        },
+        // Add text configuration
+        text: {
+            // Game screens
+            gameTitle: "SPACE\nSHOOTER",
+            welcomeText: "WELCOME PILOT",
+            startButton: "START MISSION",
+            startInfo: "PRESS ENTER TO START",
+            levelUpTitle: "LEVEL UP!",
+            levelUpInfo: "ADVANCING TO NEXT SECTOR",
+            continueButton: "CONTINUE",
+            continueInfo: "PRESS ENTER TO CONTINUE",
+            gameOverTitle: "GAME OVER",
+            finalScorePrefix: "FINAL SCORE: ",
+            restartButton: "RESTART",
+            restartInfo: "PRESS ENTER TO RESTART",
+
+            // HUD Elements
+            levelPrefix: "LEVEL: ",
+            livesPrefix: "LIVES: ",
+            bombsPrefix: "BOMBS: ",
+            scorePrefix: "SCORE: ",
+
+            // Camera toggle button
+            cameraToggle: "SWITCH VIEW",
+
+            // Pause & Dev
+            pausedText: "GAME PAUSED",
+            devModeText: "DEV MODE ACTIVE",
+
+            // Radar
+            radarTitle: "RADAR"
+        }
+    },
+    // NEW: Developer settings
+    DEV: {
+        enableSuperBomb: false // Super bomb is disabled by default
+    }
+};
+
+let useGameStore;
+let currentCamera;
+let cameraToggleContainer;
+let fpCamera;
+let thirdPersonCamera;
+let pointerLockChange;
+let isPointerLocked;
+let isTouching;
+let touchId;
+let shouldFireContinuously;
+let touchStartX;
+let touchStartY;
+let isTouchMoving;
+let lastTouchX;
+let lastTouchY;
+let touchMoveThreshold;
+let playerShip;
+let isFirstPerson = false;
+let singleFire;
+let useSuperBomb;
+let useBombMesh;
+
+
+
+function createRetroText(name, text, fontSize = 22, color = CONFIG.UI.colors.text, height = "40px") {
+    const textBlock = new BABYLON.GUI.TextBlock(name);
+    textBlock.text = text;
+    textBlock.fontFamily = CONFIG.UI.fontFamily;
+    textBlock.fontSize = fontSize;
+    textBlock.height = height;
+    textBlock.color = color;
+    return textBlock;
+}
+
+
+function createRetroButton(name, text, width = "250px", height = "60px", fontSize = 18) {
+    const button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
+    button.width = width;
+    button.height = height;
+    button.fontFamily = CONFIG.UI.fontFamily;
+    button.fontSize = fontSize;
+    button.color = CONFIG.UI.buttonStyles.textColor;
+    button.background = CONFIG.UI.buttonStyles.background;
+    button.hoverCursor = "pointer";
+    button.thickness = 3;
+    button.cornerRadius = 0;
+    button.shadowColor = CONFIG.UI.buttonStyles.shadowColor;
+    button.shadowBlur = 10;
+    button.shadowOffsetX = 5;
+    button.shadowOffsetY = 5;
+
+    // These two are crucial:
+    button.isPointerBlocker = true;
+    button.isHitTestVisible = true;
+    button.onPointerEnterObservable.add(() => console.log('hovering', name));
+    // Add hover effects
+    button.onPointerEnterObservable.add(() => {
+        button.background = CONFIG.UI.buttonStyles.hoverBackground;
+    });
+    button.onPointerOutObservable.add(() => {
+        button.background = CONFIG.UI.buttonStyles.background;
+    });
+
+    // Add press effect
+    button.onPointerDownObservable.add(() => {
+        button.shadowOffsetX = 2;
+        button.shadowOffsetY = 2;
+    });
+    button.onPointerUpObservable.add(() => {
+        button.shadowOffsetX = 5;
+        button.shadowOffsetY = 5;
+    });
+
+    return button;
+}
+
+
+
+function createScreenBackground(name, zIndex) {
+    // Main container
+    const screen = new BABYLON.GUI.Rectangle(name);
+    screen.width = "100%";
+    screen.height = "100%";
+    screen.thickness = 0;
+    screen.background = CONFIG.UI.colors.background;
+    screen.zIndex = zIndex;
+    screen.isVisible = false;
+    screen.isPointerBlocker = true; // Important for event handling
+
+    // Grid background for vaporwave feel - Fixed with local image or CSS pattern
+    const gridBackground = new BABYLON.GUI.Rectangle(name + "Grid");
+    gridBackground.width = "100%";
+    gridBackground.height = "100%";
+    gridBackground.thickness = 0;
+    gridBackground.alpha = 0.3;
+
+    // Create a grid pattern with CSS
+    const gridSize = 40;
+    const gridColor = "rgba(255, 0, 255, 0.2)";
+    gridBackground.background = "linear-gradient(" + gridColor + " 1px, transparent 1px), " +
+        "linear-gradient(90deg, " + gridColor + " 1px, transparent 1px)";
+    gridBackground.backgroundSize = gridSize + "px " + gridSize + "px";
+
+    screen.addControl(gridBackground);
+
+    return screen;
+}
+
+
+function loadModelIfAvailable(path, defaultFunction) {
+    if (path && path.trim() !== "") {
+        console.log(`Loading model from: ${path}`);
+        return BABYLON.SceneLoader.ImportMeshAsync("", "", path, scene);
+    } else {
+        console.log("Using default geometric shape");
+        return defaultFunction();
+    }
+}
+
+var createScene = async function (engine, canvas) {
+    let zustandModule;
+    try {
+        zustandModule = await import("https://esm.run/zustand?bundle");
+    } catch (err) {
+        console.error("Failed to import Zustand from ESM:", err);
+        throw err;
+    }
+    const { create } = zustandModule;
+
+
+    useGameStore = create((set, get) => ({
+        // Scenes: start, game, levelUp, endGame
+        currentScene: "start",
+        level: 1,
+        score: 0,
+        lives: CONFIG.GAME.initialLives,
+        bombs: 0,
+        enemies: [],
+        enemySpawnCount: CONFIG.GAME.baseEnemyCount,
+        isPaused: false, // Add this to track paused state globally
+
+        setScene: (scene) => {
+            if (scene === "game") {
+                // each new "game" => reset bombs
+                set({ bombs: CONFIG.GAME.initialBombs });
+            }
+            set({ currentScene: scene });
+        },
+
+        setPaused: (pauseState) => {
+            set({ isPaused: pauseState });
+        },
+
+        addScore: (points) => {
+            const { score, level } = get();
+            let newScore = score + points;
+            // threshold calculation
+            const threshold = CONFIG.GAME.levelScoreThreshold * Math.pow(CONFIG.GAME.levelScoreMultiplier, level - 1);
+            if (newScore >= threshold) {
+                set({
+                    score: newScore,
+                    level: level + 1,
+                    currentScene: "levelUp",
+                });
+            } else {
+                set({ score: newScore });
+            }
+        },
+
+        loseLife: () => {
+            let { lives } = get();
+            lives--;
+            if (lives <= 0) {
+                set({ lives: 0, currentScene: "endGame" });
+            } else {
+                set({ lives });
+            }
+        },
+
+        resetGame: () => set({
+            currentScene: "start",
+            level: 1,
+            score: 0,
+            lives: CONFIG.GAME.initialLives,
+            bombs: 0,
+            enemies: [],
+            enemySpawnCount: CONFIG.GAME.baseEnemyCount,
+            isPaused: false,
+        }),
+
+        setEnemies: (enemies) => set({ enemies }),
+
+        // Function to filter out disposed enemies
+        cleanEnemies: () => {
+            const { enemies } = get();
+            const activeEnemies = enemies.filter(enemy =>
+                enemy && enemy.metadata && enemy.metadata.alive
+            );
+            set({ enemies: activeEnemies });
+            return activeEnemies.length;
+        },
+
+        setEnemySpawnCount: (count) => set({ enemySpawnCount: count }),
+
+        useBomb: () => {
+            let { bombs } = get();
+            if (bombs > 0) {
+                set({ bombs: bombs - 1 });
+                return true;
+            }
+            return false;
+        },
+    }));
+
+
+    scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color3(0, 0, 0);
+
+    let isDevGuiVisible = false;
+    let cmdKeyPressed = false; // Track Command/Ctrl key state
+
+
+    fpCamera = new BABYLON.UniversalCamera("FPCamera", new BABYLON.Vector3(0, 0, 0), scene);
+    fpCamera.fov = 1.2; // Wider field of view for better immersion
+    fpCamera.minZ = 0.05; // Closer near clipping plane for first person inside ship
+    fpCamera.angularSensibility = 1000; // Lower = more sensitive
+    fpCamera.inertia = 0.4; // Add inertia for smoother movement
+
+    // Add pitch limits for first-person camera
+    fpCamera.upperBetaLimit = Math.PI / 2.2; // Can't look higher than straight up
+    fpCamera.lowerBetaLimit = -Math.PI / 2.2; // Can't look lower than straight down
+
+    // third-person
+    thirdPersonCamera = new BABYLON.ArcRotateCamera(
+        "TPCamera",
+        BABYLON.Tools.ToRadians(0),
+        BABYLON.Tools.ToRadians(60),
+        20,
+        new BABYLON.Vector3.Zero(),
+        scene
+    );
+    thirdPersonCamera.attachControl(canvas, true);
+    thirdPersonCamera.lowerRadiusLimit = 5;
+    thirdPersonCamera.upperRadiusLimit = 100;
+    thirdPersonCamera.wheelPrecision = 50;
+
+    currentCamera = thirdPersonCamera;
+    scene.activeCamera = currentCamera;
+
+    new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+    const glowLayer = new BABYLON.GlowLayer("glowLayer", scene);
+    glowLayer.intensity = 1.0;
+
+
+    playerShip = BABYLON.MeshBuilder.CreatePolyhedron("playerShip", {
+        type: 2,
+        size: CONFIG.PLAYER.size
+    }, scene);
+    playerShip.position.set(0, 0, 0);
+
+    // Make the player ship invisible in first-person mode
+    const playerMat = new BABYLON.StandardMaterial("playerMat", scene);
+    playerMat.emissiveColor = CONFIG.PLAYER.color;
+    // playerMat.backFaceCulling = false; // Make it visible from inside
+    playerShip.material = playerMat;
+
+    // Make cockpit for first person view
+    const cockpit = BABYLON.MeshBuilder.CreateSphere("cockpit", {
+        diameter: CONFIG.PLAYER.size * 0.8,
+        segments: 8,
+        sideOrientation: BABYLON.Mesh.DOUBLESIDE // Important to see from inside
+    }, scene);
+    cockpit.parent = playerShip;
+    cockpit.position.y = 0.1; // Slightly above center
+
+    // Create the cockpit material
+    const cockpitMat = new BABYLON.StandardMaterial("cockpitMat", scene);
+    cockpitMat.alpha = 0.02; // Make it mostly transparent
+    cockpitMat.emissiveColor = new BABYLON.Color3(0.1, 0.5, 0.8); // Blue tint
+    cockpitMat.backFaceCulling = false; // Important to see from inside
+    cockpit.material = cockpitMat;
+
+    // Create the cockpit wireframe effect
+    const cockpitLines = BABYLON.MeshBuilder.CreateSphere("cockpitLines", {
+        diameter: CONFIG.PLAYER.size * 0.82,
+        segments: 8,
+        sideOrientation: BABYLON.Mesh.DOUBLESIDE
+    }, scene);
+    cockpitLines.parent = playerShip;
+    cockpitLines.position.y = 0.1;
+
+    const cockpitLineMat = new BABYLON.StandardMaterial("cockpitLineMat", scene);
+    cockpitLineMat.wireframe = true;
+    cockpitLineMat.emissiveColor = new BABYLON.Color3(0, 1, 1); // Cyan lines
+    cockpitLineMat.backFaceCulling = false;
+    cockpitLines.material = cockpitLineMat;
+
+    thirdPersonCamera.lockedTarget = playerShip;
+
+    let shipDirection = new BABYLON.Vector3(0, 0, 1);
+    let shipSpeed = CONFIG.PLAYER.speed;
+
+    // Camera switching function - MODIFIED for proper first-person view
+    function switchCamera() {
+        if (currentCamera === fpCamera) {
+            // Switch to third-person
+            scene.activeCamera = thirdPersonCamera;
+            currentCamera = thirdPersonCamera;
+
+            // Show the player ship
+            playerShip.isVisible = true;
+            cockpit.isVisible = true;
+            cockpitLines.isVisible = true;
+
+            // Exit pointer lock when switching to third-person
+            if (document.exitPointerLock) {
+                document.exitPointerLock();
+            }
+
+            // Re-attach third-person camera controls
+            thirdPersonCamera.attachControl(canvas, true);
+            fpCamera.detachControl(canvas);
+
+            // Update camera toggle icon only if it exists already
+            if (cameraIcon) {
+                cameraIcon.text = "👁️";
+            }
+        } else {
+            // Switch to first-person
+            scene.activeCamera = fpCamera;
+            currentCamera = fpCamera;
+
+            // Hide player ship from first-person view
+            playerShip.isVisible = false;
+            cockpit.isVisible = true; // Keep cockpit visible
+            cockpitLines.isVisible = true;
+
+            // Detach third-person controls, first-person will use pointer lock
+            thirdPersonCamera.detachControl();
+            fpCamera.attachControl(canvas, true);
+
+            // Position camera inside the ship
+            fpCamera.position.copyFrom(playerShip.position);
+            fpCamera.position.y += 0.1; // Slightly above center of ship
+            fpCamera.rotation.y = playerShip.rotation.y;
+
+            // Update camera toggle icon only if it exists already
+            if (cameraIcon) {
+                cameraIcon.text = "🚀";
+            }
+        }
+    }
+
+    function createEnemyExplosion(position, color, scale = 1) {
+        const particleSystem = new BABYLON.ParticleSystem("enemyExplosion", 100 * scale, scene);
+        particleSystem.particleTexture = new BABYLON.Texture("https://raw.githubusercontent.com/PatrickRyanMS/BabylonJStextures/master/ParticleSystems/Explosion/ExplosionSim.png", scene);
+
+        // Position and behavior
+        particleSystem.emitter = position;
+        particleSystem.minEmitBox = new BABYLON.Vector3(-0.5, -0.5, -0.5).scale(scale);
+        particleSystem.maxEmitBox = new BABYLON.Vector3(0.5, 0.5, 0.5).scale(scale);
+
+        // Particle behavior
+        particleSystem.color1 = color;
+        particleSystem.color2 = new BABYLON.Color4(1, 1, 1, 1);
+        particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0);
+
+        particleSystem.minSize = 0.3 * scale;
+        particleSystem.maxSize = 1.5 * scale;
+
+        particleSystem.minLifeTime = 0.2;
+        particleSystem.maxLifeTime = 0.6;
+
+        particleSystem.emitRate = 300 * scale;
+
+        particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+
+        particleSystem.gravity = new BABYLON.Vector3(0, 0, 0);
+
+        particleSystem.direction1 = new BABYLON.Vector3(-1, -1, -1);
+        particleSystem.direction2 = new BABYLON.Vector3(1, 1, 1);
+
+        particleSystem.minAngularSpeed = 0;
+        particleSystem.maxAngularSpeed = Math.PI;
+
+        particleSystem.minEmitPower = 1 * scale;
+        particleSystem.maxEmitPower = 3 * scale;
+
+        // Add some random rotation to particles
+        particleSystem.minInitialRotation = 0;
+        particleSystem.maxInitialRotation = Math.PI * 2;
+
+        // Start and limit duration
+        particleSystem.start();
+        setTimeout(() => {
+            particleSystem.stop();
+            setTimeout(() => {
+                particleSystem.dispose();
+            }, 1000);
+        }, 300 * scale);
+    }
+
+    // Create player ship explosion effect with more dramatic visuals
+    function createPlayerExplosion(position) {
+        // Main explosion
+        const mainExplosion = new BABYLON.ParticleSystem("playerExplosion", 500, scene);
+        mainExplosion.particleTexture = new BABYLON.Texture("https://raw.githubusercontent.com/PatrickRyanMS/BabylonJStextures/master/ParticleSystems/Explosion/ExplosionSim.png", scene);
+
+        // Position and behavior
+        mainExplosion.emitter = position;
+        mainExplosion.minEmitBox = new BABYLON.Vector3(-1, -1, -1);
+        mainExplosion.maxEmitBox = new BABYLON.Vector3(1, 1, 1);
+
+        // Particle appearance
+        mainExplosion.color1 = new BABYLON.Color4(1, 0.5, 0, 1); // Orange
+        mainExplosion.color2 = new BABYLON.Color4(1, 1, 0, 1);   // Yellow
+        mainExplosion.colorDead = new BABYLON.Color4(0.1, 0.1, 0.1, 0);
+
+        mainExplosion.minSize = 0.5;
+        mainExplosion.maxSize = 3;
+
+        mainExplosion.minLifeTime = 0.3;
+        mainExplosion.maxLifeTime = 1.5;
+
+        mainExplosion.emitRate = 500;
+
+        mainExplosion.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+
+        mainExplosion.gravity = new BABYLON.Vector3(0, 0, 0);
+
+        mainExplosion.direction1 = new BABYLON.Vector3(-3, -3, -3);
+        mainExplosion.direction2 = new BABYLON.Vector3(3, 3, 3);
+
+        mainExplosion.minAngularSpeed = 0;
+        mainExplosion.maxAngularSpeed = Math.PI * 2;
+
+        mainExplosion.minEmitPower = 2;
+        mainExplosion.maxEmitPower = 6;
+
+        // Secondary debris particles
+        const debrisExplosion = new BABYLON.ParticleSystem("playerDebris", 200, scene);
+        debrisExplosion.particleTexture = new BABYLON.Texture("https://raw.githubusercontent.com/PatrickRyanMS/BabylonJStextures/master/ParticleSystems/Flare/Flare.png", scene);
+
+        debrisExplosion.emitter = position;
+        debrisExplosion.minEmitBox = new BABYLON.Vector3(-0.5, -0.5, -0.5);
+        debrisExplosion.maxEmitBox = new BABYLON.Vector3(0.5, 0.5, 0.5);
+
+        // Particle appearance
+        debrisExplosion.color1 = new BABYLON.Color4(0, 1, 0, 1); // Green (player color)
+        debrisExplosion.color2 = new BABYLON.Color4(0, 0.5, 1, 1); // Cyan-blue
+        debrisExplosion.colorDead = new BABYLON.Color4(0, 0, 0.2, 0);
+
+        debrisExplosion.minSize = 0.1;
+        debrisExplosion.maxSize = 0.5;
+
+        debrisExplosion.minLifeTime = 1;
+        debrisExplosion.maxLifeTime = 3;
+
+        debrisExplosion.emitRate = 300;
+
+        debrisExplosion.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+
+        // Add gravity for falling debris effect
+        debrisExplosion.gravity = new BABYLON.Vector3(0, -0.5, 0);
+
+        debrisExplosion.direction1 = new BABYLON.Vector3(-5, -1, -5);
+        debrisExplosion.direction2 = new BABYLON.Vector3(5, 5, 5);
+
+        debrisExplosion.minAngularSpeed = 0;
+        debrisExplosion.maxAngularSpeed = Math.PI * 4;
+
+        debrisExplosion.minEmitPower = 3;
+        debrisExplosion.maxEmitPower = 7;
+
+        // Shockwave effect
+        const shockwave = new BABYLON.ParticleSystem("shockwave", 50, scene);
+        shockwave.particleTexture = new BABYLON.Texture("https://raw.githubusercontent.com/PatrickRyanMS/BabylonJStextures/master/ParticleSystems/Explosion/ExplosionSim.png", scene);
+
+        shockwave.emitter = position;
+        shockwave.minEmitBox = new BABYLON.Vector3(0, 0, 0);
+        shockwave.maxEmitBox = new BABYLON.Vector3(0, 0, 0);
+
+        // Particle appearance for shockwave
+        shockwave.color1 = new BABYLON.Color4(1, 1, 1, 0.1);
+        shockwave.color2 = new BABYLON.Color4(0.5, 0.5, 1, 0.2);
+        shockwave.colorDead = new BABYLON.Color4(0, 0, 0.2, 0);
+
+        shockwave.minSize = 1;
+        shockwave.maxSize = 10;
+
+        shockwave.minLifeTime = 0.4;
+        shockwave.maxLifeTime = 0.8;
+
+        shockwave.emitRate = 30;
+
+        shockwave.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+
+        shockwave.gravity = new BABYLON.Vector3(0, 0, 0);
+
+        // Make shockwave particles expand outward in all directions
+        shockwave.startDirectionFunction = (emitBox, particle) => {
+            const direction = new BABYLON.Vector3(
+                (Math.random() * 2) - 1,
+                (Math.random() * 2) - 1,
+                (Math.random() * 2) - 1
+            );
+            direction.normalize();
+            particle.direction = direction.scale(10); // Fast movement outward
+        };
+
+        shockwave.minAngularSpeed = 0;
+        shockwave.maxAngularSpeed = 0;
+
+        shockwave.minEmitPower = 1;
+        shockwave.maxEmitPower = 2;
+
+        // Add a scale function to make particles grow as they move
+        shockwave.addSizeGradient(0, 1);
+        shockwave.addSizeGradient(1, 5);
+
+        // Start all particle systems
+        mainExplosion.start();
+        debrisExplosion.start();
+        shockwave.start();
+
+        // Add camera shake effect
+        if (currentCamera) {
+            const originalPosition = currentCamera.position.clone();
+            const shakeIntensity = 0.3;
+            const shakeDuration = 1000; // ms
+            const startTime = performance.now();
+
+            const cameraShake = scene.onBeforeRenderObservable.add(() => {
+                const elapsed = performance.now() - startTime;
+                if (elapsed > shakeDuration) {
+                    scene.onBeforeRenderObservable.remove(cameraShake);
+                    return;
+                }
+
+                const remainingFactor = 1 - (elapsed / shakeDuration);
+                const intensity = shakeIntensity * remainingFactor;
+
+                // Only apply to position if it's the third-person camera
+                if (currentCamera === thirdPersonCamera) {
+                    currentCamera.position.x = originalPosition.x + (Math.random() - 0.5) * intensity;
+                    currentCamera.position.y = originalPosition.y + (Math.random() - 0.5) * intensity;
+                    currentCamera.position.z = originalPosition.z + (Math.random() - 0.5) * intensity;
+                }
+            });
+        }
+
+
+        const flash = new BABYLON.ScreenSpaceReflectionPostProcess("flash", scene, 1.0, currentCamera);
+        flash.adaptScaleToCurrentViewport = true;
+        flash.reflectionSamples = 16;
+        flash.strength = 1;
+
+        setTimeout(() => {
+            flash.dispose();
+        }, 200);
+
+
+        setTimeout(() => {
+            mainExplosion.stop();
+            debrisExplosion.stop();
+            shockwave.stop();
+
+            setTimeout(() => {
+                mainExplosion.dispose();
+                debrisExplosion.dispose();
+                shockwave.dispose();
+            }, 3000);
+        }, 1000);
+
+
+        if (scene.getSoundByName) {
+            const explosionSound = scene.getSoundByName("playerExplosion");
+            if (explosionSound) {
+                explosionSound.play();
+            }
+        }
+    }
+
+    function createEnemy(index) {
+        const enemy = BABYLON.MeshBuilder.CreateIcoSphere(`enemy${index}`, { radius: CONFIG.ENEMY.baseRadius }, scene);
+
+        // Random color from the config
+        const col = CONFIG.ENEMY.colors[Math.floor(Math.random() * CONFIG.ENEMY.colors.length)];
+        const enemyMat = new BABYLON.StandardMaterial(`enemyMat${index}`, scene);
+        enemyMat.emissiveColor = col;
+        enemy.material = enemyMat;
+
+        // Random position away from player
+        let position;
+        do {
+            position = new BABYLON.Vector3(
+                (Math.random() - 0.5) * CONFIG.ENEMY.spawnDistanceMax * 2,
+                (Math.random() - 0.5) * CONFIG.ENEMY.spawnDistanceMax * 2,
+                (Math.random() - 0.5) * CONFIG.ENEMY.spawnDistanceMax * 2
+            );
+        } while (position.length() < CONFIG.ENEMY.minDistanceFromPlayer);
+
+        enemy.position = position;
+        enemy.metadata = { alive: true };
+        return enemy;
+    }
+
+    function spawnWave(count) {
+        const newEnemies = [];
+        for (let i = 0; i < count; i++) {
+            newEnemies.push(createEnemy(i));
+        }
+
+        // Merge with existing (if any)
+        const oldEnemies = useGameStore.getState().enemies;
+        const waveAll = [...oldEnemies, ...newEnemies];
+        useGameStore.getState().setEnemies(waveAll);
+
+        // Return the newly created enemies for reference
+        return newEnemies;
+    }
+
+
+    const pixelFontStyle = document.createElement('style');
+    pixelFontStyle.textContent = `
+                @font-face {
+                    font-family: 'Press Start 2P';
+                    font-style: normal;
+                    font-weight: 400;
+                    src: url(https://fonts.gstatic.com/s/pressstart2p/v9/e3t4euO8T-267oIAQAu6jDQyK3nVivM.woff2) format('woff2');
+                }
+            `;
+    document.head.appendChild(pixelFontStyle);
+
+    // Preload the pixel font
+    const pixelFont = new FontFace('Press Start 2P', 'url(https://fonts.gstatic.com/s/pressstart2p/v9/e3t4euO8T-267oIAQAu6jDQyK3nVivM.woff2)');
+    pixelFont.load().then(font => {
+        document.fonts.add(font);
+    });
+
+    const uiTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
+
+    // Add scanlines effect overlay for retro feel
+    const scanLines = new BABYLON.GUI.Rectangle("scanLines");
+    scanLines.isPointerBlocker = false;
+    scanLines.isHitTestVisible = false;
+    scanLines.width = "100%";
+    scanLines.height = "100%";
+    scanLines.thickness = 0;
+    scanLines.background = "url(https://cdn.jsdelivr.net/gh/karlgroves/noise-tv-effect/scanline-dark.png)";
+    scanLines.alpha = 0.2;
+    scanLines.zIndex = 1000;
+    uiTexture.addControl(scanLines);
+
+    // START SCREEN - FIXED
+    const startScreen = createScreenBackground("startScreen", 10);
+    startScreen.isPointerBlocker = true; // Make sure it captures events
+    uiTexture.addControl(startScreen);
+
+    // Main container
+    const startMainContainer = new BABYLON.GUI.Rectangle("startMainContainer");
+    startMainContainer.width = "100%";
+    startMainContainer.height = "100%";
+    startMainContainer.thickness = 0;
+    startMainContainer.isPointerBlocker = true;
+    startScreen.addControl(startMainContainer);
+
+    // Content container
+    const startContentPanel = new BABYLON.GUI.StackPanel("startContentPanel");
+    startContentPanel.width = "400px";
+    startContentPanel.height = "500px";
+    startContentPanel.isVertical = true;
+    startContentPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    startContentPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    startContentPanel.isPointerBlocker = true;
+    startMainContainer.addControl(startContentPanel);
+
+    // Title and text
+    const gameTitle = createRetroText("gameTitle", CONFIG.UI.text.gameTitle, 60, CONFIG.UI.colors.primary, "200px");
+    gameTitle.fontWeight = "bold";
+    gameTitle.outlineWidth = 5;
+    gameTitle.outlineColor = CONFIG.UI.colors.secondary;
+    startContentPanel.addControl(gameTitle);
+
+    const startText = createRetroText("startText", CONFIG.UI.text.welcomeText, 24, CONFIG.UI.colors.primary, "100px");
+    startContentPanel.addControl(startText);
+
+    // Start button - FIXED
+    const startButtonClickHandler = () => {
+        console.log('Start button clicked!');
+        
+        // Try to go fullscreen first
+        requestFullscreen().then(() => {
+            console.log("Entered fullscreen successfully");
+        }).catch((err) => {
+            console.log("Fullscreen request failed: ", err);
+        }).finally(() => {
+            // Continue with starting the game regardless of fullscreen result
+            const store = useGameStore.getState();
+            store.setScene("game");
+
+            // Spawn enemies with slight delay to ensure state update
+            setTimeout(() => {
+                const updatedState = useGameStore.getState();
+                spawnWave(updatedState.enemySpawnCount);
+
+                // Force camera toggle visibility after game starts
+                forceCameraToggleVisibility();
+            }, 10);
+        });
+    };
+
+    const startButton = createRetroButton("startButton", CONFIG.UI.text.startButton, "300px", "60px");
+    // Directly add event handler
+    startMainContainer.isHitTestVisible = true;
+    startContentPanel.isHitTestVisible = true;
+    startButton.onPointerUpObservable.add(startButtonClickHandler);
+
+    startContentPanel.addControl(startButton);
+
+    const startInfoText = createRetroText("startInfoText", CONFIG.UI.text.startInfo, 16, CONFIG.UI.colors.accent, "30px");
+    startContentPanel.addControl(startInfoText);
+
+    // LEVEL-UP SCREEN - FIXED
+    const levelUpScreen = createScreenBackground("levelUpScreen", 30);
+    levelUpScreen.isPointerBlocker = true;
+    uiTexture.addControl(levelUpScreen);
+
+    // Main container
+    const levelUpMainContainer = new BABYLON.GUI.Rectangle("levelUpMainContainer");
+    levelUpMainContainer.width = "100%";
+    levelUpMainContainer.height = "100%";
+    levelUpMainContainer.thickness = 0;
+    levelUpMainContainer.isPointerBlocker = true;
+    levelUpScreen.addControl(levelUpMainContainer);
+
+    // Content panel
+    const levelUpContentPanel = new BABYLON.GUI.StackPanel("levelUpContentPanel");
+    levelUpContentPanel.width = "400px";
+    levelUpContentPanel.isVertical = true;
+    levelUpContentPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    levelUpContentPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    levelUpContentPanel.isPointerBlocker = true;
+    levelUpMainContainer.addControl(levelUpContentPanel);
+
+    const levelUpText = createRetroText("levelUpText", CONFIG.UI.text.levelUpTitle, 60, CONFIG.UI.colors.secondary, "100px");
+    levelUpText.outlineWidth = 2;
+    levelUpText.outlineColor = CONFIG.UI.colors.primary;
+    levelUpContentPanel.addControl(levelUpText);
+
+    const levelUpInfo = createRetroText("levelUpInfo", CONFIG.UI.text.levelUpInfo, 20, CONFIG.UI.colors.primary, "80px");
+    levelUpContentPanel.addControl(levelUpInfo);
+
+    // Continue button - FIXED
+    const continueButtonClickHandler = () => {
+        console.log('Continue button clicked!');
+        useGameStore.getState().setScene("game");
+
+        // Spawn a new wave when continuing after level up
+        const { level, enemySpawnCount } = useGameStore.getState();
+        spawnWave(enemySpawnCount + level * CONFIG.GAME.enemiesPerLevelMultiplier);
+
+        // Force camera toggle visibility after continuing
+        setTimeout(forceCameraToggleVisibility, 100);
+    };
+
+    const continueButton = createRetroButton("continueButton", CONFIG.UI.text.continueButton);
+    // Directly add event handler
+    continueButton.onPointerUpObservable.add(continueButtonClickHandler);
+    levelUpContentPanel.addControl(continueButton);
+
+    const levelUpInfoText = createRetroText("levelUpInfoText", CONFIG.UI.text.continueInfo, 16, CONFIG.UI.colors.accent, "30px");
+    levelUpContentPanel.addControl(levelUpInfoText);
+
+    // GAME OVER SCREEN - FIXED
+    const endGameScreen = createScreenBackground("endGameScreen", 40);
+    endGameScreen.background = "rgba(60, 0, 60, 0.9)"; // Darker background for game over
+    endGameScreen.isPointerBlocker = true;
+    uiTexture.addControl(endGameScreen);
+
+    // Main container
+    const endGameMainContainer = new BABYLON.GUI.Rectangle("endGameMainContainer");
+    endGameMainContainer.width = "100%";
+    endGameMainContainer.height = "100%";
+    endGameMainContainer.thickness = 0;
+    endGameMainContainer.isPointerBlocker = true;
+    endGameScreen.addControl(endGameMainContainer);
+
+    // Content panel
+    const endGameContentPanel = new BABYLON.GUI.StackPanel("endGameContentPanel");
+    endGameContentPanel.width = "400px";
+    endGameContentPanel.isVertical = true;
+    endGameContentPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    endGameContentPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    endGameContentPanel.isPointerBlocker = true;
+    endGameMainContainer.addControl(endGameContentPanel);
+
+    const endGameText = createRetroText("endGameText", CONFIG.UI.text.gameOverTitle, 60, "#FF0000", "100px");
+    endGameText.outlineWidth = 2;
+    endGameText.outlineColor = CONFIG.UI.colors.primary;
+    endGameContentPanel.addControl(endGameText);
+
+    const finalScoreText = createRetroText("finalScoreText", CONFIG.UI.text.finalScorePrefix + "0", 24, "#FFFFFF", "80px");
+    endGameContentPanel.addControl(finalScoreText);
+
+    // Restart button - FIXED
+    const restartButtonClickHandler = () => {
+        console.log('Restart button clicked!');
+        useGameStore.getState().resetGame();
+    };
+
+    const restartButton = createRetroButton("restartButton", CONFIG.UI.text.restartButton);
+    // Directly add event handler
+    restartButton.onPointerUpObservable.add(restartButtonClickHandler);
+    endGameContentPanel.addControl(restartButton);
+
+    const endGameInfoText = createRetroText("endGameInfoText", CONFIG.UI.text.restartInfo, 16, CONFIG.UI.colors.accent, "30px");
+    endGameContentPanel.addControl(endGameInfoText);
+
+    // Add a retro HUD frame background
+    const hudFrame = new BABYLON.GUI.Rectangle("hudFrame");
+    hudFrame.width = "100%";
+    hudFrame.height = "100%";
+    hudFrame.thickness = 4;
+    hudFrame.background = "transparent";
+    hudFrame.color = CONFIG.UI.colors.primary;
+    hudFrame.alpha = 0.5;
+    hudFrame.zIndex = 19;
+    hudFrame.isVisible = false;
+    uiTexture.addControl(hudFrame);
+
+    // Add border decorations for retro feel
+    const borderTop = new BABYLON.GUI.Rectangle("borderTop");
+    borderTop.width = "100%";
+    borderTop.height = "20px";
+    borderTop.background = CONFIG.UI.colors.secondary;
+    borderTop.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    borderTop.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    hudFrame.addControl(borderTop);
+
+    const borderBottom = new BABYLON.GUI.Rectangle("borderBottom");
+    borderBottom.width = "100%";
+    borderBottom.height = "20px";
+    borderBottom.background = CONFIG.UI.colors.secondary;
+    borderBottom.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    borderBottom.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    hudFrame.addControl(borderBottom);
+
+    // GAME HUD
+    const hudPanel = new BABYLON.GUI.Rectangle("hudPanel");
+    hudPanel.width = "100%";
+    hudPanel.height = "100px";
+    hudPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    hudPanel.background = "rgba(0, 30, 60, 0.7)";
+    hudPanel.thickness = 2;
+    hudPanel.color = CONFIG.UI.colors.primary;
+    hudPanel.zIndex = 20;
+    hudPanel.isVisible = false;
+    uiTexture.addControl(hudPanel);
+
+    // left panel => level, lives, bombs
+    const leftPanel = new BABYLON.GUI.StackPanel();
+    leftPanel.width = "50%";
+    leftPanel.height = "100%";
+    leftPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    leftPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    leftPanel.paddingLeft = "20px";
+    hudPanel.addControl(leftPanel);
+
+    const levelText = createRetroText("levelText", CONFIG.UI.text.levelPrefix + "1", 16, CONFIG.UI.colors.primary, "33px");
+    leftPanel.addControl(levelText);
+
+    const livesText = createRetroText("livesText", CONFIG.UI.text.livesPrefix + "4", 16, CONFIG.UI.colors.secondary, "33px");
+    leftPanel.addControl(livesText);
+
+    const bombsText = createRetroText("bombsText", CONFIG.UI.text.bombsPrefix + "0", 16, CONFIG.UI.colors.primary, "33px");
+    leftPanel.addControl(bombsText);
+
+    // right panel => score
+    const rightPanel = new BABYLON.GUI.StackPanel();
+    rightPanel.width = "50%";
+    rightPanel.height = "100%";
+    rightPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    rightPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    rightPanel.paddingRight = "20px";
+    hudPanel.addControl(rightPanel);
+
+    const scoreText = createRetroText("scoreText", CONFIG.UI.text.scorePrefix + "0", 22, "#FFFFFF", "40px");
+    rightPanel.addControl(scoreText);
+
+    // PAUSE OVERLAY - Improved implementation
+    const pauseOverlay = new BABYLON.GUI.Rectangle("pauseOverlay");
+    pauseOverlay.width = "100%";
+    pauseOverlay.height = "100%";
+    pauseOverlay.background = "rgba(0, 0, 0, 0.5)";
+    pauseOverlay.thickness = 0;
+    pauseOverlay.zIndex = 50; // Make sure it's above most elements but below dev GUI
+    pauseOverlay.isVisible = false;
+    uiTexture.addControl(pauseOverlay);
+
+    const pauseText = createRetroText("pauseText", CONFIG.UI.text.pausedText, 36, CONFIG.UI.colors.primary);
+    pauseText.outlineWidth = 2;
+    pauseText.outlineColor = CONFIG.UI.colors.secondary;
+    pauseOverlay.addControl(pauseText);
+
+    const devModeText = createRetroText("devModeText", CONFIG.UI.text.devModeText, 24, CONFIG.UI.colors.secondary, "80px");
+    devModeText.top = "60px";
+    pauseOverlay.addControl(devModeText);
+
+    // Add after the HUD creation (after the right panel with score text)
+    // Camera toggle button - positioned in middle of screen
+    cameraToggleContainer = new BABYLON.GUI.Rectangle("cameraToggleContainer");
+    cameraToggleContainer.width = "30px";
+    cameraToggleContainer.height = "30px";
+    cameraToggleContainer.cornerRadius = 25;
+    cameraToggleContainer.thickness = 2;
+    cameraToggleContainer.color = CONFIG.UI.buttonStyles.borderColor;
+    cameraToggleContainer.background = CONFIG.UI.buttonStyles.background;
+    cameraToggleContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    cameraToggleContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    cameraToggleContainer.top = "20px";
+    cameraToggleContainer.zIndex = 999999;
+    cameraToggleContainer.alpha = 0.8;
+    cameraToggleContainer.isVisible = true;
+    uiTexture.addControl(cameraToggleContainer);
+
+    // Create camera icon with proper visibility
+    cameraIcon = new BABYLON.GUI.TextBlock("cameraIcon");
+    cameraIcon.text = isFirstPerson ? "👁️" : "🚀"; // Initial icon based on starting camera
+    cameraIcon.color = CONFIG.UI.colors.text;
+    cameraIcon.fontSize = 24;
+    cameraIcon.fontFamily = CONFIG.UI.fontFamily;
+    cameraIcon.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    cameraIcon.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    cameraIcon.isVisible = true;
+    cameraToggleContainer.addControl(cameraIcon);
+
+    // Make sure the container is visible in game state
+    cameraToggleContainer.isVisible = useGameStore.getState().currentScene === "game";
+
+    // Add debugging to help diagnose visibility issues
+    console.log("Camera icon initialized:", cameraIcon);
+
+    // Ensure proper event handling
+    cameraToggleContainer.isPointerBlocker = true;
+    cameraToggleContainer.isHitTestVisible = true;
+
+    // Hover effects
+    cameraToggleContainer.onPointerEnterObservable.add(() => {
+        cameraToggleContainer.background = CONFIG.UI.buttonStyles.hoverBackground;
+        cameraToggleContainer.alpha = 0.9;
+    });
+    cameraToggleContainer.onPointerOutObservable.add(() => {
+        cameraToggleContainer.background = CONFIG.UI.buttonStyles.background;
+        cameraToggleContainer.alpha = 0.6;
+    });
+
+    // Click effect
+    cameraToggleContainer.onPointerDownObservable.add(() => {
+        cameraToggleContainer.scaleX = 0.9;
+        cameraToggleContainer.scaleY = 0.9;
+    });
+    cameraToggleContainer.onPointerUpObservable.add(() => {
+        cameraToggleContainer.scaleX = 1.0;
+        cameraToggleContainer.scaleY = 1.0;
+        // Toggle camera when clicked
+        switchCamera();
+    });
+
+    // Add small text below icon for clarity
+    const cameraText = new BABYLON.GUI.TextBlock("cameraText");
+    cameraText.text = CONFIG.UI.text.cameraToggle;
+    cameraText.color = CONFIG.UI.colors.text;
+    cameraText.fontSize = 8; // Smaller text for top position
+    cameraText.fontFamily = CONFIG.UI.fontFamily;
+    cameraText.top = "30px"; // Adjust text position
+    cameraToggleContainer.addControl(cameraText);
+
+    // Update the start screen text elements
+    gameTitle.text = CONFIG.UI.text.gameTitle;
+    startText.text = CONFIG.UI.text.welcomeText;
+    startButton.textBlock.text = CONFIG.UI.text.startButton;
+    startInfoText.text = CONFIG.UI.text.startInfo;
+
+    // Update the level up screen text elements
+    levelUpText.text = CONFIG.UI.text.levelUpTitle;
+    levelUpInfo.text = CONFIG.UI.text.levelUpInfo;
+    continueButton.textBlock.text = CONFIG.UI.text.continueButton;
+    levelUpInfoText.text = CONFIG.UI.text.continueInfo;
+
+    // Update the game over screen text elements
+    endGameText.text = CONFIG.UI.text.gameOverTitle;
+    finalScoreText.text = CONFIG.UI.text.finalScorePrefix + "0";
+    restartButton.textBlock.text = CONFIG.UI.text.restartButton;
+    endGameInfoText.text = CONFIG.UI.text.restartInfo;
+
+    // Update pause text
+    pauseText.text = CONFIG.UI.text.pausedText;
+    devModeText.text = CONFIG.UI.text.devModeText;
+
+
+    const crosshair = new BABYLON.GUI.Ellipse("crosshair");
+    crosshair.width = "10px";
+    crosshair.height = "10px";
+    crosshair.background = CONFIG.UI.colors.primary;
+    crosshair.alpha = 0.7;
+    crosshair.thickness = 2;
+    crosshair.color = CONFIG.UI.colors.secondary;
+    crosshair.zIndex = 30; // Above other UI elements
+    crosshair.isVisible = false; // Only visible in FP mode
+    uiTexture.addControl(crosshair);
+
+    // Create circular bomb button container
+    const bombButton = new BABYLON.GUI.Ellipse("bombButton");
+    bombButton.width = "70px";
+    bombButton.height = "70px";
+    bombButton.thickness = 2;
+    bombButton.color = "white";
+    bombButton.background = "red";
+    bombButton.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    bombButton.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    bombButton.left = "30px";
+    bombButton.top = "-30px";
+    bombButton.zIndex = 9999;
+    bombButton.alpha = 0.8;
+    bombButton.isHitTestVisible = true;
+    bombButton.isPointerBlocker = true;
+    uiTexture.addControl(bombButton);
+
+    // Add bomb icon
+    const bombIcon = new BABYLON.GUI.TextBlock("bombIcon");
+    bombIcon.text = "💣";
+    bombIcon.color = "white";
+    bombIcon.fontSize = 32;
+    bombIcon.fontFamily = CONFIG.UI.fontFamily;
+    bombIcon.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    bombIcon.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    bombButton.addControl(bombIcon);
+
+
+    // Add hover effects
+    bombButton.onPointerEnterObservable.add(() => {
+        bombButton.alpha = 1;
+        bombButton.background = "#ff3333"; // Brighter red on hover
+    });
+
+    bombButton.onPointerOutObservable.add(() => {
+        bombButton.alpha = 0.8;
+        bombButton.background = "red";
+    });
+
+    // Add click effect
+    bombButton.onPointerDownObservable.add(() => {
+        // Visual feedback
+        bombButton.scaleX = 0.9;
+        bombButton.scaleY = 0.9;
+
+        // Fire bomb - same functionality as Shift key
+        if (useGameStore.getState().currentScene === "game" &&
+            useGameStore.getState().bombs > 0) {
+            if (useGameStore.getState().useBomb()) {
+                useBombMesh();
+            }
+        }
+    });
+
+    bombButton.onPointerUpObservable.add(() => {
+        // Reset button scale
+        bombButton.scaleX = 1;
+        bombButton.scaleY = 1;
+    });
+
+    // Update UI based on game state
+    function updateScreens() {
+        const { currentScene, level, score, lives, bombs, isPaused } = useGameStore.getState();
+
+        // Only show active game elements if not paused and in game mode
+        const gameActive = currentScene === "game";
+        const activeAndNotPaused = gameActive && !isPaused;
+
+        // Update screen visibility
+        startScreen.isVisible = (currentScene === "start");
+        hudPanel.isVisible = activeAndNotPaused;
+        hudFrame.isVisible = activeAndNotPaused;
+        levelUpScreen.isVisible = (currentScene === "levelUp");
+        endGameScreen.isVisible = (currentScene === "endGame");
+
+        // IMPORTANT: Always force camera toggle visible in game mode
+        if (gameActive) {
+            cameraToggleContainer.isVisible = true;
+            cameraToggleContainer.alpha = isPaused ? 0.5 : 0.9; // Dim slightly when paused
+
+            // Make sure it's properly interactive
+            cameraToggleContainer.isPointerBlocker = true;
+            cameraToggleContainer.isHitTestVisible = true;
+            bombButton.isVisible = true;
+        } else {
+            cameraToggleContainer.isVisible = false;
+            bombButton.isVisible = false;
+        }
+
+        // Show radar during active gameplay
+        radarContainer.isVisible = activeAndNotPaused;
+
+        // Show crosshair only in first-person mode during active gameplay
+        crosshair.isVisible = activeAndNotPaused && currentCamera === fpCamera;
+
+        // Show pause overlay when paused in game mode
+        pauseOverlay.isVisible = isPaused && gameActive;
+
+        // Update text elements with config values
+        levelText.text = CONFIG.UI.text.levelPrefix + level;
+        livesText.text = CONFIG.UI.text.livesPrefix + lives;
+        bombsText.text = CONFIG.UI.text.bombsPrefix + bombs;
+        scoreText.text = CONFIG.UI.text.scorePrefix + score;
+
+        // Update final score on game over screen
+        if (currentScene === "endGame") {
+            finalScoreText.text = CONFIG.UI.text.finalScorePrefix + score;
+        }
+
+        // Update level up info with level number
+        if (currentScene === "levelUp") {
+            levelUpInfo.text = CONFIG.UI.text.levelUpInfo + " " + level;
+        }
+    }
+
+    // 6. Add a direct call to ensure camera toggle is checked during each render
+    scene.onBeforeRenderObservable.add(() => {
+        // Double check camera toggle visibility every few frames
+        if (useGameStore.getState().currentScene === "game" && !cameraToggleContainer.isVisible) {
+            cameraToggleContainer.isVisible = true;
+        }
+    });
+
+    // Create improved dev GUI with panels for desktop layout
+    const devGui = new BABYLON.GUI.Rectangle("devGui");
+    devGui.width = "600px"; // Wider to fit controls
+    devGui.height = "70%"; // Use percentage height for better scaling
+    devGui.thickness = 2;
+    devGui.color = CONFIG.UI.colors.primary;
+    devGui.cornerRadius = 5;
+    devGui.background = "rgba(30, 0, 60, 0.95)";
+    devGui.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    devGui.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    devGui.zIndex = 1001; // Higher than scanlines and any other UI
+    devGui.isVisible = false;
+    devGui.isPointerBlocker = true; // Important for event blocking
+    uiTexture.addControl(devGui);
+
+    // Title panel
+    const titlePanel = new BABYLON.GUI.StackPanel("titlePanel");
+    titlePanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    titlePanel.isVertical = true;
+    titlePanel.height = "120px";
+    titlePanel.paddingBottom = "10px";
+    devGui.addControl(titlePanel);
+
+    const devTitle = createRetroText("devTitle", "GAME CONFIGURATION", 26, CONFIG.UI.colors.primary, "50px");
+    devTitle.outlineWidth = 2;
+    devTitle.outlineColor = CONFIG.UI.colors.secondary;
+    titlePanel.addControl(devTitle);
+
+    const devSubtitle = createRetroText("devSubtitle", "Press X to toggle | ESC to close", 14, "#FFFFFF", "30px");
+    titlePanel.addControl(devSubtitle);
+
+    // Main scroll container for settings
+    const devScrollViewer = new BABYLON.GUI.ScrollViewer("devScrollViewer");
+    devScrollViewer.width = "96%";
+    devScrollViewer.height = "85%";
+    devScrollViewer.barSize = 20;
+    devScrollViewer.thumbLength = 50;
+    devScrollViewer.barColor = CONFIG.UI.colors.secondary;
+    devScrollViewer.thumbColor = CONFIG.UI.colors.primary;
+    devScrollViewer.wheelPrecision = 10;
+    devScrollViewer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    devGui.addControl(devScrollViewer);
+
+    // Main settings container
+    const settingsPanel = new BABYLON.GUI.StackPanel("settingsPanel");
+    settingsPanel.width = "100%";
+    settingsPanel.spacing = 10;
+    settingsPanel.paddingLeft = "10px";
+    settingsPanel.paddingRight = "10px";
+    settingsPanel.paddingBottom = "20px";
+    devScrollViewer.addControl(settingsPanel);
+
+    // Buttons container at the top
+    const buttonsPanel = new BABYLON.GUI.StackPanel("buttonsPanel");
+    buttonsPanel.isVertical = false;
+    buttonsPanel.height = "60px";
+    buttonsPanel.spacing = 10;
+    buttonsPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    settingsPanel.addControl(buttonsPanel);
+
+    const saveButton = createRetroButton("saveConfigButton", "SAVE CONFIG", "240px", "40px", 16);
+    saveButton.onPointerUpObservable.add(() => {
+        // Save config to local storage
+        localStorage.setItem('spaceShooterConfig', JSON.stringify(CONFIG));
+
+        // Visual confirmation instead of alert
+        const savedText = createRetroText("savedText", "CONFIG SAVED!", 14, "#00FF00");
+        buttonsPanel.addControl(savedText);
+        setTimeout(() => {
+            buttonsPanel.removeControl(savedText);
+        }, 2000);
+    });
+    buttonsPanel.addControl(saveButton);
+
+    const resetButton = createRetroButton("resetConfigButton", "RESET CONFIG", "240px", "40px", 16);
+    resetButton.onPointerUpObservable.add(() => {
+        // Clear local storage and reload
+        localStorage.removeItem('spaceShooterConfig');
+
+        // Visual confirmation
+        const resetText = createRetroText("resetText", "CONFIG RESET! RELOAD PAGE TO APPLY", 14, "#FF0000");
+        buttonsPanel.addControl(resetText);
+        setTimeout(() => {
+            buttonsPanel.removeControl(resetText);
+        }, 2000);
+    });
+    buttonsPanel.addControl(resetButton);
+
+    // Helper function for creating dev GUI section headers
+    function createDevHeader(text) {
+        const headerPanel = new BABYLON.GUI.StackPanel("headerPanel_" + text);
+        headerPanel.isVertical = true;
+        headerPanel.height = "50px";
+        settingsPanel.addControl(headerPanel);
+
+        const header = createRetroText("header_" + text, text, 18, CONFIG.UI.colors.primary, "30px");
+        header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        headerPanel.addControl(header);
+
+        const divider = new BABYLON.GUI.Rectangle("divider_" + text);
+        divider.height = "2px";
+        divider.background = CONFIG.UI.colors.secondary;
+        divider.alpha = 0.6;
+        headerPanel.addControl(divider);
+
+        return headerPanel;
+    }
+
+    // Helper function for creating slider controls
+    function createDevSlider(name, label, min, max, initial, onChange, precision = 0) {
+        const sliderPanel = new BABYLON.GUI.Rectangle("sliderPanel_" + name);
+        sliderPanel.width = "100%";
+        sliderPanel.height = "40px";
+        sliderPanel.thickness = 0;
+        sliderPanel.background = "transparent";
+        settingsPanel.addControl(sliderPanel);
+
+        const container = new BABYLON.GUI.Grid("sliderGrid_" + name);
+        container.addColumnDefinition(0.6);
+        container.addColumnDefinition(0.4);
+        container.width = "100%";
+        container.height = "100%";
+        sliderPanel.addControl(container);
+
+        const sliderText = createRetroText(name + "Text", label + ": " + initial.toFixed(precision), 14, "white");
+        sliderText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        container.addControl(sliderText, 0, 0);
+
+        const slider = new BABYLON.GUI.Slider();
+        slider.minimum = min;
+        slider.maximum = max;
+        slider.value = initial;
+        slider.height = "20px";
+        slider.width = "92%";
+        slider.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        slider.color = CONFIG.UI.colors.secondary;
+        slider.background = "#550055";
+        slider.onValueChangedObservable.add((value) => {
+            const roundedValue = precision === 0 ? Math.floor(value) : Number(value.toFixed(precision));
+            sliderText.text = label + ": " + roundedValue.toFixed(precision);
+            onChange(roundedValue);
+        });
+        container.addControl(slider, 0, 1);
+
+        return sliderPanel;
+    }
+
+    // Helper function for creating checkboxes
+    function createDevCheckbox(name, label, initial, onChange) {
+        const checkboxPanel = new BABYLON.GUI.Rectangle("checkboxPanel_" + name);
+        checkboxPanel.width = "100%";
+        checkboxPanel.height = "40px";
+        checkboxPanel.thickness = 0;
+        checkboxPanel.background = "transparent";
+        settingsPanel.addControl(checkboxPanel);
+
+        const container = new BABYLON.GUI.Grid("checkboxGrid_" + name);
+        container.addColumnDefinition(0.1);
+        container.addColumnDefinition(0.9);
+        container.width = "100%";
+        container.height = "100%";
+        checkboxPanel.addControl(container);
+
+        const checkbox = new BABYLON.GUI.Checkbox();
+        checkbox.width = "20px";
+        checkbox.height = "20px";
+        checkbox.color = CONFIG.UI.colors.secondary;
+        checkbox.background = "#550055";
+        checkbox.isChecked = initial;
+        checkbox.onIsCheckedChangedObservable.add(function (value) {
+            onChange(value);
+        });
+        container.addControl(checkbox, 0, 0);
+
+        const labelText = createRetroText(name + "Text", label, 14, "white");
+        labelText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        container.addControl(labelText, 0, 1);
+
+        return checkboxPanel;
+    }
+
+    // Helper function for creating color pickers
+    function createDevColorPicker(name, label, initialColor, onChange) {
+        const colorPanel = new BABYLON.GUI.Rectangle("colorPanel_" + name);
+        colorPanel.width = "100%";
+        colorPanel.height = "40px";
+        colorPanel.thickness = 0;
+        colorPanel.background = "transparent";
+        settingsPanel.addControl(colorPanel);
+
+        const container = new BABYLON.GUI.Grid("colorGrid_" + name);
+        container.addColumnDefinition(0.6);
+        container.addColumnDefinition(0.4);
+        container.width = "100%";
+        container.height = "100%";
+        colorPanel.addControl(container);
+
+        const labelText = createRetroText(name + "Text", label, 14, "white");
+        labelText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        container.addControl(labelText, 0, 0);
+
+        // Color display with clickable behavior
+        const colorDisplay = new BABYLON.GUI.Rectangle("colorDisplay_" + name);
+        colorDisplay.width = "100px";
+        colorDisplay.height = "20px";
+        colorDisplay.background = initialColor.toHexString();
+        colorDisplay.thickness = 1;
+        colorDisplay.color = "white";
+        colorDisplay.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        colorDisplay.isPointerBlocker = true;
+        container.addControl(colorDisplay, 0, 1);
+
+        // Color cycling functionality
+        colorDisplay.onPointerUpObservable.add(() => {
+            // Predefined colors for cycling
+            const colors = [
+                new BABYLON.Color3(1, 0, 0),   // Red
+                new BABYLON.Color3(0, 1, 0),   // Green
+                new BABYLON.Color3(0, 0, 1),   // Blue
+                new BABYLON.Color3(1, 1, 0),   // Yellow
+                new BABYLON.Color3(1, 0, 1),   // Magenta
+                new BABYLON.Color3(0, 1, 1),   // Cyan
+                new BABYLON.Color3(1, 0.5, 0), // Orange
+                new BABYLON.Color3(0.5, 0, 1)  // Purple
+            ];
+
+            // Find current color and cycle to next
+            let currentIndex = 0;
+            const currentHex = colorDisplay.background;
+            for (let i = 0; i < colors.length; i++) {
+                if (colors[i].toHexString() === currentHex) {
+                    currentIndex = i;
+                    break;
+                }
+            }
+
+            const nextIndex = (currentIndex + 1) % colors.length;
+            const newColor = colors[nextIndex];
+            colorDisplay.background = newColor.toHexString();
+            onChange(newColor);
+        });
+
+        return colorPanel;
+    }
+
+    // GAME SECTION
+    createDevHeader("GAME SETTINGS");
+
+    createDevSlider("initialLives", "Initial Lives", 1, 20, CONFIG.GAME.initialLives, (value) => {
+        CONFIG.GAME.initialLives = value;
+    });
+
+    createDevSlider("initialBombs", "Initial Bombs", 0, 50, CONFIG.GAME.initialBombs, (value) => {
+        CONFIG.GAME.initialBombs = value;
+    });
+
+    createDevSlider("baseEnemyCount", "Base Enemy Count", 1, 30, CONFIG.GAME.baseEnemyCount, (value) => {
+        CONFIG.GAME.baseEnemyCount = value;
+    });
+
+    createDevSlider("scoreThreshold", "Level Score Threshold", 500, 5000, CONFIG.GAME.levelScoreThreshold, (value) => {
+        CONFIG.GAME.levelScoreThreshold = value;
+    });
+
+    createDevSlider("scoreMultiplier", "Level Score Multiplier", 1, 3, CONFIG.GAME.levelScoreMultiplier, (value) => {
+        CONFIG.GAME.levelScoreMultiplier = value;
+    }, 2);
+
+    createDevSlider("enemiesPerLevel", "Enemies Per Level Multiplier", 1, 10, CONFIG.GAME.enemiesPerLevelMultiplier, (value) => {
+        CONFIG.GAME.enemiesPerLevelMultiplier = value;
+    });
+
+    // PLAYER SECTION
+    createDevHeader("PLAYER SETTINGS");
+
+    createDevSlider("playerSpeed", "Player Speed", 0.1, 2, CONFIG.PLAYER.speed, (value) => {
+        CONFIG.PLAYER.speed = value;
+        shipSpeed = value; // Update the active ship speed
+    }, 1);
+
+    createDevSlider("playerSize", "Player Size", 0.5, 3, CONFIG.PLAYER.size, (value) => {
+        CONFIG.PLAYER.size = value;
+        // Recreate player ship with new size
+        playerShip.dispose();
+        const newShip = BABYLON.MeshBuilder.CreatePolyhedron("playerShip", { type: 2, size: value }, scene);
+        newShip.position = playerShip.position.clone();
+        newShip.rotation = playerShip.rotation.clone();
+        newShip.material = playerMat;
+        playerShip = newShip;
+    });
+
+    createDevColorPicker("playerColor", "Player Color", CONFIG.PLAYER.color, (color) => {
+        CONFIG.PLAYER.color = color;
+        playerMat.emissiveColor = color;
+    });
+
+    // ENEMY SECTION
+    createDevHeader("ENEMY SETTINGS");
+
+    createDevSlider("enemyBaseRadius", "Enemy Base Size", 0.5, 3, CONFIG.ENEMY.baseRadius, (value) => {
+        CONFIG.ENEMY.baseRadius = value;
+    });
+
+    createDevSlider("enemyChaseSpeed", "Enemy Chase Speed", 0.01, 0.2, CONFIG.ENEMY.chaseSpeed, (value) => {
+        CONFIG.ENEMY.chaseSpeed = value;
+    }, 2);
+
+    createDevSlider("enemyDriftSpeed", "Enemy Drift Speed", 0.001, 0.1, CONFIG.ENEMY.driftSpeed, (value) => {
+        CONFIG.ENEMY.driftSpeed = value;
+    }, 3);
+
+    createDevSlider("spawnDistance", "Enemy Spawn Distance", 20, 100, CONFIG.ENEMY.spawnDistanceMax, (value) => {
+        CONFIG.ENEMY.spawnDistanceMax = value;
+    });
+
+    createDevSlider("minDistance", "Min Distance From Player", 5, 30, CONFIG.ENEMY.minDistanceFromPlayer, (value) => {
+        CONFIG.ENEMY.minDistanceFromPlayer = value;
+    });
+
+    // WEAPONS SECTION
+    createDevHeader("WEAPON SETTINGS");
+
+    // Bullet settings
+    createDevSlider("bulletSize", "Bullet Size", 0.2, 2, CONFIG.WEAPONS.bullet.size, (value) => {
+        CONFIG.WEAPONS.bullet.size = value;
+    }, 1);
+
+    createDevSlider("bulletSpeed", "Bullet Speed", 0.2, 3, CONFIG.WEAPONS.bullet.speed, (value) => {
+        CONFIG.WEAPONS.bullet.speed = value;
+    }, 1);
+
+    createDevSlider("bulletRate", "Shots Per Second", 1, 20, CONFIG.WEAPONS.bullet.shotsPerSecond, (value) => {
+        CONFIG.WEAPONS.bullet.shotsPerSecond = value;
+    });
+
+    createDevSlider("bulletRange", "Bullet Range", 50, 500, CONFIG.WEAPONS.bullet.range, (value) => {
+        CONFIG.WEAPONS.bullet.range = value;
+    });
+
+    createDevColorPicker("bulletColor", "Bullet Color", CONFIG.WEAPONS.bullet.color, (color) => {
+        CONFIG.WEAPONS.bullet.color = color;
+    });
+
+    // Bomb settings
+    createDevSlider("bombSize", "Bomb Initial Size", 0.2, 2, CONFIG.WEAPONS.bomb.initialSize, (value) => {
+        CONFIG.WEAPONS.bomb.initialSize = value;
+    }, 1);
+
+    createDevSlider("bombMaxScale", "Bomb Max Scale", 10, 100, CONFIG.WEAPONS.bomb.maxScale, (value) => {
+        CONFIG.WEAPONS.bomb.maxScale = value;
+    });
+
+    createDevSlider("bombSpeed", "Bomb Expansion Speed", 0.1, 2, CONFIG.WEAPONS.bomb.expansionSpeed, (value) => {
+        CONFIG.WEAPONS.bomb.expansionSpeed = value;
+    }, 1);
+
+    createDevColorPicker("bombColor", "Bomb Color", CONFIG.WEAPONS.bomb.color, (color) => {
+        CONFIG.WEAPONS.bomb.color = color;
+    });
+
+    // DISPLAY SECTION
+    createDevHeader("DISPLAY SETTINGS");
+
+    createDevSlider("radarRange", "Radar Range", 20, 100, CONFIG.DISPLAY.radarRange, (value) => {
+        CONFIG.DISPLAY.radarRange = value;
+    });
+
+    createDevSlider("radarSize", "Radar Size", 120, 300, CONFIG.DISPLAY.radarSize, (value) => {
+        CONFIG.DISPLAY.radarSize = value;
+        radarContainer.width = value + "px";
+        radarContainer.height = value + "px";
+
+        // Update grid lines
+        gridLines.width = (value * 0.75) + "px";
+        gridLines.height = (value * 0.75) + "px";
+
+        innerGrid.width = (value * 0.35) + "px";
+        innerGrid.height = (value * 0.35) + "px";
+
+        // Update cross lines
+        horizontalLine.x1 = -value / 2;
+        horizontalLine.x2 = value / 2;
+
+        verticalLine.y1 = -value / 2;
+        verticalLine.y2 = value / 2;
+    });
+
+    // SPECIAL FEATURES SECTION (NEW)
+    createDevHeader("SPECIAL FEATURES");
+
+    createDevCheckbox("enableSuperBomb", "Enable Super Bomb (Shift+Cmd)", CONFIG.DEV.enableSuperBomb, (value) => {
+        CONFIG.DEV.enableSuperBomb = value;
+        console.log("Super Bomb " + (value ? "enabled" : "disabled"));
+    });
+
+    // Add close button to dev GUI
+    const closeButton = BABYLON.GUI.Button.CreateSimpleButton("closeDevPanel", "X");
+    closeButton.width = "30px";
+    closeButton.height = "30px";
+    closeButton.thickness = 2;
+    closeButton.color = "#FFFFFF";
+    closeButton.background = "#550055";
+    closeButton.cornerRadius = 15;
+    closeButton.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    closeButton.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    closeButton.fontFamily = CONFIG.UI.fontFamily;
+    closeButton.fontSize = 16;
+    closeButton.top = "5px";
+    closeButton.left = "-5px";
+    closeButton.isPointerBlocker = true;
+    closeButton.onPointerUpObservable.add(() => {
+        toggleDevGui(false);
+    });
+
+    // Add hover effects
+    closeButton.onPointerEnterObservable.add(() => {
+        closeButton.background = CONFIG.UI.colors.secondary;
+    });
+    closeButton.onPointerOutObservable.add(() => {
+        closeButton.background = "#550055";
+    });
+
+    devGui.addControl(closeButton);
+
+    // Try to load configuration from localStorage (if any)
+    try {
+        const savedConfig = localStorage.getItem('spaceShooterConfig');
+        if (savedConfig) {
+            const parsedConfig = JSON.parse(savedConfig);
+
+            // Deep merge with default config (basic implementation)
+            for (const key in parsedConfig) {
+                if (typeof parsedConfig[key] === 'object' && CONFIG[key]) {
+                    for (const subKey in parsedConfig[key]) {
+                        CONFIG[key][subKey] = parsedConfig[key][subKey];
+                    }
+                } else {
+                    CONFIG[key] = parsedConfig[key];
+                }
+            }
+
+            console.log("Loaded configuration from localStorage");
+        }
+    } catch (e) {
+        console.error("Error loading configuration:", e);
+    }
+
+    // Improved function to toggle dev GUI
+    function toggleDevGui(visible) {
+        isDevGuiVisible = visible;
+        devGui.isVisible = visible;
+
+        // Use the centralized game store to track pause state
+        if (useGameStore.getState().currentScene === "game") {
+            useGameStore.getState().setPaused(visible);
+        }
+    }
+
+
+    // Radar container (circular background) - Retro style
+    const radarContainer = new BABYLON.GUI.Ellipse();
+    radarContainer.width = CONFIG.DISPLAY.radarSize + "px";
+    radarContainer.height = CONFIG.DISPLAY.radarSize + "px";
+    radarContainer.cornerRadius = CONFIG.DISPLAY.radarSize / 2;
+    radarContainer.background = "rgba(0, 40, 80, 0.7)";
+    radarContainer.color = CONFIG.UI.colors.primary;
+    radarContainer.thickness = 3;
+    radarContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    radarContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    radarContainer.top = "-20px";
+    radarContainer.left = "-20px";
+    radarContainer.zIndex = 25;
+    radarContainer.isVisible = false; // Start hidden (only visible in FP mode)
+    uiTexture.addControl(radarContainer);
+
+    // Add grid lines with vaporwave colors
+    const gridLines = new BABYLON.GUI.Ellipse();
+    gridLines.width = (CONFIG.DISPLAY.radarSize * 0.75) + "px";
+    gridLines.height = (CONFIG.DISPLAY.radarSize * 0.75) + "px";
+    gridLines.cornerRadius = (CONFIG.DISPLAY.radarSize * 0.75) / 2;
+    gridLines.background = "transparent";
+    gridLines.color = "rgba(0, 255, 255, 0.5)";
+    gridLines.thickness = 1;
+    radarContainer.addControl(gridLines);
+
+    const innerGrid = new BABYLON.GUI.Ellipse();
+    innerGrid.width = (CONFIG.DISPLAY.radarSize * 0.35) + "px";
+    innerGrid.height = (CONFIG.DISPLAY.radarSize * 0.35) + "px";
+    innerGrid.cornerRadius = (CONFIG.DISPLAY.radarSize * 0.35) / 2;
+    innerGrid.background = "transparent";
+    innerGrid.color = "rgba(255, 0, 255, 0.5)";
+    innerGrid.thickness = 1;
+    radarContainer.addControl(innerGrid);
+
+    // Cross lines with vaporwave styling
+    const horizontalLine = new BABYLON.GUI.Line();
+    horizontalLine.x1 = -CONFIG.DISPLAY.radarSize / 2;
+    horizontalLine.y1 = 0;
+    horizontalLine.x2 = CONFIG.DISPLAY.radarSize / 2;
+    horizontalLine.y2 = 0;
+    horizontalLine.color = "rgba(255, 0, 255, 0.4)";
+    horizontalLine.lineWidth = 1;
+    radarContainer.addControl(horizontalLine);
+
+    const verticalLine = new BABYLON.GUI.Line();
+    verticalLine.x1 = 0;
+    verticalLine.y1 = -CONFIG.DISPLAY.radarSize / 2;
+    verticalLine.x2 = 0;
+    verticalLine.y2 = CONFIG.DISPLAY.radarSize / 2;
+    verticalLine.color = "rgba(0, 255, 255, 0.4)";
+    verticalLine.lineWidth = 1;
+    radarContainer.addControl(verticalLine);
+
+    // Player indicator (center dot) - Pixelated style
+    const playerDot = new BABYLON.GUI.Ellipse();
+    playerDot.width = "12px";
+    playerDot.height = "12px";
+    playerDot.background = "#00FF99";
+    playerDot.shadowColor = CONFIG.UI.colors.primary;
+    playerDot.shadowBlur = 8;
+    radarContainer.addControl(playerDot);
+
+    // Direction indicator (shows which way player is facing)
+    const directionIndicator = new BABYLON.GUI.Line();
+    directionIndicator.x1 = 0;
+    directionIndicator.y1 = 0;
+    directionIndicator.x2 = 0;
+    directionIndicator.y2 = -30;
+    directionIndicator.color = CONFIG.UI.colors.primary;
+    directionIndicator.lineWidth = 3;
+    radarContainer.addControl(directionIndicator);
+
+    // Mini-map title with retro font
+    const radarTitle = createRetroText("radarTitle", CONFIG.UI.text.radarTitle, 12, CONFIG.UI.colors.primary);
+    // Update radar title
+    radarTitle.top = "-95px";
+    radarContainer.addControl(radarTitle);
+
+    // Create enemy blips container
+    const enemyBlips = [];
+
+    // Update radar function
+    function updateRadar() {
+        // Get the current rotation of the player ship
+        const playerRotation = playerShip.rotation.y;
+
+        // Rotate the direction indicator based on player's rotation
+        // Add a pulsing effect to the radar elements for a more dynamic retro feel
+        const pulseRate = Math.sin(performance.now() * 0.003) * 0.2 + 1.0;
+        directionIndicator.rotation = -playerRotation;
+        directionIndicator.alpha = 0.7 + (Math.sin(performance.now() * 0.005) * 0.3);
+
+        // Pulse the radar rings for retro effect
+        gridLines.alpha = 0.4 + (Math.sin(performance.now() * 0.002) * 0.2);
+        innerGrid.alpha = 0.4 + (Math.sin(performance.now() * 0.002 + 1) * 0.2);
+
+        // Get enemies from the game store
+        const enemies = useGameStore.getState().enemies;
+
+        // Clear old enemy dots if count doesn't match
+        if (enemyBlips.length !== enemies.length) {
+            enemyBlips.forEach(blip => radarContainer.removeControl(blip));
+            enemyBlips.length = 0;
+
+            // Create new enemy dots with retro styling
+            enemies.forEach(() => {
+                const enemyDot = new BABYLON.GUI.Ellipse();
+                enemyDot.width = "8px";
+                enemyDot.height = "8px";
+                enemyDot.background = CONFIG.UI.colors.secondary;
+                enemyDot.shadowColor = CONFIG.UI.colors.secondary;
+                enemyDot.shadowBlur = 5;
+                radarContainer.addControl(enemyDot);
+                enemyBlips.push(enemyDot);
+            });
+        }
+
+        // Update enemy positions on the radar
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+            if (enemy && enemy.metadata && enemy.metadata.alive) {
+                // Calculate relative position (from player to enemy)
+                const relativePos = enemy.position.subtract(playerShip.position);
+
+                // Rotate coordinates based on player's facing direction
+                const rotatedX = relativePos.x * Math.cos(-playerRotation) - relativePos.z * Math.sin(-playerRotation);
+                const rotatedZ = relativePos.x * Math.sin(-playerRotation) + relativePos.z * Math.cos(-playerRotation);
+
+                // Scale positions to fit on radar (max range of 50 units)
+                const radarRange = CONFIG.DISPLAY.radarRange;
+                const scaledX = (rotatedX / radarRange) * (CONFIG.DISPLAY.radarSize * 0.35);
+                const scaledZ = (rotatedZ / radarRange) * (CONFIG.DISPLAY.radarSize * 0.35);
+
+                // Clamp to radar boundaries
+                const maxRadius = CONFIG.DISPLAY.radarSize * 0.35;
+                const distance = Math.sqrt(scaledX * scaledX + scaledZ * scaledZ);
+                let clampedX = scaledX;
+                let clampedZ = scaledZ;
+
+                if (distance > maxRadius) {
+                    const ratio = maxRadius / distance;
+                    clampedX = scaledX * ratio;
+                    clampedZ = scaledZ * ratio;
+                }
+
+                // Update enemy dot position
+                enemyBlips[i].left = clampedX + "px";
+                enemyBlips[i].top = -clampedZ + "px";  // Negative because GUI Y is inverted
+                enemyBlips[i].isVisible = true;
+
+                // Pulse enemy dots based on distance
+                const distanceRatio = 1 - (distance / maxRadius);
+                enemyBlips[i].alpha = 0.5 + (distanceRatio * 0.5) + (Math.sin(performance.now() * 0.003) * 0.2);
+            } else if (enemyBlips[i]) {
+                // Hide dot if enemy is not alive
+                enemyBlips[i].isVisible = false;
+            }
+        }
+    }
+
+    const inputMap = {};
+    scene.actionManager = new BABYLON.ActionManager(scene);
+
+    scene.actionManager.registerAction(
+        new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyDownTrigger, (evt) => {
+            inputMap[evt.sourceEvent.key] = true;
+        })
+    );
+    scene.actionManager.registerAction(
+        new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyUpTrigger, (evt) => {
+            inputMap[evt.sourceEvent.key] = false;
+        })
+    );
+
+    // Mouse/pointer control variables
+    isPointerLocked = false;
+    let pointerDeltaX = 0;
+    let pointerDeltaY = 0;
+
+    // Fix pointer lock change handling
+    pointerLockChange = () => {
+        let canvas = document.getElementById("renderCanvas");
+        isPointerLocked = document.pointerLockElement === canvas ||
+            document.mozPointerLockElement === canvas ||
+            document.webkitPointerLockElement === canvas;
+
+        // Update the camera control mode based on pointer lock state
+        if (isPointerLocked && currentCamera === fpCamera) {
+            console.log("Pointer locked - using locked controls");
+            // Use pointer lock controls
+            canvas.style.cursor = "none";
+        } else {
+            console.log("Pointer not locked - using touch/mouse controls");
+            // Use touch/mouse controls
+            canvas.style.cursor = "auto";
+        }
+    };
+
+    document.addEventListener("pointerlockchange", pointerLockChange);
+    document.addEventListener("mozpointerlockchange", pointerLockChange);
+    document.addEventListener("webkitpointerlockchange", pointerLockChange);
+
+
+    // Create explosion effect
+    function createExplosion(position, color, scale = 1) {
+        const particleSystem = new BABYLON.ParticleSystem("explosion", 50 * scale, scene);
+        particleSystem.particleTexture = new BABYLON.Texture("https://raw.githubusercontent.com/PatrickRyanMS/BabylonJStextures/master/ParticleSystems/Explosion/ExplosionSim.png", scene);
+
+        // Position and behavior
+        particleSystem.emitter = position;
+        particleSystem.minEmitBox = new BABYLON.Vector3(-0.5, -0.5, -0.5).scale(scale);
+        particleSystem.maxEmitBox = new BABYLON.Vector3(0.5, 0.5, 0.5).scale(scale);
+
+        // Particle behavior
+        particleSystem.color1 = color;
+        particleSystem.color2 = new BABYLON.Color4(1, 1, 1, 1);
+        particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0);
+
+        particleSystem.minSize = 0.3 * scale;
+        particleSystem.maxSize = 1.5 * scale;
+
+        particleSystem.minLifeTime = 0.2;
+        particleSystem.maxLifeTime = 0.6;
+
+        particleSystem.emitRate = 300 * scale;
+
+        particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+
+        particleSystem.gravity = new BABYLON.Vector3(0, 0, 0);
+
+        particleSystem.direction1 = new BABYLON.Vector3(-1, -1, -1);
+        particleSystem.direction2 = new BABYLON.Vector3(1, 1, 1);
+
+        particleSystem.minAngularSpeed = 0;
+        particleSystem.maxAngularSpeed = Math.PI;
+
+        particleSystem.minEmitPower = 1 * scale;
+        particleSystem.maxEmitPower = 3 * scale;
+
+        // Start and limit duration
+        particleSystem.start();
+        setTimeout(() => {
+            particleSystem.stop();
+            setTimeout(() => {
+                particleSystem.dispose();
+            }, 1000);
+        }, 300 * scale);
+    }
+
+    // Shooting functions
+    let shotsPerSecond = CONFIG.WEAPONS.bullet.shotsPerSecond;
+    let timeSinceLastShot = 0;
+
+    // UPDATED Fire function for proper first-person view
+    singleFire = () => {
+        // Check if game is active before allowing firing
+        if (useGameStore.getState().isPaused ||
+            useGameStore.getState().currentScene !== "game") {
+            return;
+        }
+
+        // Get weapon config
+        const bulletSize = CONFIG.WEAPONS.bullet.size;
+        const bulletSpeed = CONFIG.WEAPONS.bullet.speed;
+        const bulletColor = CONFIG.WEAPONS.bullet.color;
+        const bulletRange = CONFIG.WEAPONS.bullet.range;
+
+        let bulletOrigin, bulletDir;
+        if (currentCamera === fpCamera) {
+            // In first-person, bullet comes from camera's center
+            bulletOrigin = fpCamera.position.clone();
+            bulletDir = fpCamera.getDirection(BABYLON.Vector3.Forward());
+        } else {
+            // In third-person, bullet comes from ship
+            bulletOrigin = playerShip.position.clone();
+            bulletDir = shipDirection.clone();
+        }
+
+        const bullet = BABYLON.MeshBuilder.CreateSphere("bullet", { diameter: bulletSize }, scene);
+        bullet.position.copyFrom(bulletOrigin);
+
+        const bulletMat = new BABYLON.StandardMaterial("bulletMat", scene);
+        bulletMat.emissiveColor = bulletColor;
+        bullet.material = bulletMat;
+
+        const bulletVel = bulletDir.scale(bulletSpeed);
+
+        const bulletUpdate = scene.onBeforeRenderObservable.add(() => {
+            // Don't update bullet physics if game is paused
+            if (useGameStore.getState().isPaused) {
+                return;
+            }
+
+            bullet.position.addInPlace(bulletVel);
+            if (bullet.position.length() > bulletRange) {
+                scene.onBeforeRenderObservable.remove(bulletUpdate);
+                bullet.dispose();
+                return;
+            }
+            const { enemies } = useGameStore.getState();
+            for (let enemy of enemies) {
+                if (enemy && enemy.metadata && enemy.metadata.alive) {
+                    if (bullet.intersectsMesh(enemy, false)) {
+                        enemy.metadata.alive = false;
+
+                        // Create explosion effect at enemy position
+                        createEnemyExplosion(enemy.position.clone(), enemy.material.emissiveColor);
+
+                        // Dispose enemy
+                        enemy.dispose();
+                        useGameStore.getState().addScore(100);
+
+                        // Remove bullet
+                        scene.onBeforeRenderObservable.remove(bulletUpdate);
+                        bullet.dispose();
+                        break;
+                    }
+                }
+            }
+        });
+    }
+
+    // UPDATED Bomb function for two-sided material
+    useBombMesh = () => {
+        // Check if game is active
+        if (useGameStore.getState().isPaused ||
+            useGameStore.getState().currentScene !== "game") {
+            return;
+        }
+
+        // Get bomb config
+        const initialSize = CONFIG.WEAPONS.bomb.initialSize;
+        const maxScale = CONFIG.WEAPONS.bomb.maxScale;
+        const expansionSpeed = CONFIG.WEAPONS.bomb.expansionSpeed;
+        const bombColor = CONFIG.WEAPONS.bomb.color;
+
+        let bombOrigin;
+        if (currentCamera === fpCamera) {
+            // In first-person, bomb comes from camera's position
+            bombOrigin = fpCamera.position.clone();
+        } else {
+            bombOrigin = playerShip.position.clone();
+        }
+
+        // Create bomb with double-sided material
+        const bomb = BABYLON.MeshBuilder.CreateSphere("bomb", {
+            diameter: initialSize,
+            segments: 16,
+            sideOrientation: BABYLON.Mesh.DOUBLESIDE // IMPORTANT: Make visible from inside
+        }, scene);
+        bomb.position.copyFrom(bombOrigin);
+
+        // Create two-sided material
+        const bombMat = new BABYLON.StandardMaterial("bombMat", scene);
+        bombMat.emissiveColor = bombColor;
+        bombMat.backFaceCulling = false; // Important for seeing from inside
+        bombMat.alpha = 0.7; // Slightly transparent to see through
+        bomb.material = bombMat;
+
+        let currentScale = initialSize;
+        const bombUpdate = scene.onBeforeRenderObservable.add(() => {
+            // Don't update bomb if game is paused
+            if (useGameStore.getState().isPaused) {
+                return;
+            }
+
+            currentScale += expansionSpeed;
+            bomb.scaling.setAll(currentScale);
+
+            const radius = (initialSize * currentScale) / 2;
+            const { enemies } = useGameStore.getState();
+            enemies.forEach((enemy) => {
+                if (enemy && enemy.metadata && enemy.metadata.alive) {
+                    const dist = BABYLON.Vector3.Distance(enemy.position, bomb.position);
+                    if (dist <= radius) {
+                        enemy.metadata.alive = false;
+
+                        // Create explosion effect at enemy position
+                        createEnemyExplosion(enemy.position.clone(), enemy.material.emissiveColor);
+
+                        enemy.dispose();
+                        useGameStore.getState().addScore(100);
+                    }
+                }
+            });
+
+            if (currentScale >= maxScale) {
+                scene.onBeforeRenderObservable.remove(bombUpdate);
+                bomb.dispose();
+            }
+        });
+    }
+
+    // NEW: Super Bomb Function
+    useSuperBomb = () => {
+        // Check if super bomb is enabled in dev settings
+        if (!CONFIG.DEV.enableSuperBomb) {
+            console.log("Super Bomb is disabled in dev settings.");
+            return;
+        }
+
+        // Check if game is active before allowing super bomb
+        if (useGameStore.getState().isPaused ||
+            useGameStore.getState().currentScene !== "game") {
+            return;
+        }
+
+        const { enemies } = useGameStore.getState();
+        let count = 0;
+
+        // Kill all enemies
+        enemies.forEach((enemy) => {
+            if (enemy && enemy.metadata && enemy.metadata.alive) {
+                count++;
+                enemy.metadata.alive = false;
+                createExplosion(enemy.position.clone(), enemy.material.emissiveColor);
+                enemy.dispose();
+                useGameStore.getState().addScore(100);
+            }
+        });
+
+        // Clean up the enemies array
+        useGameStore.getState().cleanEnemies();
+
+        // Create a mega explosion at player position if any enemies were killed
+        if (count > 0) {
+            createExplosion(
+                playerShip.position.clone(),
+                new BABYLON.Color3(1, 1, 1), // Bright white
+                3 // Larger scale
+            );
+
+            // Display visual feedback
+            const superBombText = createRetroText("superBombText", CONFIG.UI.text.superBombActivated, 24, CONFIG.UI.colors.secondary);
+            uiTexture.addControl(superBombText);
+            setTimeout(() => {
+                uiTexture.removeControl(superBombText);
+            }, 2000);
+        }
+
+        console.log(`Super bomb killed ${count} enemies!`);
+    }
+
+    // UPDATED mouse handling - only fire if in game mode and not on UI
+    scene.onPointerDown = (evt) => {
+        const currentScene = useGameStore.getState().currentScene;
+        const isPaused = useGameStore.getState().isPaused;
+
+        // First, check for clicks on menu screen buttons
+        if (evt.target && evt.target.name) {
+            console.log("Clicked on: " + evt.target.name);
+
+            // Start screen button handling
+            if (currentScene === "start" && evt.target.name === "startButton") {
+                console.log('Start button clicked!');
+                startButtonClickHandler();
+                return;
+            }
+
+            // Level up screen button handling
+            if (currentScene === "levelUp" && evt.target.name === "continueButton") {
+                console.log('Continue button clicked!');
+                continueButtonClickHandler();
+                return;
+            }
+
+            // Game over screen button handling
+            if (currentScene === "endGame" && evt.target.name === "restartButton") {
+                console.log('Restart button clicked!');
+                restartButtonClickHandler();
+                return;
+            }
+
+            // If clicked on any button or container, don't process as game action
+            if (evt.target.name.includes("Button") || evt.target.name.includes("Container")) {
+                return;
+            }
+        }
+
+        // Only fire if in game mode, not paused, and not in dev GUI
+        if (currentScene === "game" && !isPaused && !isDevGuiVisible) {
+            // Only fire if not in pointer lock mode (which is used for navigation in first-person)
+            if (!isPointerLocked || currentCamera !== fpCamera) {
+                singleFire();
+            }
+        }
+    };
+
+    // Dev panel toggle with improved handling
+    scene.onKeyboardObservable.add((kbInfo) => {
+        if (kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN) {
+            // Track Command/Control key state
+            if (kbInfo.event.key === "Meta" || kbInfo.event.key === "Control") {
+                cmdKeyPressed = true;
+            }
+        }
+
+        if (kbInfo.type === BABYLON.KeyboardEventTypes.KEYUP) {
+            // X key toggles dev GUI (existing code)
+            if (kbInfo.event.key.toLowerCase() === "x") {
+                toggleDevGui(!isDevGuiVisible);
+
+                if (isDevGuiVisible) {
+                    console.log("Dev GUI opened");
+                } else {
+                    console.log("Dev GUI closed");
+                }
+            }
+
+            // ESCAPE key to close dev GUI or pause game
+            if (kbInfo.event.key === "Escape") {
+                if (isDevGuiVisible) {
+                    // Close dev GUI if it's open
+                    toggleDevGui(false);
+                } else if (useGameStore.getState().currentScene === "game") {
+                    // Toggle pause state if in game mode
+                    const currentPauseState = useGameStore.getState().isPaused;
+                    useGameStore.getState().setPaused(!currentPauseState);
+                    console.log(`Game ${currentPauseState ? "unpaused" : "paused"}`);
+                }
+            }
+
+            // Release Command/Control key
+            if (kbInfo.event.key === "Meta" || kbInfo.event.key === "Control") {
+                cmdKeyPressed = false;
+            }
+
+            // Super Bomb with Shift+Command/Control
+            if (kbInfo.event.key === "Shift" && cmdKeyPressed) {
+                console.log("Shift+Command detected, activating super bomb");
+                useSuperBomb();
+            }
+
+            // Switch camera with C key
+            if (kbInfo.event.key.toLowerCase() === "c") {
+                switchCamera();
+            }
+
+            // Enter key for different screens - only if dev GUI is not visible
+            if (kbInfo.event.key === "Enter" && !isDevGuiVisible) {
+                const currentScene = useGameStore.getState().currentScene;
+
+                if (currentScene === "start") {
+                    console.log('Starting game via Enter key');
+                    startButtonClickHandler();
+                } else if (currentScene === "levelUp") {
+                    console.log('Continuing to next level via Enter key');
+                    continueButtonClickHandler();
+                } else if (currentScene === "endGame") {
+                    console.log('Restarting game via Enter key');
+                    restartButtonClickHandler();
+                }
+            }
+        }
+    });
+
+
+    let lastTime = performance.now();
+    // Counter to track time between enemy spawns
+    let enemyCheckTime = 0;
+
+    scene.onBeforeRenderObservable.add(() => {
+        const now = performance.now();
+        const deltaTime = now - lastTime;
+        lastTime = now;
+
+        const store = useGameStore.getState();
+        const {
+            currentScene,
+            level,
+            enemies,
+            enemySpawnCount,
+            isPaused
+        } = store;
+
+        // update UI each frame
+        updateScreens();
+
+        // Update radar if in first-person mode
+
+        updateRadar();
+
+
+        // Enforce player ship visibility in first-person mode
+        if (currentCamera === fpCamera) {
+            playerShip.isVisible = false;
+        }
+
+        // Handle tap-to-move functionality
+        if (currentScene === "game" && !isPaused && isMovingToPoint && targetPoint) {
+            // Get direction vector to target
+            const direction = targetPoint.subtract(playerShip.position);
+            direction.y = 0; // Keep on the horizontal plane
+
+            // Check if we're close enough to stop
+            if (direction.length() < 1) {
+                isMovingToPoint = false;
+                targetPoint = null;
+            } else {
+                // Normalize direction and move player
+                direction.normalize();
+                playerShip.position.addInPlace(direction.scale(moveToPointSpeed));
+
+                // Update camera position for first-person
+                if (currentCamera === fpCamera) {
+                    fpCamera.position.copyFrom(playerShip.position);
+                    fpCamera.position.y += 0.1;
+                }
+            }
+        }
+
+        // Only process game logic if the game is active and not paused
+        if (currentScene === "game" && !isPaused) {
+            // 1) Movement & camera sync
+            const forward = inputMap["w"] || inputMap["ArrowUp"];
+            const backward = inputMap["s"] || inputMap["ArrowDown"];
+            const left = inputMap["a"] || inputMap["ArrowLeft"];
+            const right = inputMap["d"] || inputMap["ArrowRight"];
+
+            if (left) {
+                playerShip.rotation.y -= 0.05;
+            }
+            if (right) {
+                playerShip.rotation.y += 0.05;
+            }
+
+            let forwardVector = new BABYLON.Vector3(
+                Math.sin(playerShip.rotation.y),
+                0,
+                Math.cos(playerShip.rotation.y)
+            );
+
+            if (forward) {
+                playerShip.position.addInPlace(forwardVector.scale(shipSpeed));
+            }
+            if (backward) {
+                playerShip.position.addInPlace(forwardVector.scale(-shipSpeed));
+            }
+            shipDirection = forwardVector;
+
+            if (currentCamera === fpCamera) {
+                fpCamera.position.copyFrom(playerShip.position);
+                fpCamera.position.y = playerShip.position.y + 0.1; // Slightly above center for first-person
+
+                // Only sync rotation if not in pointer lock mode
+                if (!isPointerLocked) {
+                    fpCamera.rotation.y = playerShip.rotation.y;
+                }
+            }
+
+            // 2) Rapid fire if space is held
+            if (inputMap[" "]) {
+                timeSinceLastShot += deltaTime;
+                shotsPerSecond = CONFIG.WEAPONS.bullet.shotsPerSecond; // Get updated value
+                const shotInterval = 1000 / shotsPerSecond;
+                while (timeSinceLastShot > shotInterval) {
+                    singleFire();
+                    timeSinceLastShot -= shotInterval;
+                }
+            } else {
+                timeSinceLastShot = 0;
+            }
+
+            // 3) Use bomb if SHIFT is pressed
+            if (inputMap["Shift"] && !cmdKeyPressed) {
+                if (store.useBomb()) {
+                    useBombMesh();
+                }
+                inputMap["Shift"] = false;
+            }
+
+            // 4) Enemy logic (chase + drift)
+            let aliveEnemies = 0;
+            enemies.forEach((enemy) => {
+                if (enemy && enemy.metadata && enemy.metadata.alive) {
+                    aliveEnemies++;
+                    let dirToPlayer = playerShip.position.subtract(enemy.position);
+                    dirToPlayer.normalize();
+
+                    // drift x->0
+                    let xDrift = -Math.sign(enemy.position.x) * CONFIG.ENEMY.driftSpeed;
+                    enemy.position.x += xDrift;
+
+                    // chase player
+                    enemy.position.addInPlace(dirToPlayer.scale(CONFIG.ENEMY.chaseSpeed));
+
+                    // collision
+                    if (enemy.intersectsMesh(playerShip, false)) {
+                        // Create player explosion before handling game logic
+                        createPlayerExplosion(playerShip.position.clone());
+
+                        store.loseLife();
+                        // Dispose all enemies but don't clear the array yet
+                        enemies.forEach((e) => {
+                            if (e && e.metadata) {
+                                e.metadata.alive = false;
+
+                                // Create small explosions for each enemy too
+                                createEnemyExplosion(e.position.clone(), e.material.emissiveColor, 0.8);
+
+                                e.dispose();
+                            }
+                        });
+                        // Now clear the array
+                        store.setEnemies([]);
+                        // Spawn new enemies immediately after losing a life
+                        spawnWave(enemySpawnCount + level * 2);
+                    }
+                }
+            });
+
+            // 5) Check for enemies to respawn
+            // Increment our counter
+            enemyCheckTime += deltaTime;
+
+            // Only check every 500ms to avoid excessive processing
+            if (enemyCheckTime > 500) {
+                enemyCheckTime = 0;
+
+                // Clean up the enemies array and get the count of active enemies
+                const activeCount = store.cleanEnemies();
+
+                // If no active enemies remain, spawn a new wave
+                if (activeCount === 0) {
+                    const waveSize = enemySpawnCount + level * 2;
+                    console.log(`Spawning new wave: ${waveSize} enemies`);
+                    spawnWave(waveSize);
+                }
+            }
+        }
+    });
+
+
+    return scene;
+};
+window.initFunction = async function () {
+
+
+
+    var asyncEngineCreation = async function () {
+        try {
+            return createDefaultEngine();
+        } catch (e) {
+            console.log("the available createEngine function failed. Creating the default engine instead");
+            return createDefaultEngine();
+        }
+    }
+
+    window.engine = await asyncEngineCreation();
+
+    const engineOptions = window.engine.getCreationOptions();
+    if (engineOptions.audioEngine !== false) {
+
+    }
+    if (!engine) throw 'engine should not be null.';
+    startRenderLoop(engine, canvas);
+    window.scene = createScene();
+};
+initFunction().then(() => {
+    scene.then(returnedScene => { sceneToRender = returnedScene; });
+
+});
+
+// Resize
+window.addEventListener("resize", function () {
+    engine.resize();
+});
+
+// 2. Add a function to force camera toggle visibility when game starts
+function forceCameraToggleVisibility() {
+    const currentScene = useGameStore.getState().currentScene;
+    console.log("Current scene:", currentScene);
+
+    if (currentScene === "game") {
+        cameraToggleContainer.isVisible = true;
+        console.log("Camera toggle forced visible");
+    } else {
+        cameraToggleContainer.isVisible = false;
+    }
+}
+
+// 3. Modify the start button handler to call this function
+const startButtonClickHandler = () => {
+    console.log('Start button clicked!');
+    const store = useGameStore.getState();
+    store.setScene("game");
+
+    // Spawn enemies with slight delay to ensure state update
+    setTimeout(() => {
+        const updatedState = useGameStore.getState();
+        spawnWave(updatedState.enemySpawnCount);
+
+        // Force camera toggle visibility after game starts
+        forceCameraToggleVisibility();
+    }, 10);
+};
+
+// 4. Also modify the continue button handler
+const continueButtonClickHandler = () => {
+    console.log('Continue button clicked!');
+    useGameStore.getState().setScene("game");
+
+    // Spawn a new wave when continuing after level up
+    const { level, enemySpawnCount } = useGameStore.getState();
+    spawnWave(enemySpawnCount + level * CONFIG.GAME.enemiesPerLevelMultiplier);
+
+    // Force camera toggle visibility after continuing
+    setTimeout(forceCameraToggleVisibility, 100);
+};
+
+// Add touch and pointer variables to track input state
+isTouching = false;
+touchId = null;
+shouldFireContinuously = false;
+
+// Add touch handling for continuous firing - add this after the scene creation
+canvas.addEventListener("pointerdown", (evt) => {
+    isTouching = true;
+    touchId = evt.pointerId;
+    shouldFireContinuously = true;
+
+    // Don't fire if we're clicking the camera toggle button
+    if (evt.target && evt.target.name &&
+        (evt.target.name === "cameraToggleContainer" ||
+            evt.target.name === "cameraIcon" ||
+            evt.target.name === "cameraText")) {
+        shouldFireContinuously = false;
+    }
+}, false);
+
+canvas.addEventListener("pointerup", (evt) => {
+    if (evt.pointerId === touchId) {
+        isTouching = false;
+        shouldFireContinuously = false;
+    }
+}, false);
+
+canvas.addEventListener("pointerout", (evt) => {
+    if (evt.pointerId === touchId) {
+        isTouching = false;
+        shouldFireContinuously = false;
+    }
+}, false);
+
+// Update the game loop to include continuous firing based on touch
+// Add this in the game loop after the existing space key firing logic:
+// In the main game loop, add this after the space key firing logic:
+if (shouldFireContinuously && !inputMap[" "]) {
+    timeSinceLastShot += deltaTime;
+    shotsPerSecond = CONFIG.WEAPONS.bullet.shotsPerSecond;
+    const shotInterval = 1000 / shotsPerSecond;
+    while (timeSinceLastShot > shotInterval) {
+        singleFire();
+        timeSinceLastShot -= shotInterval;
+    }
+}
+
+// Add touch-based camera rotation for first-person view
+lastTouchX = 0;
+lastTouchY = 0;
+touchSensitivity = 0.005; // Adjust sensitivity for touch rotation
+
+canvas.addEventListener("pointermove", (evt) => {
+    if (useGameStore.getState().currentScene !== "game" ||
+        useGameStore.getState().isPaused) {
+        return;
+    }
+
+    // Handle first-person camera rotation for touch/mouse
+    if (currentCamera === fpCamera) {
+        if (isPointerLocked) {
+            // For desktop with pointer lock
+            fpCamera.rotation.y += evt.movementX * 0.002;
+            fpCamera.rotation.x += evt.movementY * 0.002;
+        } else if (isTouching && evt.pointerId === touchId) {
+            // For touch devices or mouse without pointer lock
+            const dx = evt.clientX - lastTouchX;
+            const dy = evt.clientY - lastTouchY;
+
+            if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+                // Only apply rotation when there's significant movement
+                playerShip.rotation.y -= dx * touchSensitivity;
+                fpCamera.rotation.y = playerShip.rotation.y;
+
+                // Limit vertical look on touch/mobile
+                const currentBeta = fpCamera.rotation.x;
+                const newBeta = currentBeta + dy * touchSensitivity;
+                if (newBeta < 1.0 && newBeta > -1.0) {
+                    fpCamera.rotation.x = newBeta;
+                }
+
+                // Don't fire when moving the camera
+                shouldFireContinuously = false;
+            }
+        }
+    }
+
+    lastTouchX = evt.clientX;
+    lastTouchY = evt.clientY;
+}, false);
+
+// Make sure to update the switchCamera function to properly set up controls
+function switchCamera() {
+    if (currentCamera === fpCamera) {
+        // Switch to third-person
+        scene.activeCamera = thirdPersonCamera;
+        currentCamera = thirdPersonCamera;
+
+        // Show the player ship
+        playerShip.isVisible = true;
+        cockpit.isVisible = true;
+        cockpitLines.isVisible = true;
+
+        // Exit pointer lock when switching to third-person
+        if (document.exitPointerLock) {
+            document.exitPointerLock();
+        }
+
+        // Re-attach third-person camera controls
+        thirdPersonCamera.attachControl(canvas, true);
+        fpCamera.detachControl(canvas);
+
+        // Update camera toggle icon only if it exists already
+        if (cameraIcon) {
+            cameraIcon.text = "👁️";
+        }
+    } else {
+        // Switch to first-person
+        scene.activeCamera = fpCamera;
+        currentCamera = fpCamera;
+
+        // Hide player ship from first-person view
+        playerShip.isVisible = false;
+        cockpit.isVisible = true; // Keep cockpit visible
+        cockpitLines.isVisible = true;
+
+        // Detach third-person controls, first-person will use pointer lock
+        thirdPersonCamera.detachControl();
+        fpCamera.attachControl(canvas, true);
+
+        // Position camera inside the ship
+        fpCamera.position.copyFrom(playerShip.position);
+        fpCamera.position.y += 0.1; // Slightly above center of ship
+        fpCamera.rotation.y = playerShip.rotation.y;
+
+        // Update camera toggle icon only if it exists already
+        if (cameraIcon) {
+            cameraIcon.text = "🚀";
+        }
+    }
+}
+
+// Add a function to detect mobile devices
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+document.addEventListener('touchstart', function (e) {
+    // Only prevent default if not on the camera toggle button
+    if (!e.target.classList.contains('babylonjs-gui-control')) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+canvas.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+}, false);
+
+// Add after the existing pointer event handlers:
+
+// Third-person tap-to-move functionality
+canvas.addEventListener("pointerdown", (evt) => {
+    // Only process if we're in game mode, not paused, and in third-person view
+    if (useGameStore.getState().currentScene !== "game" ||
+        useGameStore.getState().isPaused ||
+        currentCamera !== thirdPersonCamera) {
+        return;
+    }
+
+    // Don't process if clicking on UI elements
+    if (evt.target && evt.target.classList &&
+        evt.target.classList.contains('babylonjs-gui-control')) {
+        return;
+    }
+
+    // Create a ray from the camera through the tap point
+    const pickResult = scene.pick(
+        evt.clientX,
+        evt.clientY,
+        null,  // predicate - null means pick everything
+        false, // don't pick backfaces
+        thirdPersonCamera // use the current camera
+    );
+
+    if (pickResult.hit) {
+        // We hit something in the world - use that position
+        movePlayerToPoint(pickResult.pickedPoint);
+    } else {
+        // We didn't hit anything - use a point at a fixed distance in the direction of the ray
+        const rayDirection = thirdPersonCamera.getDirection(new BABYLON.Vector3(0, 0, 1));
+        const targetPoint = thirdPersonCamera.position.add(rayDirection.scale(30)); // 30 units in front of camera
+        movePlayerToPoint(targetPoint);
+    }
+}, false);
+
+// Function to move player ship to a point in 3D space
+let isMovingToPoint = false;
+let targetPoint = null;
+let moveToPointSpeed = 0.3; // adjust based on desired speed
+
+function movePlayerToPoint(point) {
+    targetPoint = point;
+    isMovingToPoint = true;
+
+    // Calculate direction to face the target
+    const direction = targetPoint.subtract(playerShip.position);
+    direction.y = 0; // Keep movement in the horizontal plane
+
+    if (direction.length() > 0.1) { // Only rotate if there's a significant direction
+        // Calculate the target rotation
+        const targetAngle = Math.atan2(direction.x, direction.z);
+        playerShip.rotation.y = targetAngle;
+    }
+}
+
+// Improve the touch handling for first-person view
+touchStartX = 0;
+touchStartY = 0;
+isTouchMoving = false;
+touchMoveThreshold = 5; // pixels to consider as movement vs. tap
+
+// Update the existing pointermove event or add a new one:
+canvas.addEventListener("pointerdown", (evt) => {
+    touchStartX = evt.clientX;
+    touchStartY = evt.clientY;
+    isTouchMoving = false;
+
+    // Don't process if clicking on UI elements
+    if (evt.target && evt.target.classList &&
+        evt.target.classList.contains('babylonjs-gui-control')) {
+        return;
+    }
+
+    // Mark that we're touching for continuous firing logic
+    isTouching = true;
+    touchId = evt.pointerId;
+    shouldFireContinuously = true;
+}, false);
+
+canvas.addEventListener("pointermove", (evt) => {
+    if (useGameStore.getState().currentScene !== "game" ||
+        useGameStore.getState().isPaused) {
+        return;
+    }
+
+    // Check if we've moved enough to consider it a drag
+    const dx = evt.clientX - touchStartX;
+    const dy = evt.clientY - touchStartY;
+
+    if (Math.sqrt(dx * dx + dy * dy) > touchMoveThreshold) {
+        isTouchMoving = true;
+    }
+
+    // Handle first-person camera rotation on mobile
+    if (currentCamera === fpCamera && isTouching && evt.pointerId === touchId) {
+        // For mobile first-person view - rotate based on finger movement
+        const movementX = evt.clientX - lastTouchX;
+        const movementY = evt.clientY - lastTouchY;
+
+        // Only apply if there's significant movement
+        if (Math.abs(movementX) > 1 || Math.abs(movementY) > 1) {
+            // Rotate ship and camera horizontally
+            playerShip.rotation.y -= movementX * 0.005;
+            fpCamera.rotation.y = playerShip.rotation.y;
+
+            // Look up/down with vertical movement - with limits
+            const currentPitch = fpCamera.rotation.x;
+            const newPitch = currentPitch + movementY * 0.005;
+
+            // Apply pitch limits
+            if (newPitch < 1.2 && newPitch > -1.2) {
+                fpCamera.rotation.x = newPitch;
+            }
+
+            // If we're moving the view, don't fire
+            if (isTouchMoving) {
+                shouldFireContinuously = false;
+            }
+        }
+    }
+
+    lastTouchX = evt.clientX;
+    lastTouchY = evt.clientY;
+}, false);
+
+canvas.addEventListener("pointerup", (evt) => {
+    if (evt.pointerId === touchId) {
+        isTouching = false;
+        isTouchMoving = false;
+
+        // Only fire if it was a tap (not a move)
+        if (!isTouchMoving && currentCamera === fpCamera &&
+            useGameStore.getState().currentScene === "game" &&
+            !useGameStore.getState().isPaused) {
+            singleFire();
+        }
+
+        shouldFireContinuously = false;
+    }
+}, false);
+
+// Add mobile-specific optimizations
+if (isMobileDevice()) {
+    // Reduce graphics quality for better performance on mobile
+    engine.setHardwareScalingLevel(1.5); // Render at lower resolution
+
+    // Adjust game parameters for mobile
+    moveToPointSpeed = 0.25; // Slightly slower movement for better control
+
+    // Increase UI element sizes for better touch targets
+    crosshair.width = "20px";
+    crosshair.height = "20px";
+}
+
+// Ensure the touch event handlers are inside the createScene function and have access to the game state
+
+// Inside the createScene function:
+isTouching = false;
+touchId = null;
+shouldFireContinuously = false;
+touchStartX = 0;
+touchStartY = 0;
+isTouchMoving = false;
+lastTouchX = 0;
+lastTouchY = 0;
+touchMoveThreshold = 5;
+
+// Add these event handlers inside the createScene function:
+canvas.addEventListener("pointerdown", (evt) => {
+    // Check if we're in game mode and not paused
+    const gameState = useGameStore.getState();
+    if (gameState.currentScene !== "game" || gameState.isPaused) {
+        return;
+    }
+
+    touchStartX = evt.clientX;
+    touchStartY = evt.clientY;
+    lastTouchX = evt.clientX;
+    lastTouchY = evt.clientY;
+    isTouchMoving = false;
+
+    // Don't process if clicking on UI elements
+    if (evt.target && evt.target.classList &&
+        evt.target.classList.contains('babylonjs-gui-control')) {
+        return;
+    }
+
+    isTouching = true;
+    touchId = evt.pointerId;
+    shouldFireContinuously = true;
+
+    // Handle tap-to-move for third-person view
+    if (currentCamera === thirdPersonCamera) {
+        const pickResult = scene.pick(
+            evt.clientX,
+            evt.clientY,
+            null,  // predicate - null means pick everything
+            false, // don't pick backfaces
+            thirdPersonCamera // use the current camera
+        );
+
+        if (pickResult.hit) {
+            movePlayerToPoint(pickResult.pickedPoint);
+        } else {
+            const rayDirection = thirdPersonCamera.getDirection(new BABYLON.Vector3(0, 0, 1));
+            const targetPoint = thirdPersonCamera.position.add(rayDirection.scale(30));
+            movePlayerToPoint(targetPoint);
+        }
+    }
+}, false);
+
+function requestFullscreen() {
+    return new Promise((resolve, reject) => {
+        const canvas = document.getElementById("renderCanvas");
+        if (!canvas) {
+            reject(new Error("Canvas element not found"));
+            return;
+        }
+        
+        // Try to detect if we're on a mobile device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // Different browsers have different fullscreen APIs
+        const fullscreenElement = 
+            document.fullscreenElement ||
+            document.mozFullScreenElement ||
+            document.webkitFullscreenElement ||
+            document.msFullscreenElement;
+            
+        if (fullscreenElement) {
+            // Already in fullscreen mode
+            resolve();
+            return;
+        }
+        
+        // Choose the right element to make fullscreen (document.body for iOS, canvas for others)
+        const element = (isMobile && /iPad|iPhone|iPod/.test(navigator.userAgent)) ? 
+            document.body : canvas;
+            
+        // Try various fullscreen methods
+        if (element.requestFullscreen) {
+            element.requestFullscreen().then(resolve).catch(reject);
+        } else if (element.mozRequestFullScreen) { // Firefox
+            element.mozRequestFullScreen().then(resolve).catch(reject);
+        } else if (element.webkitRequestFullscreen) { // Chrome, Safari and Opera
+            // For Safari on iOS, need to use webkitEnterFullscreen for video elements
+            // but for canvas, use regular webkitRequestFullscreen
+            element.webkitRequestFullscreen().then(resolve).catch(reject);
+        } else if (element.msRequestFullscreen) { // IE/Edge
+            element.msRequestFullscreen().then(resolve).catch(reject);
+        } else {
+            // No fullscreen API available
+            reject(new Error("Fullscreen API not available"));
+        }
+    });
+}
+
+document.addEventListener('fullscreenchange', handleFullscreenChange);
+document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+function handleFullscreenChange() {
+    const isFullscreen = 
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement;
+        
+    if (isFullscreen) {
+        console.log("Entered fullscreen mode");
+        // Optionally, lock screen orientation for mobile
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('portrait').catch(e => {
+                console.log("Orientation lock failed:", e);
+            });
+        }
+    } else {
+        console.log("Exited fullscreen mode");
+    }
+}
+
+        </script>
+    </body>
+</html>

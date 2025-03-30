@@ -1,0 +1,850 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        /* Made with passion
+              ________                .___                                                      
+  ______ ____/   __   \             __| _/____   _____   ____  ______ ____  ____   ____   ____  
+ /  ___// ___\____    /   ______   / __ |/ __ \ /     \ /  _ \/  ___// ___\/ __ \ /    \_/ __ \ 
+ \___ \\  \___  /    /   /_____/  / /_/ \  ___/|  Y Y  (  <_> )___ \\  \__\  ___/|   |  \  ___/ 
+/____  >\___  >/____/             \____ |\___  >__|_|  /\____/____  >\___  >___  >___|  /\___   >
+     \/     \/                         \/    \/      \/           \/     \/    \/     \/     \/ 
+
+    SeaCloud9 Studio LLC
+    #babylonSc9Playbits 
+*/
+
+
+/*******************************************
+ * 1) GAME STORE
+ *******************************************/
+var gameStore = (function() {
+    var state = {
+        score: 0,
+        level: 1,
+        lives: 5,
+        gameState: "start",  // "start", "playing", "levelUp", "gameOver"
+        powerMode: false
+    };
+
+    var listeners = [];
+
+    return {
+        getState: function() {
+            return { ...state };
+        },
+        setState: function(newState) {
+            state = { ...state, ...newState };
+            listeners.forEach(function(listener) {
+                listener(state);
+            });
+        },
+        subscribe: function(listener) {
+            listeners.push(listener);
+            return function() {
+                listeners = listeners.filter(l => l !== listener);
+            };
+        }
+    };
+})();
+
+/*******************************************
+ * 2) SIMPLE MOBILE DETECTION (Vanilla)
+ *******************************************/
+function isMobileDevice() {
+    return /Mobi|Android|iPhone|iPod|iPad|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+    );
+}
+
+/*******************************************
+ * 3) BUILD A SINGLE-TRACK MAZE (Snake Path)
+ *******************************************/
+function buildSingleTrackMaze(size, pacmanStartRow, pacmanStartCol) {
+    // 1) Fill entire grid with walls (1)
+    var maze = [];
+    for (var r = 0; r < size; r++) {
+        maze[r] = [];
+        for (var c = 0; c < size; c++) {
+            maze[r][c] = 1;
+        }
+    }
+    // 2) Carve the border interior as a big zig-zag corridor
+    // For row=1..(size-2):
+    //   if row is odd => carve left->right
+    //   if row is even => carve right->left
+    for (var row = 1; row < size - 1; row++) {
+        if (row % 2 === 1) {
+            // odd row => left->right
+            for (var col = 1; col < size - 1; col++) {
+                maze[row][col] = 0;
+            }
+        } else {
+            // even row => right->left
+            for (var col = size - 2; col >= 1; col--) {
+                maze[row][col] = 0;
+            }
+        }
+    }
+    // Ensure Pac-Man start is open
+    if (
+        pacmanStartRow > 0 && pacmanStartRow < size - 1 &&
+        pacmanStartCol > 0 && pacmanStartCol < size - 1
+    ) {
+        maze[pacmanStartRow][pacmanStartCol] = 0;
+    }
+
+    return maze;
+}
+
+/*******************************************
+ * 4) BFS UTILITY to check connectivity
+ *******************************************/
+function bfsCheck(maze, startRow, startCol) {
+    // BFS from (startRow, startCol) to see which floor cells are reachable
+    var size = maze.length;
+    var visited = [];
+    for (var i = 0; i < size; i++) {
+        visited[i] = [];
+        for (var j = 0; j < size; j++) {
+            visited[i][j] = false;
+        }
+    }
+    var queue = [];
+    visited[startRow][startCol] = true;
+    queue.push({r: startRow, c: startCol});
+
+    var directions = [
+        {r:-1, c: 0},
+        {r: 1, c: 0},
+        {r: 0, c:-1},
+        {r: 0, c: 1}
+    ];
+
+    while (queue.length > 0) {
+        var cell = queue.shift();
+        for (var d = 0; d < directions.length; d++) {
+            var nr = cell.r + directions[d].r;
+            var nc = cell.c + directions[d].c;
+            if (
+                nr >= 0 && nr < size &&
+                nc >= 0 && nc < size &&
+                maze[nr][nc] === 0 && !visited[nr][nc]
+            ) {
+                visited[nr][nc] = true;
+                queue.push({r:nr, c:nc});
+            }
+        }
+    }
+    return visited;
+}
+
+function stillConnected(maze, startRow, startCol) {
+    // After BFS, ensure every 0-cell is visited
+    var visited = bfsCheck(maze, startRow, startCol);
+    var size = maze.length;
+    for (var r = 0; r < size; r++) {
+        for (var c = 0; c < size; c++) {
+            if (maze[r][c] === 0 && !visited[r][c]) {
+                return false; // found an unvisited floor cell => path broken
+            }
+        }
+    }
+    return true;
+}
+
+/*******************************************
+ * 5) ADD RANDOM MINI-WALLS IN THE CORRIDOR
+ *    WITHOUT BLOCKING THE PATH
+ *******************************************/
+function addMazeWithinTrack(maze, pacmanStartRow, pacmanStartCol) {
+    var size = maze.length;
+    // Gather all floor cells (the corridor)
+    var floorCells = [];
+    for (var r = 1; r < size - 1; r++) {
+        for (var c = 1; c < size - 1; c++) {
+            if (maze[r][c] === 0) {
+                floorCells.push({r, c});
+            }
+        }
+    }
+
+    // Try placing up to some number of mini-walls
+    var tries = 30;
+    while (tries > 0 && floorCells.length > 0) {
+        tries--;
+        // pick a random floor cell
+        var idx = Math.floor(Math.random() * floorCells.length);
+        var cell = floorCells[idx];
+        // remove from array so we don't pick it again
+        floorCells.splice(idx, 1);
+
+        // place a wall
+        maze[cell.r][cell.c] = 1;
+        // check if the corridor is still connected
+        if (!stillConnected(maze, pacmanStartRow, pacmanStartCol)) {
+            // not connected => revert
+            maze[cell.r][cell.c] = 0;
+        }
+        // else we keep it => we made a mini-wall
+    }
+}
+
+/*******************************************
+ * 6) CREATE SCENE
+ *******************************************/
+var createScene = function() {
+    var scene = new BABYLON.Scene(engine);
+
+    // Optionally set background color
+    // scene.clearColor = new BABYLON.Color3(0.1, 0.1, 0.4); // some bluish background
+
+    // Camera
+    var camera = new BABYLON.ArcRotateCamera(
+        "camera",
+        -Math.PI / 2,  
+        Math.PI / 3,   
+        20,            
+        BABYLON.Vector3.Zero(),
+        scene
+    );
+    camera.inputs.clear(); 
+
+    var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0,1,0), scene);
+
+    /*******************************************
+     * Maze parameters
+     *******************************************/
+    var mazeSize = 15;
+    var pacmanStartRow = 7;
+    var pacmanStartCol = 7;
+
+    var maze = [];
+    var pellets = [];
+    var powerPellets = [];
+    var powerUps = [];
+    var ghosts = [];
+
+    // Pac-Man movement
+    var pacman;
+    var pacmanSpeed = 0.1; 
+    var pacmanDirection = { x:0, z:0 };
+
+    // GUI
+    var mainUI = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("MainUI");
+    var scoreboardPanel, startScreenPanel, levelUpScreenPanel, gameOverScreenPanel;
+    var scoreText, levelText, livesText;
+    var mobileControlsPanel = null;
+
+    /*******************************************
+     * 6A) CREATE GUI (Scoreboard + Panels)
+     *******************************************/
+    function createGUI() {
+        // Scoreboard
+        scoreboardPanel = new BABYLON.GUI.StackPanel("scoreboardPanel");
+        scoreboardPanel.isVertical = true;
+        scoreboardPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        scoreboardPanel.verticalAlignment   = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        scoreboardPanel.paddingLeft = "20px";
+        scoreboardPanel.paddingTop  = "20px";
+        mainUI.addControl(scoreboardPanel);
+
+        scoreText = new BABYLON.GUI.TextBlock("scoreText","Score: 0");
+        scoreText.color = "white";
+        scoreText.fontSize = 24;
+        scoreText.height = "40px";
+        scoreboardPanel.addControl(scoreText);
+
+        levelText = new BABYLON.GUI.TextBlock("levelText","Level: 1");
+        levelText.color = "white";
+        levelText.fontSize = 24;
+        levelText.height = "40px";
+        scoreboardPanel.addControl(levelText);
+
+        livesText = new BABYLON.GUI.TextBlock("livesText","Lives: 5");
+        livesText.color = "white";
+        livesText.fontSize = 24;
+        livesText.height = "40px";
+        scoreboardPanel.addControl(livesText);
+
+        // Start Screen
+        startScreenPanel = new BABYLON.GUI.Rectangle("startScreenPanel");
+        startScreenPanel.width  = 1;
+        startScreenPanel.height = 1;
+        startScreenPanel.thickness = 0;
+        startScreenPanel.background = "rgba(0,0,0,0.7)";
+        startScreenPanel.isVisible  = false;
+        mainUI.addControl(startScreenPanel);
+
+        var startButton = BABYLON.GUI.Button.CreateSimpleButton("startButton","Start Game");
+        startButton.width = "200px";
+        startButton.height= "60px";
+        startButton.color = "white";
+        startButton.fontSize = 24;
+        startButton.background = "green";
+        startButton.cornerRadius= 20;
+        startButton.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        startButton.verticalAlignment   = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        startButton.onPointerUpObservable.add(function() {
+            resetGame();
+            gameStore.setState({ gameState: "playing" });
+        });
+        startScreenPanel.addControl(startButton);
+
+        // Level Up Screen
+        levelUpScreenPanel = new BABYLON.GUI.Rectangle("levelUpScreenPanel");
+        levelUpScreenPanel.width  = 1;
+        levelUpScreenPanel.height = 1;
+        levelUpScreenPanel.thickness = 0;
+        levelUpScreenPanel.background = "rgba(0,0,0,0.7)";
+        levelUpScreenPanel.isVisible = false;
+        mainUI.addControl(levelUpScreenPanel);
+
+        var levelUpText = new BABYLON.GUI.TextBlock("levelUpText","Level Up!");
+        levelUpText.color = "white";
+        levelUpText.fontSize = 48;
+        levelUpText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        levelUpText.textVerticalAlignment   = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        levelUpScreenPanel.addControl(levelUpText);
+
+        // Game Over Screen
+        gameOverScreenPanel = new BABYLON.GUI.Rectangle("gameOverScreenPanel");
+        gameOverScreenPanel.width  = 1;
+        gameOverScreenPanel.height = 1;
+        gameOverScreenPanel.thickness = 0;
+        gameOverScreenPanel.background = "rgba(0,0,0,0.7)";
+        gameOverScreenPanel.isVisible = false;
+        mainUI.addControl(gameOverScreenPanel);
+
+        var gameOverText = new BABYLON.GUI.TextBlock("gameOverText","Game Over");
+        gameOverText.color = "white";
+        gameOverText.fontSize = 48;
+        gameOverText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        gameOverText.textVerticalAlignment   = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        gameOverScreenPanel.addControl(gameOverText);
+
+        var restartButton = BABYLON.GUI.Button.CreateSimpleButton("restartButton","Restart");
+        restartButton.width = "200px";
+        restartButton.height= "60px";
+        restartButton.color = "white";
+        restartButton.fontSize = 24;
+        restartButton.background = "green";
+        restartButton.cornerRadius= 20;
+        restartButton.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        restartButton.top = "-50px";
+        restartButton.onPointerUpObservable.add(function() {
+            resetGame();
+            gameStore.setState({ gameState: "playing" });
+        });
+        gameOverScreenPanel.addControl(restartButton);
+    }
+
+    /*******************************************
+     * 6B) CREATE MOBILE CONTROLS
+     *******************************************/
+    function createMobileControls() {
+        if (!isMobileDevice()) return;
+
+        mobileControlsPanel = new BABYLON.GUI.StackPanel("mobileControlsPanel");
+        mobileControlsPanel.isVertical = false;
+        mobileControlsPanel.height = "140px";
+        mobileControlsPanel.width  = 1;
+        mobileControlsPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        mobileControlsPanel.verticalAlignment   = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        mobileControlsPanel.paddingBottom = "20px";
+        mainUI.addControl(mobileControlsPanel);
+
+        function createArrowButton(symbol, onPointerDown) {
+            var btn = BABYLON.GUI.Button.CreateSimpleButton("btn-"+symbol, symbol);
+            btn.width = "60px";
+            btn.height= "60px";
+            btn.color = "white";
+            btn.fontSize = 24;
+            btn.cornerRadius= 10;
+            btn.background = "gray";
+            btn.paddingLeft= "5px";
+            btn.paddingRight="5px";
+            btn.onPointerDownObservable.add(onPointerDown);
+            return btn;
+        }
+
+        // LEFT
+        var leftBtn = createArrowButton("←", function() {
+            pacmanDirection = { x:-1, z:0 };
+        });
+        mobileControlsPanel.addControl(leftBtn);
+
+        // UP
+        var upBtn = createArrowButton("↑", function() {
+            pacmanDirection = { x:0, z:-1 };
+        });
+        mobileControlsPanel.addControl(upBtn);
+
+        // DOWN
+        var downBtn = createArrowButton("↓", function() {
+            pacmanDirection = { x:0, z:1 };
+        });
+        mobileControlsPanel.addControl(downBtn);
+
+        // RIGHT
+        var rightBtn = createArrowButton("→", function() {
+            pacmanDirection = { x:1, z:0 };
+        });
+        mobileControlsPanel.addControl(rightBtn);
+    }
+
+    /*******************************************
+     * 7) CREATE MAZE MESHES & ITEMS
+     *******************************************/
+    function createMazeMeshes() {
+        // Let's color the walls a light blue
+        var wallMat = new BABYLON.StandardMaterial("wallMat", scene);
+        wallMat.diffuseColor = new BABYLON.Color3(0,0,1);
+
+        for (var row = 0; row < mazeSize; row++) {
+            for (var col = 0; col < mazeSize; col++) {
+                if (maze[row][col] === 1) {
+                    // wall
+                    var wall = BABYLON.MeshBuilder.CreateBox("wall", { size:1 }, scene);
+                    wall.position.x = col - mazeSize/2;
+                    wall.position.z = row - mazeSize/2;
+                    wall.material   = wallMat;
+                } else {
+                    // floor => place a pellet
+                    createPellet(col - mazeSize/2, row - mazeSize/2);
+                }
+            }
+        }
+
+        // Place powerPellets
+        for (var p = 0; p < 4; p++) {
+            var rx = Math.floor(Math.random() * (mazeSize - 2)) + 1;
+            var rz = Math.floor(Math.random() * (mazeSize - 2)) + 1;
+            if (maze[rz][rx] === 0) {
+                createPowerPellet(rx - mazeSize/2, rz - mazeSize/2);
+            }
+        }
+
+        // Place powerUps
+        for (var u = 0; u < 2; u++) {
+            var ux = Math.floor(Math.random() * (mazeSize - 2)) + 1;
+            var uz = Math.floor(Math.random() * (mazeSize - 2)) + 1;
+            if (maze[uz][ux] === 0) {
+                createPowerUp(ux - mazeSize/2, uz - mazeSize/2);
+            }
+        }
+    }
+
+    function createPellet(x,z) {
+        var pellet = BABYLON.MeshBuilder.CreateSphere("pellet",{ diameter:0.1 }, scene);
+        pellet.position = new BABYLON.Vector3(x,0.05,z);
+        var pm = new BABYLON.StandardMaterial("pelletMat", scene);
+        pm.diffuseColor = new BABYLON.Color3(1,1,1);
+        pellet.material  = pm;
+        pellets.push(pellet);
+    }
+
+    function createPowerPellet(x,z) {
+        var pp = BABYLON.MeshBuilder.CreateSphere("powerPellet",{ diameter:0.2 }, scene);
+        pp.position = new BABYLON.Vector3(x,0.1,z);
+        var mat = new BABYLON.StandardMaterial("ppMat", scene);
+        mat.diffuseColor = new BABYLON.Color3(1,1,0);
+        pp.material = mat;
+        powerPellets.push(pp);
+    }
+
+    function createPowerUp(x,z) {
+        var pu = BABYLON.MeshBuilder.CreateSphere("powerUp",{ diameter:0.3 }, scene);
+        pu.position = new BABYLON.Vector3(x,0.15,z);
+        var mat = new BABYLON.StandardMaterial("puMat", scene);
+        mat.diffuseColor = new BABYLON.Color3(1,0,0);
+        pu.material = mat;
+        powerUps.push(pu);
+    }
+
+    /*******************************************
+     * 8) CREATE PAC-MAN
+     *******************************************/
+    function createPacman() {
+        pacman = BABYLON.MeshBuilder.CreateSphere("pacman", { diameter:0.8, segments:32 }, scene);
+        var pacMat = new BABYLON.StandardMaterial("pacMat", scene);
+        pacMat.diffuseColor = new BABYLON.Color3(1,1,0);
+        pacman.material = pacMat;
+
+        pacman.position.x = pacmanStartCol - mazeSize/2;
+        pacman.position.z = pacmanStartRow - mazeSize/2;
+        pacman.position.y = 0.4;
+
+        pacmanDirection = { x:0, z:0 };
+    }
+
+    /*******************************************
+     * 9) CREATE GHOSTS
+     *******************************************/
+    function createGhosts() {
+        var ghostColors = [
+            new BABYLON.Color3(1,0,0),
+            new BABYLON.Color3(0,1,0),
+            new BABYLON.Color3(1,0,1),
+            new BABYLON.Color3(1,0.5,0)
+        ];
+
+        // Gather all floor cells
+        var floorCells = [];
+        for (var r=0; r<mazeSize; r++){
+            for (var c=0; c<mazeSize; c++){
+                if (maze[r][c] === 0) {
+                    floorCells.push({ r, c });
+                }
+            }
+        }
+        // Exclude Pac-Man start
+        floorCells = floorCells.filter(fc =>
+            !(fc.r === pacmanStartRow && fc.c === pacmanStartCol)
+        );
+
+        ghosts = ghostColors.map(color => {
+            if (floorCells.length === 0) return null;
+            var idx = Math.floor(Math.random()*floorCells.length);
+            var cell = floorCells[idx];
+            floorCells.splice(idx,1);
+
+            var ghost = BABYLON.MeshBuilder.CreateBox(
+                "ghost",
+                { height:1, width:0.6, depth:0.6 },
+                scene
+            );
+            ghost.position.x = cell.c - mazeSize/2;
+            ghost.position.z = cell.r - mazeSize/2;
+            ghost.position.y = 0.5;
+
+            var gMat = new BABYLON.StandardMaterial("ghostMat", scene);
+            gMat.diffuseColor = color;
+            ghost.material = gMat;
+            return ghost;
+        }).filter(g => g !== null);
+    }
+
+    /*******************************************
+     * 10) RESET GAME
+     *******************************************/
+    function resetGame() {
+        // Dispose old items
+        scene.meshes.forEach(function(m){
+            if (m.name !== "ground") {
+                m.dispose();
+            }
+        });
+        pellets = [];
+        powerPellets = [];
+        powerUps = [];
+        ghosts = [];
+
+        // 1) Build the single-track corridor
+        maze = buildSingleTrackMaze(mazeSize, pacmanStartRow, pacmanStartCol);
+
+        // 2) Add random mini-walls that do NOT block the path
+        addMazeWithinTrack(maze, pacmanStartRow, pacmanStartCol);
+
+        // 3) Create geometry
+        createMazeMeshes();
+        createPacman();
+        createGhosts();
+
+        // Reset store
+        gameStore.setState({
+            score: 0,
+            level: 1,
+            lives: 5,
+            powerMode: false
+        });
+    }
+
+    /*******************************************
+     * 11) COLLISION CHECK
+     *******************************************/
+    function checkCollisions() {
+        var st = gameStore.getState();
+
+        // Pellets
+        pellets.forEach(function(pellet, idx){
+            if (pellet.intersectsMesh(pacman, false)) {
+                pellet.dispose();
+                pellets.splice(idx,1);
+                gameStore.setState({ score: st.score + 10 });
+            }
+        });
+
+        // Power Pellets
+        powerPellets.forEach(function(pp, idx){
+            if (pp.intersectsMesh(pacman, false)) {
+                pp.dispose();
+                powerPellets.splice(idx,1);
+                gameStore.setState({ score: st.score + 50 });
+            }
+        });
+
+        // Power Ups
+        powerUps.forEach(function(pu, idx){
+            if (pu.intersectsMesh(pacman, false)) {
+                pu.dispose();
+                powerUps.splice(idx,1);
+                gameStore.setState({ score: st.score + 100, powerMode: true });
+                // Turn off power mode after 10s
+                setTimeout(function(){
+                    gameStore.setState({ powerMode: false });
+                }, 10000);
+            }
+        });
+
+        // Ghosts
+        ghosts.forEach(function(ghost){
+            if (ghost.intersectsMesh(pacman, false)) {
+                if (st.powerMode) {
+                    // Eat ghost => teleport ghost
+                    var floors = [];
+                    for (var rr=0; rr<mazeSize; rr++){
+                        for (var cc=0; cc<mazeSize; cc++){
+                            if (maze[rr][cc]===0) {
+                                floors.push({r:rr, c:cc});
+                            }
+                        }
+                    }
+                    if (floors.length>0) {
+                        var pick = floors[Math.floor(Math.random()*floors.length)];
+                        ghost.position.x = pick.c - mazeSize/2;
+                        ghost.position.z = pick.r - mazeSize/2;
+                    }
+                    gameStore.setState({ score: st.score + 200 });
+                } else {
+                    // Lose life
+                    gameStore.setState({ lives: st.lives - 1 });
+                    if (st.lives <= 1) {
+                        gameStore.setState({ gameState: "gameOver" });
+                    } else {
+                        // Reset Pac-Man
+                        pacman.position.x = pacmanStartCol - mazeSize/2;
+                        pacman.position.z = pacmanStartRow - mazeSize/2;
+                        pacmanDirection = { x:0, z:0 };
+                    }
+                }
+            }
+        });
+
+        // If no pellets remain, level up
+        if (pellets.length === 0 && powerPellets.length === 0) {
+            gameStore.setState({
+                level: st.level + 1,
+                gameState: "levelUp"
+            });
+        }
+    }
+
+    /*******************************************
+     * 12) KEYBOARD CONTROLS (CONTINUOUS)
+     *******************************************/
+    scene.onKeyboardObservable.add(function(kbInfo){
+        var st = gameStore.getState();
+        if (st.gameState !== "playing") return;
+
+        if (kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN) {
+            switch(kbInfo.event.key) {
+                case "w":
+                case "ArrowUp":
+                    pacmanDirection = { x:0, z:-1 };
+                    break;
+                case "s":
+                case "ArrowDown":
+                    pacmanDirection = { x:0, z:1 };
+                    break;
+                case "a":
+                case "ArrowLeft":
+                    pacmanDirection = { x:-1, z:0 };
+                    break;
+                case "d":
+                case "ArrowRight":
+                    pacmanDirection = { x:1, z:0 };
+                    break;
+            }
+        }
+    });
+
+    /*******************************************
+     * 13) GAME LOOP: Move Pac-Man & Ghosts
+     *******************************************/
+    var ghostSpeed = 0.03; 
+    scene.registerBeforeRender(function() {
+        var st = gameStore.getState();
+        if (st.gameState !== "playing") return;
+
+        // Move pacman
+        if (pacmanDirection.x !== 0 || pacmanDirection.z !== 0) {
+            var newPos = pacman.position.clone();
+            newPos.x += pacmanDirection.x * pacmanSpeed;
+            newPos.z += pacmanDirection.z * pacmanSpeed;
+
+            var testC = Math.round(newPos.x + mazeSize/2);
+            var testR = Math.round(newPos.z + mazeSize/2);
+            if (
+                testR>=0 && testR<mazeSize &&
+                testC>=0 && testC<mazeSize &&
+                maze[testR][testC] === 0
+            ) {
+                pacman.position = newPos;
+            } else {
+                // blocked => stop
+                pacmanDirection = { x:0, z:0 };
+            }
+        }
+
+        // Move ghosts
+        ghosts.forEach(ghost => {
+            var dx = pacman.position.x - ghost.position.x;
+            var dz = pacman.position.z - ghost.position.z;
+            var tryPos = ghost.position.clone();
+
+            if (Math.abs(dx) > Math.abs(dz)) {
+                tryPos.x += Math.sign(dx)*ghostSpeed;
+            } else {
+                tryPos.z += Math.sign(dz)*ghostSpeed;
+            }
+
+            var gx = Math.round(tryPos.x + mazeSize/2);
+            var gz = Math.round(tryPos.z + mazeSize/2);
+            if (
+                gx>=0 && gx<mazeSize &&
+                gz>=0 && gz<mazeSize &&
+                maze[gz][gx]===0
+            ) {
+                ghost.position = tryPos;
+            }
+        });
+
+        checkCollisions();
+    });
+
+    /*******************************************
+     * 14) BUILD UI & MOBILE ARROWS
+     *******************************************/
+    createGUI();
+    createMobileControls();
+
+    /*******************************************
+     * 15) SUBSCRIBE + INITIAL SCREENS
+     *******************************************/
+    gameStore.subscribe(function(state) {
+        // Update scoreboard
+        scoreText.text = "Score: " + state.score;
+        levelText.text = "Level: " + state.level;
+        livesText.text = "Lives: " + state.lives;
+
+        // Show/hide screens
+        startScreenPanel.isVisible    = (state.gameState === "start");
+        levelUpScreenPanel.isVisible  = (state.gameState === "levelUp");
+        gameOverScreenPanel.isVisible = (state.gameState === "gameOver");
+    });
+
+    // Reflect initial "start"
+    (function applyInitialVisibility(){
+        var s = gameStore.getState().gameState;
+        startScreenPanel.isVisible    = (s === "start");
+        levelUpScreenPanel.isVisible  = (s === "levelUp");
+        gameOverScreenPanel.isVisible = (s === "gameOver");
+    })();
+
+    return scene;
+};
+
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions();
+                    if (engineOptions.audioEngine !== false) {
+                        
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,535 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        class VoxelSpaceBackground {
+            _scene;
+            _baseCube;
+            _colors = [
+                new BABYLON.Color4(0.93, 0.02, 0.02),
+                new BABYLON.Color4(0.99, 0.96, 0.04),
+                new BABYLON.Color4(0.03, 0.94, 0.03),
+                new BABYLON.Color4(0.02, 0.89, 0.97),
+                new BABYLON.Color4(0.04, 0.19, 0.95),
+                new BABYLON.Color4(0.87, 0.03, 0.95),
+                new BABYLON.Color4(0.88, 0.02, 0.91),
+            ];
+            _getRandomColor() {
+                return this._colors[Math.floor(Math.random() * this._colors.length)];
+            }
+            constructor(_scene) {
+                this._scene = _scene;
+                const blockSize = 0.08;
+                this._baseCube = BABYLON.MeshBuilder.CreateBox("star", { size: blockSize }, this._scene);
+                this._baseCube.thinInstanceRegisterAttribute("color", 4);
+                const mat = new BABYLON.StandardMaterial('starMat', this._scene);
+                this._baseCube.material = mat;
+                mat.emissiveColor = new BABYLON.Color3(0.96, 0.02, 0.02);
+                const blocks = [];
+                const blockCount = 24;
+                const offsetSize = new BABYLON.Vector3(20, 60, 30);
+                const yBaseStart = 60;
+                const yDeath = -30;
+                const zOffestBase = 20;
+                for (let i = 0; i < blockCount; i++) {
+                    const yOffset = ((Math.random() * 2 - 1) * offsetSize.y);
+                    const matrix = BABYLON.Matrix.Translation((Math.random() * 2 - 1) * offsetSize.x, yOffset, (Math.random() * offsetSize.z) + zOffestBase);
+                    blocks.push({ matrix, offset: yOffset });
+                }
+                const colors = [];
+                for (let i = 0; i < blockCount; i++) {
+                    const color = this._getRandomColor();
+                    colors.push(color.r, color.g, color.b, color.a);
+                }
+                this._baseCube.thinInstanceAdd(blocks.map((v) => v.matrix));
+                this._baseCube.thinInstanceSetAttributeAt("color", 0, colors);
+                const engineRef = this._scene.getEngine();
+                const updateObs = this._scene.onBeforeRenderObservable.add(() => {
+                    const delta = engineRef.getDeltaTime() * 0.001;
+                    const speed = 10 * delta;
+                    blocks.forEach((block, i) => {
+                        block.offset -= speed;
+                        if (block.offset < yDeath) {
+                            block.offset = yBaseStart + ((Math.random() * 2 - 1) * (offsetSize.y * 0.25));
+                            block.matrix.setTranslationFromFloats((Math.random() * 2 - 1) * offsetSize.x, block.offset, (Math.random() * offsetSize.z) + zOffestBase);
+                        }
+                        else {
+                            block.matrix.addTranslationFromFloats(0, -speed, 0);
+                        }
+                        this._baseCube.thinInstanceSetMatrixAt(i, block.matrix);
+                    });
+                });
+            }
+        }
+        class VoxelSprite {
+            name;
+            baseSize;
+            scene;
+            _root;
+            get root() { return this._root; }
+            get position() { return this.root.position; }
+            set position(value) { this.root.position = value; }
+            _frames = new Map();
+            _voxelIdxs = new Map();
+            _isFirstFrame = true;
+            _currentFrame;
+            _animations = new Map();
+            _currentAnimation;
+            constructor(name, baseSize, scene) {
+                this.name = name;
+                this.baseSize = baseSize;
+                this.scene = scene;
+                this._root = new BABYLON.TransformNode(this.name, this.scene);
+            }
+            hasFrame(name) {
+                return this._frames.has(name);
+            }
+            removeFrame(name) {
+                const frame = this._frames.get(name);
+                if (frame) {
+                    frame.dispose();
+                    this._frames.delete(name);
+                    this._voxelIdxs.delete(name);
+                }
+            }
+            _parseShape(props, target) {
+                const targetMesh = this._frames.get(target);
+                if (props.size.x > 0 && props.size.y > 0) {
+                    const mat = new BABYLON.StandardMaterial('starMat', this.scene);
+                    targetMesh.material = mat;
+                    mat.emissiveColor = new BABYLON.Color3(0.93, 0.95, 0.02);
+                    const tempCanvas = document.createElement("canvas");
+                    tempCanvas.width = props.size.x;
+                    tempCanvas.height = props.size.y;
+                    const ctx = tempCanvas.getContext('2d');
+                    ctx.drawImage(props.atlas, props.start.x, props.start.y, props.size.x, props.size.y, 0, 0, props.size.x, props.size.y);
+                    const data = ctx.getImageData(0, 0, props.size.x, props.size.y).data;
+                    for (let x = 0; x < props.size.x; x++) {
+                        for (let y = 0; y < props.size.y; y++) {
+                            var index = (Math.floor(y) * props.size.x + Math.floor(x)) * 4;
+                            var r = data[index];
+                            var g = data[index + 1];
+                            var b = data[index + 2];
+                            const minR = Math.max((props.discard.r * 255) - props.tolerance, 0);
+                            const minG = Math.max((props.discard.g * 255) - props.tolerance, 0);
+                            const minB = Math.max((props.discard.b * 255) - props.tolerance, 0);
+                            const maxR = Math.min((props.discard.r * 255) + props.tolerance, 255);
+                            const maxG = Math.min((props.discard.g * 255) + props.tolerance, 255);
+                            const maxB = Math.min((props.discard.b * 255) + props.tolerance, 255);
+                            if ((r >= minR && r <= maxR) && (g >= minG && g <= maxG) && (b >= minB && b <= maxB)) {
+                                //discard
+                            }
+                            else {
+                                const color = new BABYLON.Color4(r / 255, g / 255, b / 255, 1);
+                                const matrix = BABYLON.Matrix.Translation((x - (props.center?.x ?? 0)) * this.baseSize * (props.flipX ? -1 : 1), (y - (props.center?.y ?? 0)) * -this.baseSize, 0);
+                                targetMesh.thinInstanceAdd(matrix);
+                                const voxelIdx = this._voxelIdxs.get(target);
+                                targetMesh.thinInstanceSetAttributeAt("color", voxelIdx, [color.r, color.g, color.b, 1.0]);
+                                this._voxelIdxs.set(target, voxelIdx + 1);
+                            }
+                        }
+                    }
+                }
+                else {
+                    targetMesh.dispose();
+                }
+                if (this._isFirstFrame) {
+                    this._isFirstFrame = false;
+                    this._currentFrame = target;
+                }
+                else {
+                    targetMesh.setEnabled(false);
+                }
+            }
+            addFrame(name, props) {
+                if (this._frames.get(name)) {
+                    return;
+                }
+                const mesh = BABYLON.MeshBuilder.CreateBox(this.name + "." + name, { size: this.baseSize }, this.scene);
+                mesh.parent = this._root;
+                mesh.thinInstanceRegisterAttribute("color", 4);
+                this._frames.set(name, mesh);
+                this._voxelIdxs.set(name, 0);
+                this._parseShape(props, name);
+            }
+            changeFrame(frameName) {
+                const frame = this._frames.get(frameName);
+                if (this._currentFrame != frameName && frame) {
+                    this._frames.get(this._currentFrame).setEnabled(false);
+                    frame.setEnabled(true);
+                    this._currentFrame = frameName;
+                }
+            }
+            addAnimation(props) {
+                if (!this._animations.get(props.name)) {
+                    const animation = new VoxelSpriteAnimation(props.name, props.duration, props.mode, props.frames, this);
+                    this._animations.set(props.name, animation);
+                }
+            }
+            playAnimation(name, resetTime = true) {
+                const animation = this._animations.get(name);
+                if (this._currentAnimation != name && animation) {
+                    this._currentAnimation = name;
+                    animation.start(resetTime);
+                }
+            }
+            stopAnimation(gotoFrame) {
+                const animation = this._animations.get(this._currentAnimation);
+                if (animation) {
+                    animation.stop();
+                    this._currentAnimation = null;
+                    if (gotoFrame !== undefined) {
+                        this.changeFrame(gotoFrame);
+                    }
+                }
+            }
+        }
+        var VoxelAnimationLoopMode;
+        (function (VoxelAnimationLoopMode) {
+            VoxelAnimationLoopMode[VoxelAnimationLoopMode["None"] = 0] = "None";
+            VoxelAnimationLoopMode[VoxelAnimationLoopMode["Loop"] = 1] = "Loop";
+            VoxelAnimationLoopMode[VoxelAnimationLoopMode["PingPong"] = 2] = "PingPong";
+        })(VoxelAnimationLoopMode || (VoxelAnimationLoopMode = {}));
+        class VoxelSpriteAnimation {
+            name;
+            duration;
+            mode;
+            frames;
+            _sprite;
+            _time = 0;
+            _lastUpdate = 0;
+            _currentFrame = 0;
+            _updateObs;
+            constructor(name, duration, mode, frames, _sprite) {
+                this.name = name;
+                this.duration = duration;
+                this.mode = mode;
+                this.frames = frames;
+                this._sprite = _sprite;
+            }
+            _delta(update = false) {
+                const now = performance.now();
+                const delta = (now - this._lastUpdate);
+                if (update) {
+                    this._lastUpdate = now;
+                }
+                return delta * 0.001;
+            }
+            start(resetTime = false) {
+                this._lastUpdate = performance.now();
+                this._updateObs = this._sprite.scene.onBeforeRenderObservable.add(() => {
+                    this._update();
+                });
+            }
+            stop() {
+                this._time = 0;
+                this._currentFrame = 0;
+                this._sprite.scene.onBeforeRenderObservable.remove(this._updateObs);
+            }
+            _update() {
+                const delta = this._delta(true);
+                this._time += delta;
+                if (this._time > this.duration) {
+                    this._time = 0;
+                    this._currentFrame = 0;
+                    if (this.mode == VoxelAnimationLoopMode.None) {
+                        return this.stop();
+                    }
+                }
+                for (let i = this._currentFrame; i < this.frames.length; i++) {
+                    const frameTime = this.frames[i].duration * this.duration;
+                    if (frameTime >= this._time) {
+                        this._currentFrame = i;
+                        break;
+                    }
+                }
+                this._sprite.changeFrame(this.frames[this._currentFrame].name);
+            }
+        }
+        class Playground {
+            static CreateScene(engine, canvas) {
+                const scene = new BABYLON.Scene(engine);
+                const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2.5, 15, BABYLON.Vector3.Zero(), scene);
+                camera.attachControl(canvas, true);
+                const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+                light.intensity = 0.7;
+                // Set background color to solid black
+                scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
+                // Create custom glitch post-process
+                const glitchPostProcess = new BABYLON.PostProcess("glitch", "glitch", ["time", "amount", "angle", "seed", "seed_x", "seed_y", "distortion_x", "distortion_y", "col_s"], ["tDisp"], 1.0, camera);
+                // Generate displacement texture
+                const dt_size = 64;
+                const data = new Float32Array(dt_size * dt_size * 4);
+                for (let i = 0; i < data.length; i++) {
+                    data[i] = Math.random();
+                }
+                const tDisp = new BABYLON.RawTexture(data, dt_size, dt_size, BABYLON.Engine.TEXTUREFORMAT_RGBA, scene, false, false, BABYLON.Texture.NEAREST_SAMPLINGMODE);
+                let time = 0;
+                let randX = BABYLON.Scalar.RandomRange(120, 240);
+                let goWild = false;
+                let curF = 0;
+                glitchPostProcess.onApply = (effect) => {
+                    time += scene.getEngine().getDeltaTime() / 1000.0;
+                    effect.setFloat("time", time);
+                    effect.setTexture("tDisp", tDisp);
+                    effect.setFloat("seed", Math.random());
+                    effect.setFloat("byp", 0);
+                    if (curF % randX == 0 || goWild) {
+                        effect.setFloat("amount", Math.random() / 30);
+                        effect.setFloat("angle", BABYLON.Scalar.RandomRange(-Math.PI, Math.PI));
+                        effect.setFloat("seed_x", BABYLON.Scalar.RandomRange(-1, 1));
+                        effect.setFloat("seed_y", BABYLON.Scalar.RandomRange(-1, 1));
+                        effect.setFloat("distortion_x", BABYLON.Scalar.RandomRange(0, 1));
+                        effect.setFloat("distortion_y", BABYLON.Scalar.RandomRange(0, 1));
+                        curF = 0;
+                        randX = BABYLON.Scalar.RandomRange(120, 240);
+                    }
+                    else if (curF % randX < randX / 5) {
+                        effect.setFloat("amount", Math.random() / 90);
+                        effect.setFloat("angle", BABYLON.Scalar.RandomRange(-Math.PI, Math.PI));
+                        effect.setFloat("distortion_x", BABYLON.Scalar.RandomRange(0, 1));
+                        effect.setFloat("distortion_y", BABYLON.Scalar.RandomRange(0, 1));
+                        effect.setFloat("seed_x", BABYLON.Scalar.RandomRange(-0.3, 0.3));
+                        effect.setFloat("seed_y", BABYLON.Scalar.RandomRange(-0.3, 0.3));
+                    }
+                    else if (!goWild) {
+                        effect.setFloat("byp", 1);
+                    }
+                    effect.setFloat("col_s", 0.05);
+                    curF++;
+                };
+                // Glitch shader
+                BABYLON.Effect.ShadersStore["glitchPixelShader"] = `
+            uniform sampler2D textureSampler;
+            uniform sampler2D tDisp;
+            uniform float byp;
+            uniform float amount;
+            uniform float angle;
+            uniform float seed;
+            uniform float seed_x;
+            uniform float seed_y;
+            uniform float distortion_x;
+            uniform float distortion_y;
+            uniform float col_s;
+            varying vec2 vUV;
+
+            float rand(vec2 co){
+                return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+            }
+
+            void main() {
+                if(byp<1.) {
+                    vec2 p = vUV;
+                    float xs = floor(gl_FragCoord.x / 0.5);
+                    float ys = floor(gl_FragCoord.y / 0.5);
+                    vec4 normal = texture2D(tDisp, p*seed*seed);
+                    if(p.y<distortion_x+col_s && p.y>distortion_x-col_s*seed) {
+                        if(seed_x>0.){
+                            p.y = 1. - (p.y + distortion_y);
+                        }
+                        else {
+                            p.y = distortion_y;
+                        }
+                    }
+                    if(p.x<distortion_y+col_s && p.x>distortion_y-col_s*seed) {
+                        if(seed_y>0.){
+                            p.x=distortion_x;
+                        }
+                        else {
+                            p.x = 1. - (p.x + distortion_x);
+                        }
+                    }
+                    p.x+=normal.x*seed_x*(seed/5.);
+                    p.y+=normal.y*seed_y*(seed/5.);
+                    vec2 offset = amount * vec2( cos(angle), sin(angle));
+                    vec4 cr = texture2D(textureSampler, p + offset);
+                    vec4 cga = texture2D(textureSampler, p);
+                    vec4 cb = texture2D(textureSampler, p - offset);
+                    gl_FragColor = vec4(cr.r, cga.g, cb.b, cga.a);
+                    vec4 snow = 200.*amount*vec4(rand(vec2(xs * seed,ys * seed*50.))*0.2);
+                    gl_FragColor = gl_FragColor+ snow;
+                }
+                else {
+                    gl_FragColor=texture2D (textureSampler, vUV);
+                }
+            }
+        `;
+                // Add GUI for controlling glitch intensity
+                const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+                const panel = new BABYLON.GUI.StackPanel();
+                panel.width = "220px";
+                panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+                panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+                advancedTexture.addControl(panel);
+                const header = new BABYLON.GUI.TextBlock();
+                header.text = "WTF";
+                header.height = "30px";
+                header.color = "white";
+                panel.addControl(header);
+                const checkbox = new BABYLON.GUI.Checkbox();
+                checkbox.width = "20px";
+                checkbox.height = "20px";
+                checkbox.isChecked = false;
+                checkbox.onIsCheckedChangedObservable.add(function (value) {
+                    goWild = value;
+                });
+                panel.addControl(checkbox);
+                const defaultPipeline = new BABYLON.DefaultRenderingPipeline("default", true, scene, [camera]);
+                defaultPipeline.samples = 4;
+                defaultPipeline.chromaticAberrationEnabled = true;
+                defaultPipeline.chromaticAberration.aberrationAmount = 14.30;
+                defaultPipeline.depthOfFieldEnabled = true;
+                defaultPipeline.depthOfField.focalLength = 400;
+                defaultPipeline.depthOfField.fStop = 4.8;
+                defaultPipeline.depthOfField.focusDistance = 9000;
+                defaultPipeline.grainEnabled = true;
+                defaultPipeline.grain.animated = true;
+                defaultPipeline.grain.intensity = 15.5;
+                defaultPipeline.sharpenEnabled = true;
+                defaultPipeline.imageProcessingEnabled = true;
+                defaultPipeline.imageProcessing.contrast = 1.1;
+                defaultPipeline.imageProcessing.exposure = 1.5;
+                defaultPipeline.imageProcessing.toneMappingEnabled = true;
+                defaultPipeline.imageProcessing.vignetteEnabled = true;
+                const spaceBackground = new VoxelSpaceBackground(scene);
+                const wizardryAtlasUrls = [
+                    'https://seacloud9.github.io/assets/spritesheet/sb1sm.png',
+                    'https://seacloud9.github.io/assets/spritesheet/sb2sm.png',
+                    'https://seacloud9.github.io/assets/spritesheet/sb3sm.png',
+                    'https://seacloud9.github.io/assets/spritesheet/sb4sm.png'
+                ];
+                let rpgNPC;
+                const updateWizardryAtlas = () => {
+                    const randomAtlasUrl = wizardryAtlasUrls[Math.floor(Math.random() * wizardryAtlasUrls.length)];
+                    const wizardryAtlas = new Image();
+                    wizardryAtlas.onload = () => {
+                        const baseSize = 0.05;
+                        if (!rpgNPC) {
+                            rpgNPC = new VoxelSprite('rpg_npc', baseSize, scene);
+                        }
+                        // Remove the previous frame if it exists
+                        if (rpgNPC.hasFrame("base")) {
+                            rpgNPC.removeFrame("base");
+                        }
+                        // Add the new frame
+                        rpgNPC.addFrame("base", {
+                            atlas: wizardryAtlas,
+                            start: new BABYLON.Vector2(1, 1),
+                            size: new BABYLON.Vector2(64, 64),
+                            discard: BABYLON.Color3.Black(),
+                            tolerance: 5,
+                            center: new BABYLON.Vector2(16, 16)
+                        });
+                        // Change to the new frame
+                        rpgNPC.changeFrame("base");
+                    };
+                    wizardryAtlas.src = randomAtlasUrl;
+                    wizardryAtlas.crossOrigin = 'Anonymous';
+                };
+                updateWizardryAtlas();
+                /*
+                // Initial atlas load
+        
+        
+                // Set up interval to change atlas every 5-10 seconds
+                setInterval(() => {
+                    updateWizardryAtlas();
+                }, BABYLON.Scalar.RandomRange(5000, 10000));
+                */
+                return scene;
+            }
+        }
+        createScene = function() { return Playground.CreateScene(engine, engine.getRenderingCanvas()); }
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions();
+                    if (engineOptions.audioEngine !== false) {
+                        
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>
