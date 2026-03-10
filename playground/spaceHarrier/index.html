@@ -1,0 +1,1711 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        // Space Harrier Style Game - Babylon.js Playground Version with UI Improvements
+
+// Game Configuration
+const CONFIG = {
+    // Core game settings
+    game: {
+        soundEnabled: false, // Disable sounds
+        gameSpeed: 0.5,
+        enemySpawnDistance: 200,
+        maxEnemies: 10,
+        playerSpeed: 0.5,
+        projectileSpeed: 3,
+        projectileDamage: 50,
+        fireRate: 0.2, // Time in seconds between shots (5 shots per second)
+        rapidFireRate: 0.1 // Time in seconds between shots when rapid firing (10 shots per second)
+    },
+    
+    // UI text content
+    text: {
+        title: "SPACE HARRIER",
+        subtitle: "Voxel Invaders Edition",
+        startButton: "START GAME",
+        playAgainButton: "PLAY AGAIN",
+        mainMenuButton: "MAIN MENU",
+        gameOver: "GAME OVER",
+        scoreText: "Score: ",
+        highScoreText: "HIGH SCORE: ",
+        yourScoreText: "Your Score: ",
+        newHighScoreText: "NEW HIGH SCORE!",
+        controlsInfo: "CONTROLS:\nWASD or Arrow Keys to move\nSPACE to fire\nV to toggle camera view\nENTER to start game",
+        mobileControls: "On Mobile:\nTouch and drag to move\nTap to fire\nUse buttons for camera and firing",
+        keyboardGameOverInfo: "Press ENTER to play again\nPress ESC for main menu",
+        cameraButtonText: "Change View",
+        fireButtonText: "FIRE",
+        inGameControls: "WASD/Arrows: Move | SPACE: Fire | V: Change View"
+    },
+    
+    // Asset paths
+    assets: {
+        skybox: "https://assets.babylonjs.com/textures/skybox",
+        laserSound: "https://assets.babylonjs.com/sound/laser.wav",
+        explosionSound: "https://assets.babylonjs.com/sound/explosion.wav",
+        particleTexture: "https://assets.babylonjs.com/textures/flare.png"
+    },
+    
+    // Colors
+    colors: {
+        titleColor: "cyan",
+        subtitleColor: "white",
+        scoreColor: "white",
+        highScoreColor: "yellow",
+        gameOverColor: "red",
+        newHighScoreColor: "gold",
+        buttonTextColor: "white",
+        startButtonColor: "green",
+        playAgainButtonColor: "green",
+        mainMenuButtonColor: "blue",
+        fireButtonColor: "red",
+        cameraButtonColor: "green",
+        instructionsColor: "white",
+        instructionsBackgroundColor: "rgba(0, 0, 0, 0.5)",
+        playerColor: new BABYLON.Color3(0, 0.7, 1),
+        playerEmissive: new BABYLON.Color3(0, 0.4, 0.8),
+        thrusterColor: new BABYLON.Color3(0.7, 0.3, 0),
+        projectileColor: new BABYLON.Color3(0, 1, 0.5)
+    }
+};
+
+// These variables need to be accessed by multiple scene functions
+let gameScore = 0;
+let highScore = 0;
+let gameUI;
+let currentSceneType = "start"; // Track which scene is currently active
+
+// Main createScene function required by Babylon.js Playground
+const createScene = function() {
+    // Initialize with start scene
+    return createStartScene();
+};
+
+// Scene management - properly handle scene switching for Babylon.js Playground
+const switchScene = function(sceneType) {
+    // Store old scene for disposal
+    const oldScene = scene;
+    
+    // Create the new scene based on type
+    if (sceneType === "start") {
+        scene = createStartScene();
+        currentSceneType = "start";
+    } else if (sceneType === "game") {
+        scene = createGameScene();
+        currentSceneType = "game";
+    } else if (sceneType === "gameOver") {
+        scene = createGameOverScene();
+        currentSceneType = "gameOver";
+    }
+    
+    // Make sure engine renders the new scene
+    engine.stopRenderLoop();
+    engine.runRenderLoop(function() {
+        scene.render();
+    });
+    
+    // Dispose old scene after ensuring new scene is running
+    if (oldScene) {
+        setTimeout(() => {
+            oldScene.dispose();
+        }, 1000); // Small delay to ensure clean transition
+    }
+    
+    return scene;
+};
+
+// ------- START SCENE -------
+const createStartScene = function() {
+    // Create the scene
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color3(0, 0, 0);
+    
+    // Create camera
+    const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 5, -10), scene);
+    camera.setTarget(BABYLON.Vector3.Zero());
+    
+    // Create lights
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    light.intensity = 0.7;
+    
+    // Add keyboard support for Enter key
+    scene.onKeyboardObservable.add((kbInfo) => {
+        // Check for Enter key press
+        if(kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN && kbInfo.event.key === 'Enter') {
+            // Start the game - same action as clicking the start button
+            switchScene("game");
+        }
+    });
+    
+    // Create skybox
+    const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {size: 1000.0}, scene);
+    const skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(CONFIG.assets.skybox, scene);
+    skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+    skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+    skybox.material = skyboxMaterial;
+    
+    // Add rotation to skybox for effect
+    scene.registerBeforeRender(() => {
+        skybox.rotation.y += 0.0005;
+    });
+    
+    // Create UI
+    const startTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("startUI", true, scene);
+    
+    // Title
+    const title = new BABYLON.GUI.TextBlock();
+    title.text = CONFIG.text.title;
+    title.color = CONFIG.colors.titleColor;
+    title.fontSize = 60;
+    title.fontFamily = "Impact";
+    title.shadowColor = "blue";
+    title.shadowBlur = 10;
+    title.shadowOffsetX = 3;
+    title.shadowOffsetY = 3;
+    title.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    title.top = "100px";
+    startTexture.addControl(title);
+    
+    // Animate title glow effect
+    let time = 0;
+    scene.registerBeforeRender(() => {
+        time += engine.getDeltaTime() / 1000;
+        title.alpha = 0.8 + Math.sin(time * 2) * 0.2;
+        title.shadowBlur = 5 + Math.sin(time * 3) * 5;
+    });
+    
+    // Subtitle
+    const subtitle = new BABYLON.GUI.TextBlock();
+    subtitle.text = CONFIG.text.subtitle;
+    subtitle.color = CONFIG.colors.subtitleColor;
+    subtitle.fontSize = 24;
+    subtitle.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    subtitle.top = "180px";
+    startTexture.addControl(subtitle);
+    
+    // High score display
+    const highScoreText = new BABYLON.GUI.TextBlock();
+    highScoreText.text = CONFIG.text.highScoreText + highScore;
+    highScoreText.color = CONFIG.colors.highScoreColor;
+    highScoreText.fontSize = 24;
+    highScoreText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    highScoreText.top = "240px";
+    startTexture.addControl(highScoreText);
+    
+    // Create a completely separate button for clean interaction
+    const startButtonRect = new BABYLON.GUI.Rectangle("startButtonRect");
+    startButtonRect.width = "280px";
+    startButtonRect.height = "80px";
+    startButtonRect.cornerRadius = 15;
+    startButtonRect.color = CONFIG.colors.startButtonColor;
+    startButtonRect.thickness = 2;
+    startButtonRect.background = CONFIG.colors.startButtonColor;
+    startButtonRect.zIndex = 5; // Ensure it's above other elements
+    
+    // Position the button in the center
+    startButtonRect.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    startButtonRect.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    startButtonRect.top = "50px"; // Move down a bit to avoid overlaps
+    
+    // Add the button label
+    const startButtonText = new BABYLON.GUI.TextBlock("startButtonText");
+    startButtonText.text = CONFIG.text.startButton;
+    startButtonText.color = CONFIG.colors.buttonTextColor;
+    startButtonText.fontSize = 24;
+    startButtonText.fontFamily = "Arial";
+    startButtonText.zIndex = 6; // Ensure text is above button
+    
+    // Add the text to the button container
+    startButtonRect.addControl(startButtonText);
+    
+    // Make it clickable with proper hit testing
+    startButtonRect.isPointerBlocker = true;
+    
+    // Add click behavior
+    startButtonRect.onPointerClickObservable.add(() => {
+        switchScene("game");
+    });
+    
+    // Add visual feedback when hovering/clicking
+    startButtonRect.onPointerEnterObservable.add(() => {
+        startButtonRect.background = "#00aa00"; // Lighter green on hover
+    });
+    
+    startButtonRect.onPointerOutObservable.add(() => {
+        startButtonRect.background = CONFIG.colors.startButtonColor; // Back to normal
+    });
+    
+    startButtonRect.onPointerDownObservable.add(() => {
+        startButtonRect.background = "#006600"; // Darker green when pressed
+    });
+    
+    startButtonRect.onPointerUpObservable.add(() => {
+        startButtonRect.background = "#00aa00"; // Back to hover color
+    });
+    
+    // Add the button to the UI
+    startTexture.addControl(startButtonRect);
+    
+    // Controls info - moved higher up
+    const controlsText = new BABYLON.GUI.TextBlock();
+    controlsText.text = CONFIG.text.controlsInfo;
+    controlsText.color = CONFIG.colors.subtitleColor;
+    controlsText.fontSize = 18;
+    controlsText.lineSpacing = "10px";
+    controlsText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    controlsText.top = "300px";
+    startTexture.addControl(controlsText);
+    
+    // Mobile controls info - moved higher up
+    const mobileControlsText = new BABYLON.GUI.TextBlock();
+    mobileControlsText.text = CONFIG.text.mobileControls;
+    mobileControlsText.color = CONFIG.colors.subtitleColor;
+    mobileControlsText.fontSize = 18;
+    mobileControlsText.lineSpacing = "10px";
+    mobileControlsText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    mobileControlsText.top = "400px";
+    startTexture.addControl(mobileControlsText);
+    
+    return scene;
+};
+
+// ------- GAME SCENE -------
+const createGameScene = function() {
+    // Create the scene
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color3(0, 0, 0);
+    
+    // Reset game score
+    gameScore = 0;
+    
+    // Create UI for game scene - moved to top of function to ensure initialization
+    gameUI = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("gameUI", true, scene);
+    
+    // Create lights
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    light.intensity = 0.7;
+    
+    const pointLight = new BABYLON.PointLight("pointLight", new BABYLON.Vector3(0, 5, -5), scene);
+    pointLight.intensity = 0.5;
+    
+    // Game variables
+    let gameOver = false;
+    let isFirstPerson = false;
+    const gameSpeed = CONFIG.game.gameSpeed;
+    const enemySpawnDistance = CONFIG.game.enemySpawnDistance;
+    const maxEnemies = CONFIG.game.maxEnemies;
+    const enemies = [];
+    const projectiles = [];
+    
+    // Variables to track the firing mechanics
+    let lastFireTime = 0;
+    let isFireButtonDown = false; // Track if fire button is being held down
+    let isSpaceKeyDown = false;  // Track if space key is being held down
+    
+    // Touch controls variables
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isTouching = false;
+    let joystickPointerID = -1;
+    let joystickStartX = 0;
+    let joystickStartY = 0;
+    let joystickDeltaX = 0;
+    let joystickDeltaY = 0;
+    const joystickSensitivity = 0.05; // Adjust sensitivity
+    
+    // Create player
+    const player = BABYLON.MeshBuilder.CreateSphere("player", {diameter: 2}, scene);
+    player.position = new BABYLON.Vector3(0, 5, 0);
+    const playerMaterial = new BABYLON.StandardMaterial("playerMaterial", scene);
+    playerMaterial.diffuseColor = CONFIG.colors.playerColor;
+    playerMaterial.emissiveColor = CONFIG.colors.playerEmissive;
+    player.material = playerMaterial;
+    
+    // Add engines/thrusters to player
+    const thrusterLeft = BABYLON.MeshBuilder.CreateCylinder("thrusterLeft", {height: 1.5, diameter: 0.8}, scene);
+    thrusterLeft.parent = player;
+    thrusterLeft.position = new BABYLON.Vector3(-0.8, 0, 0.5);
+    thrusterLeft.rotation.x = Math.PI / 2;
+    
+    const thrusterRight = BABYLON.MeshBuilder.CreateCylinder("thrusterRight", {height: 1.5, diameter: 0.8}, scene);
+    thrusterRight.parent = player;
+    thrusterRight.position = new BABYLON.Vector3(0.8, 0, 0.5);
+    thrusterRight.rotation.x = Math.PI / 2;
+    
+    const thrusterMaterial = new BABYLON.StandardMaterial("thrusterMaterial", scene);
+    thrusterMaterial.diffuseColor = CONFIG.colors.thrusterColor;
+    thrusterMaterial.emissiveColor = CONFIG.colors.thrusterColor;
+    thrusterLeft.material = thrusterMaterial;
+    thrusterRight.material = thrusterMaterial;
+    
+    // Create particle systems for thrusters
+    const createThrusterParticles = (emitter) => {
+        const particleSystem = new BABYLON.ParticleSystem("particles", 200, scene);
+        particleSystem.particleTexture = new BABYLON.Texture(CONFIG.assets.particleTexture, scene);
+        particleSystem.emitter = emitter;
+        particleSystem.minEmitBox = new BABYLON.Vector3(-0.1, -0.1, -0.1);
+        particleSystem.maxEmitBox = new BABYLON.Vector3(0.1, 0.1, 0.1);
+        particleSystem.color1 = new BABYLON.Color4(1, 0.5, 0, 1.0);
+        particleSystem.color2 = new BABYLON.Color4(1, 0.2, 0, 1.0);
+        particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0.0);
+        particleSystem.minSize = 0.2;
+        particleSystem.maxSize = 0.5;
+        particleSystem.minLifeTime = 0.1;
+        particleSystem.maxLifeTime = 0.3;
+        particleSystem.emitRate = 100;
+        particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+        particleSystem.direction1 = new BABYLON.Vector3(0, 0, 1);
+        particleSystem.direction2 = new BABYLON.Vector3(0, 0, 1);
+        particleSystem.minEmitPower = 1;
+        particleSystem.maxEmitPower = 3;
+        particleSystem.updateSpeed = 0.01;
+        particleSystem.start();
+        return particleSystem;
+    };
+    
+    const leftThrusterParticles = createThrusterParticles(thrusterLeft);
+    const rightThrusterParticles = createThrusterParticles(thrusterRight);
+    
+    // Create cameras
+    const fpCamera = new BABYLON.FreeCamera("fpCamera", new BABYLON.Vector3(0, 6, -3), scene);
+    fpCamera.setTarget(new BABYLON.Vector3(0, 5, 100));
+    fpCamera.parent = player;
+    
+    const tpCamera = new BABYLON.FollowCamera("tpCamera", new BABYLON.Vector3(0, 10, -15), scene);
+    tpCamera.lockedTarget = player;
+    tpCamera.radius = 15;
+    tpCamera.heightOffset = 5;
+    tpCamera.rotationOffset = 180;
+    tpCamera.cameraAcceleration = 0.1;
+    tpCamera.maxCameraSpeed = 10;
+    
+    // Set active camera
+    scene.activeCamera = tpCamera;
+    
+    // Toggle camera view
+    scene.onKeyboardObservable.add((kbInfo) => {
+        if(kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN && kbInfo.event.key === 'v') {
+            isFirstPerson = !isFirstPerson;
+            if (isFirstPerson) {
+                scene.activeCamera = fpCamera;
+            } else {
+                scene.activeCamera = tpCamera;
+            }
+        }
+        
+        // Track space key state for rapid fire
+        if (kbInfo.event.key === ' ') {
+            isSpaceKeyDown = kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN;
+        }
+    });
+    
+    // Create ground with custom shader
+    const ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 1000, height: 1000, subdivisions: 100}, scene);
+    ground.position.y = 0;
+    
+    // Make sure the ground has proper UVs for the shader
+    ground.updateVerticesData(BABYLON.VertexBuffer.UVKind, BABYLON.VertexData.CreateGround({width: 1000, height: 1000, subdivisions: 100}).uvs);
+    
+    // Create custom shader material for ground
+    BABYLON.Effect.ShadersStore["customVertexShader"] = `
+        precision highp float;
+        
+        // Attributes
+        attribute vec3 position;
+        attribute vec3 normal;
+        attribute vec2 uv;
+        
+        // Uniforms
+        uniform mat4 world;
+        uniform mat4 worldView;
+        uniform mat4 worldViewProjection;
+        
+        // Varying
+        varying vec2 vUV;
+        varying vec3 vPosition;
+        
+        void main(void) {
+            gl_Position = worldViewProjection * vec4(position, 1.0);
+            vUV = uv;
+            vPosition = (world * vec4(position, 1.0)).xyz;
+        }
+    `;
+    
+    BABYLON.Effect.ShadersStore["customFragmentShader"] = `
+        precision highp float;
+        
+        varying vec2 vUV;
+        varying vec3 vPosition;
+        
+        uniform float time;
+        
+        // Define constants and macros needed by the shader
+        #define PI 3.14159265359
+        
+        // Helper function for 2D rotation
+        mat2 rotate2D(float angle) {
+            float s = sin(angle);
+            float c = cos(angle);
+            return mat2(c, -s, s, c);
+        }
+        
+        // Function to create pseudo-random values
+        float random(vec2 st) {
+            return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+        }
+        
+        void main(void) {
+            // Initialize output color
+            vec3 o = vec3(0.0, 0.0, 0.0);
+            
+            // Create a simpler but still effective water/liquid effect
+            // Calculate wave pattern based on UV coordinates and time
+            float amplitude = 0.1;
+            float frequency = 10.0;
+            float speed = time * 0.5;
+            
+            // Create wave patterns
+            float wave1 = sin(vUV.x * frequency + speed) * amplitude;
+            float wave2 = sin(vUV.y * frequency * 0.8 + speed * 1.3) * amplitude;
+            float wave3 = sin((vUV.x + vUV.y) * frequency * 0.5 + speed * 0.7) * amplitude;
+            
+            // Combine waves for interesting pattern
+            float waves = wave1 + wave2 + wave3;
+            
+            // Create grid pattern that moves with time
+            float gridSize = 20.0;
+            vec2 grid = fract(vUV * gridSize + vec2(sin(speed), cos(speed * 0.7)));
+            float gridPattern = smoothstep(0.9, 1.0, max(grid.x, grid.y));
+            
+            // Blue-based color palette for water effect
+            vec3 baseColor = vec3(0.1, 0.3, 0.7);
+            vec3 highlightColor = vec3(0.5, 0.7, 0.9);
+            vec3 gridColor = vec3(0.0, 0.8, 1.0);
+            
+            // Mix colors based on wave height
+            float waveFactor = (waves + 0.2) * 0.5;
+            o = mix(baseColor, highlightColor, waveFactor);
+            
+            // Add grid highlights
+            o = mix(o, gridColor, gridPattern * 0.3);
+            
+            // Output final color
+            gl_FragColor = vec4(o, 1.0);
+        }
+    `;
+    
+    // Now create the shader material using the registered shaders
+    const groundShader = new BABYLON.ShaderMaterial("groundShader", scene, {
+        vertex: "custom",
+        fragment: "custom",
+    }, {
+        attributes: ["position", "normal", "uv"],
+        uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "time"]
+    });
+    
+    ground.material = groundShader;
+    let time = 0;
+    
+    // Create skybox
+    const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {size: 1000.0}, scene);
+    const skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(CONFIG.assets.skybox, scene);
+    skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+    skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+    skybox.material = skyboxMaterial;
+    
+    // Player movement controls
+    const keys = {
+        w: false,
+        a: false,
+        s: false,
+        d: false,
+        space: false,
+        arrowUp: false,
+        arrowDown: false,
+        arrowLeft: false,
+        arrowRight: false
+    };
+    
+    scene.onKeyboardObservable.add((kbInfo) => {
+        const key = kbInfo.event.key.toLowerCase();
+        
+        // Map arrow keys
+        if (key === "arrowup") {
+            keys.arrowUp = kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN;
+        } else if (key === "arrowdown") {
+            keys.arrowDown = kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN;
+        } else if (key === "arrowleft") {
+            keys.arrowLeft = kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN;
+        } else if (key === "arrowright") {
+            keys.arrowRight = kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN;
+        } else if (key === " ") {
+            // Explicitly track space key state
+            keys.space = kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN;
+        } else if (key in keys) {
+            keys[key] = kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN;
+        }
+        
+        // Single fire on Enter key for compatibility
+        if (key === "enter" && kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN) {
+            fireProjectile();
+        }
+    });
+    
+    // Enhanced touch controls with proper joystick reference
+    let joystickContainer; // Declare outside to ensure it's accessible in event handlers
+    let joystickKnob;
+    
+    // Create the virtual joystick only if we're on a touch device
+    if ('ontouchstart' in window || navigator.maxTouchPoints) {
+        // Setup virtual joystick container
+        joystickContainer = new BABYLON.GUI.Ellipse("joystickContainer");
+        joystickContainer.width = "120px";
+        joystickContainer.height = "120px";
+        joystickContainer.color = "rgba(255, 255, 255, 0.5)";
+        joystickContainer.thickness = 2;
+        joystickContainer.background = "rgba(100, 100, 100, 0.3)";
+        joystickContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        joystickContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        joystickContainer.left = "50px";
+        joystickContainer.top = "0px";
+        
+        // Setup joystick knob
+        joystickKnob = new BABYLON.GUI.Ellipse("joystickKnob");
+        joystickKnob.width = "40px";
+        joystickKnob.height = "40px";
+        joystickKnob.color = "white";
+        joystickKnob.thickness = 1;
+        joystickKnob.background = "rgba(200, 200, 200, 0.8)";
+        
+        joystickContainer.addControl(joystickKnob);
+        gameUI.addControl(joystickContainer);
+    }
+    
+    // Auto-fire timer for mobile movement
+    let autoFireTimer = 0;
+    const autoFireDelay = 0.3; // Time in seconds between auto-fires
+    
+    // Enhanced touch controls for better responsiveness
+    canvas.addEventListener("touchstart", function(e) {
+        e.preventDefault();
+        
+        if (e.touches.length > 0) {
+            const touch = e.touches[0];
+            
+            // Store initial touch position
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            isTouching = true;
+            
+            // Skip joystick check if joystick is not defined (non-touch device)
+            if (!joystickContainer) {
+                // Just fire on touch for non-joystick devices
+                fireProjectile();
+                return;
+            }
+            
+            // Check if touch is in joystick area
+            const rect = canvas.getBoundingClientRect();
+            const joystickLeft = parseInt(joystickContainer.left.replace("px", ""));
+            const joystickBottom = parseInt(joystickContainer.top.replace("px", ""));
+            
+            // Convert to screen coordinates
+            const joystickCenterX = rect.left + joystickLeft + (parseInt(joystickContainer.width) / 2);
+            const joystickCenterY = rect.bottom - joystickBottom - (parseInt(joystickContainer.height) / 2);
+            
+            const joystickRadius = parseInt(joystickContainer.width) / 2;
+            const touchX = touch.clientX;
+            const touchY = touch.clientY;
+            
+            const distX = touchX - joystickCenterX;
+            const distY = touchY - joystickCenterY;
+            const distance = Math.sqrt(distX * distX + distY * distY);
+            
+            if (distance < joystickRadius * 2) {
+                // Touch is in joystick area
+                joystickPointerID = touch.identifier;
+                joystickStartX = touchX;
+                joystickStartY = touchY;
+                
+                // Reset knob position
+                joystickKnob.left = 0;
+                joystickKnob.top = 0;
+                
+                // Fire immediately when starting to move
+                fireProjectile();
+            } else if (e.target === canvas) {
+                // Handle regular touch for firing if not on a UI element
+                fireProjectile();
+            }
+        }
+    });
+    
+    canvas.addEventListener("touchmove", function(e) {
+        e.preventDefault();
+        
+        // Skip if joystick is not defined (non-touch device)
+        if (!joystickContainer) return;
+        
+        // Handle joystick movement
+        if (joystickPointerID >= 0) {
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                
+                if (touch.identifier === joystickPointerID) {
+                    const touchX = touch.clientX;
+                    const touchY = touch.clientY;
+                    
+                    // Calculate delta from start position
+                    joystickDeltaX = touchX - joystickStartX;
+                    joystickDeltaY = touchY - joystickStartY;
+                    
+                    // Limit movement to joystick radius
+                    const maxRadius = parseInt(joystickContainer.width) / 3;
+                    const distance = Math.sqrt(joystickDeltaX * joystickDeltaX + joystickDeltaY * joystickDeltaY);
+                    
+                    if (distance > maxRadius) {
+                        const ratio = maxRadius / distance;
+                        joystickDeltaX *= ratio;
+                        joystickDeltaY *= ratio;
+                    }
+                    
+                    // Update joystick knob position
+                    joystickKnob.left = joystickDeltaX + "px";
+                    joystickKnob.top = joystickDeltaY + "px";
+                    
+                    // Move player based on joystick delta
+                    player.position.x += joystickDeltaX * joystickSensitivity;
+                    player.position.y -= joystickDeltaY * joystickSensitivity; // Invert Y for intuitive control
+                    
+                    // Auto-fire while moving with joystick - implemented in the main game loop
+                    break;
+                }
+            }
+        } else {
+            // Improved swipe detection for non-joystick touches
+            if (e.touches.length > 0 && isTouching) {
+                const touchX = e.touches[0].clientX;
+                const touchY = e.touches[0].clientY;
+                
+                // Calculate touch delta
+                const deltaX = touchX - touchStartX;
+                const deltaY = touchY - touchStartY;
+                
+                // Increase swipe sensitivity for better movement
+                player.position.x += deltaX * 0.03; // Increased from 0.01
+                player.position.y -= deltaY * 0.03; // Increased from 0.01
+                
+                // Update touch start position for continuous movement
+                touchStartX = touchX;
+                touchStartY = touchY;
+                
+                // Auto-fire while moving with touch - implemented in the main game loop
+            }
+        }
+    });
+    
+    canvas.addEventListener("touchend", function(e) {
+        e.preventDefault();
+        
+        // Skip if joystick is not defined (non-touch device)
+        if (!joystickContainer) return;
+        
+        // Handle joystick release
+        if (joystickPointerID >= 0) {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                
+                if (touch.identifier === joystickPointerID) {
+                    // Reset joystick
+                    joystickPointerID = -1;
+                    joystickDeltaX = 0;
+                    joystickDeltaY = 0;
+                    joystickKnob.left = 0;
+                    joystickKnob.top = 0;
+                    break;
+                }
+            }
+        }
+        
+        isTouching = false;
+    });
+    
+    // Enhanced touch controls for better responsiveness
+    canvas.addEventListener("touchstart", function(e) {
+        e.preventDefault();
+        
+        if (e.touches.length > 0) {
+            const touch = e.touches[0];
+            
+            // Check if touch is in joystick area
+            const rect = canvas.getBoundingClientRect();
+            const joystickLeft = rect.left + (joystickContainer.left.replace("px", "") * (rect.width / canvas.width));
+            const joystickTop = rect.bottom - (joystickContainer.top.replace("px", "") * (rect.height / canvas.height));
+            
+            const joystickRadius = parseInt(joystickContainer.width) / 2;
+            const touchX = touch.clientX;
+            const touchY = touch.clientY;
+            
+            const distX = touchX - joystickLeft;
+            const distY = touchY - joystickTop;
+            const distance = Math.sqrt(distX * distX + distY * distY);
+            
+            if (distance < joystickRadius * 1.5) {
+                // Touch is in joystick area
+                joystickPointerID = touch.identifier;
+                joystickStartX = touchX;
+                joystickStartY = touchY;
+                
+                // Reset knob position
+                joystickKnob.left = 0;
+                joystickKnob.top = 0;
+            } else {
+                // Handle regular touch for firing
+                fireProjectile();
+            }
+        }
+    });
+    
+    canvas.addEventListener("touchmove", function(e) {
+        e.preventDefault();
+        
+        // Handle joystick movement
+        if (joystickPointerID >= 0) {
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                
+                if (touch.identifier === joystickPointerID) {
+                    const touchX = touch.clientX;
+                    const touchY = touch.clientY;
+                    
+                    // Calculate delta from start position
+                    joystickDeltaX = touchX - joystickStartX;
+                    joystickDeltaY = touchY - joystickStartY;
+                    
+                    // Limit movement to joystick radius
+                    const maxRadius = parseInt(joystickContainer.width) / 3; // Limit range of movement
+                    const distance = Math.sqrt(joystickDeltaX * joystickDeltaX + joystickDeltaY * joystickDeltaY);
+                    
+                    if (distance > maxRadius) {
+                        const ratio = maxRadius / distance;
+                        joystickDeltaX *= ratio;
+                        joystickDeltaY *= ratio;
+                    }
+                    
+                    // Update joystick knob position
+                    joystickKnob.left = joystickDeltaX + "px";
+                    joystickKnob.top = joystickDeltaY + "px";
+                    
+                    // Move player based on joystick delta
+                    player.position.x += joystickDeltaX * joystickSensitivity;
+                    player.position.y -= joystickDeltaY * joystickSensitivity; // Invert Y for intuitive control
+                    
+                    break;
+                }
+            }
+        } else {
+            // Improved swipe detection for non-joystick touches
+            if (e.touches.length > 0 && isTouching) {
+                const touchX = e.touches[0].clientX;
+                const touchY = e.touches[0].clientY;
+                
+                // Calculate touch delta
+                const deltaX = touchX - touchStartX;
+                const deltaY = touchY - touchStartY;
+                
+                // Increase swipe sensitivity for better movement
+                player.position.x += deltaX * 0.03; // Increased from 0.01
+                player.position.y -= deltaY * 0.03; // Increased from 0.01
+                
+                // Update touch start position for continuous movement
+                touchStartX = touchX;
+                touchStartY = touchY;
+            }
+        }
+    });
+    
+    canvas.addEventListener("touchend", function(e) {
+        e.preventDefault();
+        
+        // Handle joystick release
+        if (joystickPointerID >= 0) {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                
+                if (touch.identifier === joystickPointerID) {
+                    // Reset joystick
+                    joystickPointerID = -1;
+                    joystickDeltaX = 0;
+                    joystickDeltaY = 0;
+                    joystickKnob.left = 0;
+                    joystickKnob.top = 0;
+                    break;
+                }
+            }
+        }
+        
+        isTouching = false;
+    });
+    
+    // Use the full VoxelVader implementation
+    function VoxelVader({
+        colorPool = [0xff004b, 0x0000ff, 0x00ff3c, 0x6900ff, 0xff0000, 0x00b3ff, 0x1e00ff],
+        color = [
+            BABYLON.Color3.FromHexString("#" + colorPool[Math.floor(Math.random() * colorPool.length)].toString(16).padStart(6, '0')),
+            BABYLON.Color3.FromHexString("#" + colorPool[Math.floor(Math.random() * colorPool.length)].toString(16).padStart(6, '0'))
+        ],
+        ambientColor = [0x800830, 0x800830],
+        size = 5,
+        steps = size / 5,
+        padding = parseInt(size / 2),
+        position = [0, 0, 0]
+    }) {
+        let groups = [];
+        
+        // Create materials
+        let materials = [
+            new BABYLON.StandardMaterial("material1", scene),
+            new BABYLON.StandardMaterial("material2", scene)
+        ];
+
+        // Set material properties
+        materials[0].diffuseColor = color[0];
+        materials[0].specularColor = new BABYLON.Color3(1, 1, 0);
+        materials[0].emissiveColor = color[0].scale(0.5); // Emissive color
+        materials[0].emissiveIntensity = 0.7;
+
+        materials[1].diffuseColor = color[1];
+        materials[1].emissiveColor = color[1].scale(0.5); // Emissive color
+        materials[1].emissiveIntensity = 0.7;
+
+        const voxelMesh = generateVoxel({ colorPool, color, ambientColor, size, steps, padding, materials, scene, groups });
+        
+        // We'll handle animation in the main game loop for all enemies
+        return voxelMesh;
+    }
+
+    // generateVoxel function
+    const generateVoxel = ({ colorPool, color, ambientColor, size, steps, padding, materials, scene, groups }) => {
+        const createVaderMesh = (material) => {
+            let mesh = BABYLON.MeshBuilder.CreateBox("box", {}, scene);
+            mesh.material = material.clone("clonedMaterial"); // Clone material for individual control
+            return mesh;
+        }
+
+        const VaderMesh = (obj = {}) => {
+            obj.vaderObj = new BABYLON.Mesh("VaderObj", scene);
+            obj.bg = new BABYLON.Mesh("VaderObj2BG", scene);
+            let col = [];
+            for (let j = 0; j < size; j += steps) {
+                let m = 1;
+                col[j] = [];
+                for (let i = 0; i < size / 2; i += steps) {
+                    let c = Math.random() > 0.5;
+                    col[j][i] = c;
+                    col[j][i + (size - steps) / m] = c;
+                    m++;
+                }
+            }
+            for (let j = 0; j < size; j += steps) {
+                for (let i = 0; i < size; i += steps) {
+                    let vaders = createVaderMesh(materials[0]);
+                    let vader2 = createVaderMesh(materials[0]);
+                    let vadersBG = createVaderMesh(materials[1]);
+                    vadersBG.position = new BABYLON.Vector3(i, j, 4);
+                    vadersBG.isVisible = col[j][i];
+                    vadersBG.vaderT = 'bg';
+                    vaders.position = new BABYLON.Vector3(i, j, 5);
+                    vaders.isVisible = col[j][i];
+                    vaders.vaderT = 'front';
+                    vader2.vaderT = 'front';
+                    vader2.position = new BABYLON.Vector3(i, j, 6);
+                    vader2.isVisible = col[j][i];
+                    obj.bg.addChild(vadersBG);
+                    obj.vaderObj.addChild(vadersBG);
+                    obj.vaderObj.addChild(vaders);
+                    obj.vaderObj.addChild(vader2);
+                }
+            }
+            return obj.vaderObj;
+        }
+
+        let voxelInvader = VaderMesh();
+        
+        // Merging geometry
+        let visibileArrBG = [];
+        let visibileArr = [];
+        let meshInvaderVisibile = (obj) => {
+            for (let i = 0; i < obj.getChildren().length; i++) {
+                let child = obj.getChildren()[i];
+                if (child.getChildren().length === 0 && child.isVisible && child.vaderT === 'bg') {
+                    visibileArrBG.push(child);
+                } else if (child.isVisible && child.vaderT === 'front') {
+                    visibileArr.push(child);
+                } else {
+                    meshInvaderVisibile(child);
+                }
+            }
+        }
+        meshInvaderVisibile(voxelInvader);
+
+        var mergedGeo = BABYLON.Mesh.MergeMeshes(visibileArr, true, true, undefined, false, true);
+        var mergedGeoBG = BABYLON.Mesh.MergeMeshes(visibileArrBG, true, true, undefined, false, true);
+
+        if (mergedGeo) {
+            mergedGeo.material = materials[0].clone("mergedMaterial1");
+            groups.push(mergedGeo);
+            groups[groups.length - 1].isGlowing = false;
+
+            let glowingMeshFront = mergedGeo.clone("glowingMeshFront");
+            glowingMeshFront.scaling.multiplyInPlace(new BABYLON.Vector3(1.1, 1.1, 1.1));
+            glowingMeshFront.material = materials[0].clone("glowingMaterial1");
+            glowingMeshFront.material.emissiveColor = color[0];
+            glowingMeshFront.material.emissiveIntensity = 1;
+            glowingMeshFront.isGlowing = true;
+            groups.push(glowingMeshFront);
+        }
+
+        if (mergedGeoBG) {
+            mergedGeoBG.material = materials[1].clone("mergedMaterial2");
+            groups.push(mergedGeoBG);
+            groups[groups.length - 1].isGlowing = false;
+
+            let glowingMesh = mergedGeoBG.clone("glowingMesh");
+            glowingMesh.scaling.multiplyInPlace(new BABYLON.Vector3(1.1, 1.1, 1.1));
+            glowingMesh.material = materials[1].clone("glowingMaterial2");
+            glowingMesh.material.emissiveColor = color[1];
+            glowingMesh.material.emissiveIntensity = 1;
+            glowingMesh.isGlowing = true;
+            groups.push(glowingMesh);
+        }
+
+        for (let i = 0; i < groups.length; i++) {
+            voxelInvader.addChild(groups[i]);
+        }
+
+        return voxelInvader;
+    }
+    
+    function randomSize(minSize, maxSize) {
+        return Math.floor(Math.random() * (maxSize - minSize + 1)) + minSize;
+    }
+    
+    // Create enemy function
+    const createEnemy = () => {
+        // Randomize position offset from player's forward path
+        const xOffset = Math.random() * 60 - 30;
+        const yOffset = Math.random() * 10 + 2;
+        
+        const enemyPosition = new BABYLON.Vector3(
+            player.position.x + xOffset,
+            player.position.y + yOffset,
+            player.position.z + enemySpawnDistance
+        );
+        
+        // Create a VoxelVader
+        const vxSize = randomSize(2, 6);
+        const enemy = VoxelVader({
+            size: vxSize,
+            steps: vxSize / 5,
+            padding: 1
+        });
+        
+        // Position the enemy
+        enemy.position = enemyPosition;
+        
+        // Scale the enemy
+        const scale = randomSize(2, 4) / 10; // Scale between 0.2 and 0.4
+        enemy.scaling = new BABYLON.Vector3(scale, scale, scale);
+        
+        // Add random rotation
+        enemy.rotation = new BABYLON.Vector3(
+           // Math.random() * Math.PI / 4, // Limit pitch rotation
+           // Math.random() * Math.PI * 2, // Full yaw rotation
+           // Math.random() * Math.PI / 4  // Limit roll rotation
+        );
+        
+        // Store properties for game logic
+        enemy.health = 100;
+        enemy.isVoxelVader = true; // Mark as VoxelVader for special handling
+        
+        // Add to enemies array
+        enemies.push(enemy);
+        
+        return enemy;
+    };
+    
+    // Create projectile function
+    const fireProjectile = () => {
+        if (gameOver) return;
+        
+        const projectile = BABYLON.MeshBuilder.CreateSphere("projectile", {diameter: 0.5}, scene);
+        
+        // Set projectile position slightly in front of player
+        const direction = new BABYLON.Vector3(0, 0, 1);
+        const spawnPosition = player.position.clone();
+        spawnPosition.addInPlace(direction);
+        projectile.position = spawnPosition;
+        
+        // Add material to projectile
+        const projectileMaterial = new BABYLON.StandardMaterial("projectileMaterial", scene);
+        projectileMaterial.emissiveColor = CONFIG.colors.projectileColor;
+        projectile.material = projectileMaterial;
+        
+        // Add properties to projectile
+        projectile.direction = direction;
+        projectile.speed = CONFIG.game.projectileSpeed;
+        projectile.damage = CONFIG.game.projectileDamage;
+        projectile.lifeTime = 0;
+        projectile.maxLifeTime = 3; // seconds before disappearing
+        
+        projectiles.push(projectile);
+        
+        // Sound effect (disabled)
+        if (CONFIG.game.soundEnabled) {
+            const laserSound = new BABYLON.Sound("laser", CONFIG.assets.laserSound, scene, null, {
+                volume: 0.5
+            });
+            laserSound.play();
+        }
+    };
+    
+    // Collision detection function
+    const checkCollisions = () => {
+        // Check projectile collisions with enemies
+        for (let i = 0; i < projectiles.length; i++) {
+            const projectile = projectiles[i];
+            
+            for (let j = 0; j < enemies.length; j++) {
+                const enemy = enemies[j];
+                
+                // Simple distance-based collision check
+                if (projectile && enemy && 
+                    BABYLON.Vector3.Distance(projectile.position, enemy.position) < 2) {
+                    
+                    // Reduce enemy health
+                    enemy.health -= projectile.damage;
+                    
+                    // Create explosion particle system
+                    const explosion = new BABYLON.ParticleSystem("explosion", 200, scene);
+                    explosion.particleTexture = new BABYLON.Texture(CONFIG.assets.particleTexture, scene);
+                    explosion.emitter = enemy.position;
+                    explosion.minEmitBox = new BABYLON.Vector3(-1, -1, -1);
+                    explosion.maxEmitBox = new BABYLON.Vector3(1, 1, 1);
+                    explosion.color1 = new BABYLON.Color4(1, 0.5, 0, 1.0);
+                    explosion.color2 = new BABYLON.Color4(1, 0.2, 0, 1.0);
+                    explosion.colorDead = new BABYLON.Color4(0, 0, 0, 0.0);
+                    explosion.minSize = 0.5;
+                    explosion.maxSize = 1.5;
+                    explosion.minLifeTime = 0.2;
+                    explosion.maxLifeTime = 0.6;
+                    explosion.emitRate = 300;
+                    explosion.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+                    explosion.gravity = new BABYLON.Vector3(0, 0, 0);
+                    explosion.direction1 = new BABYLON.Vector3(-1, -1, -1);
+                    explosion.direction2 = new BABYLON.Vector3(1, 1, 1);
+                    explosion.minEmitPower = 1;
+                    explosion.maxEmitPower = 3;
+                    explosion.updateSpeed = 0.01;
+                    
+                    // Start explosion particles
+                    explosion.start();
+                    
+                    // Dispose of particle system after animation completes
+                    setTimeout(() => {
+                        explosion.dispose();
+                    }, 600);
+                    
+                    // Remove projectile
+                    projectile.dispose();
+                    projectiles.splice(i, 1);
+                    i--;
+                    
+                    // Remove enemy if health depleted
+                    if (enemy.health <= 0) {
+                        enemy.dispose();
+                        enemies.splice(j, 1);
+                        j--;
+                        
+                        // Increase score
+                        gameScore += 100;
+                    }
+                    
+                    // Play sound effect (disabled)
+                    if (CONFIG.game.soundEnabled) {
+                        const explosionSound = new BABYLON.Sound("explosion", CONFIG.assets.explosionSound, scene, null, {
+                            volume: 0.5
+                        });
+                        explosionSound.play();
+                    }
+                    
+                    break;
+                }
+            }
+        }
+        
+        // Check player collision with enemies
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+            
+            if (BABYLON.Vector3.Distance(player.position, enemy.position) < 3) {
+                // Game over logic
+                gameOver = true;
+                
+                // Create explosion
+                const playerExplosion = new BABYLON.ParticleSystem("playerExplosion", 1000, scene);
+                playerExplosion.particleTexture = new BABYLON.Texture(CONFIG.assets.particleTexture, scene);
+                playerExplosion.emitter = player.position;
+                playerExplosion.minEmitBox = new BABYLON.Vector3(-2, -2, -2);
+                playerExplosion.maxEmitBox = new BABYLON.Vector3(2, 2, 2);
+                playerExplosion.color1 = new BABYLON.Color4(1, 0.5, 0, 1.0);
+                playerExplosion.color2 = new BABYLON.Color4(1, 0.2, 0, 1.0);
+                playerExplosion.colorDead = new BABYLON.Color4(0, 0, 0, 0.0);
+                playerExplosion.minSize = 1;
+                playerExplosion.maxSize = 3;
+                playerExplosion.minLifeTime = 0.5;
+                playerExplosion.maxLifeTime = 1.5;
+                playerExplosion.emitRate = 500;
+                playerExplosion.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+                playerExplosion.gravity = new BABYLON.Vector3(0, 0, 0);
+                playerExplosion.direction1 = new BABYLON.Vector3(-1, -1, -1);
+                playerExplosion.direction2 = new BABYLON.Vector3(1, 1, 1);
+                playerExplosion.minEmitPower = 2;
+                playerExplosion.maxEmitPower = 5;
+                playerExplosion.updateSpeed = 0.01;
+                playerExplosion.start();
+                
+                // Hide player
+                player.isVisible = false;
+                thrusterLeft.isVisible = false;
+                thrusterRight.isVisible = false;
+                
+                // Stop particle systems
+                leftThrusterParticles.stop();
+                rightThrusterParticles.stop();
+                
+                // Play explosion sound (disabled)
+                if (CONFIG.game.soundEnabled) {
+                    const explosionSound = new BABYLON.Sound("playerExplosion", CONFIG.assets.explosionSound, scene, null, {
+                        volume: 1.0
+                    });
+                    explosionSound.play();
+                }
+                
+                // Switch to game over scene after a delay
+                setTimeout(() => {
+                    // Update high score if needed
+                    if (gameScore > highScore) {
+                        highScore = gameScore;
+                    }
+                    
+                    // Switch to game over scene
+                    switchScene("gameOver");
+                }, 2000);
+                
+                break;
+            }
+        }
+    };
+    
+    // Create UI for game scene
+    gameUI = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("gameUI", true, scene);
+    
+    // Score UI - Fix positioning to ensure it's in the upper left
+    const scoreText = new BABYLON.GUI.TextBlock("scoreText");
+    scoreText.text = CONFIG.text.scoreText + "0";
+    scoreText.color = CONFIG.colors.scoreColor;
+    scoreText.fontSize = 32;
+    scoreText.fontFamily = "Arial";
+    scoreText.shadowColor = "black";
+    scoreText.shadowBlur = 5;
+    scoreText.shadowOffsetX = 2;
+    scoreText.shadowOffsetY = 2;
+    
+    // Explicitly position in upper left with absolute positioning
+    scoreText.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    scoreText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    scoreText.left = "20px";
+    scoreText.top = "20px";
+    scoreText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    scoreText.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    
+    // INSTRUCTIONS UI at bottom
+    const instructionsContainer = new BABYLON.GUI.Rectangle();
+    instructionsContainer.width = "100%";
+    instructionsContainer.height = "40px";
+    instructionsContainer.background = CONFIG.colors.instructionsBackgroundColor;
+    instructionsContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    instructionsContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    instructionsContainer.thickness = 0;
+    gameUI.addControl(instructionsContainer);
+    
+    // Instructions text - positioned at the bottom of the screen
+    const instructionsText = new BABYLON.GUI.TextBlock();
+    instructionsText.text = CONFIG.text.inGameControls;
+    instructionsText.color = CONFIG.colors.instructionsColor;
+    instructionsText.fontSize = 18;
+    instructionsText.fontFamily = "Arial";
+    instructionsText.shadowColor = "black";
+    instructionsText.shadowBlur = 3;
+    instructionsText.shadowOffsetX = 1;
+    instructionsText.shadowOffsetY = 1;
+    instructionsContainer.addControl(instructionsText);
+    
+    // Fade out instructions after 5 seconds
+    setTimeout(() => {
+        // Create fade out animation
+        const fadeAnimation = new BABYLON.Animation(
+            "instructionsFade", 
+            "alpha", 
+            30, 
+            BABYLON.Animation.ANIMATIONTYPE_FLOAT, 
+            BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+        );
+        
+        // Animation keyframes
+        const fadeKeys = [
+            { frame: 0, value: 1 },
+            { frame: 30, value: 0 }
+        ];
+        
+        fadeAnimation.setKeys(fadeKeys);
+        
+        // Run the animation
+        instructionsContainer.animations = [];
+        instructionsContainer.animations.push(fadeAnimation);
+        scene.beginAnimation(instructionsContainer, 0, 30, false);
+    }, 5000);
+    
+    // Add mobile-friendly button for camera toggle - positioned top-right
+    const cameraButton = BABYLON.GUI.Button.CreateSimpleButton("cameraButton", CONFIG.text.cameraButtonText);
+    cameraButton.width = "120px";
+    cameraButton.height = "40px";
+    cameraButton.color = CONFIG.colors.buttonTextColor;
+    cameraButton.thickness = 2;
+    cameraButton.cornerRadius = 10;
+    cameraButton.background = CONFIG.colors.cameraButtonColor;
+    cameraButton.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    cameraButton.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    cameraButton.top = "20px";
+    cameraButton.left = "-20px";
+    cameraButton.onPointerUpObservable.add(function() {
+        isFirstPerson = !isFirstPerson;
+        if (isFirstPerson) {
+            scene.activeCamera = fpCamera;
+        } else {
+            scene.activeCamera = tpCamera;
+        }
+    });
+    gameUI.addControl(cameraButton);
+    
+    // Enhanced fire button for mobile with visual feedback - positioned bottom-right
+    const fireButton = BABYLON.GUI.Button.CreateSimpleButton("fireButton", CONFIG.text.fireButtonText);
+    fireButton.width = "120px";
+    fireButton.height = "120px";
+    fireButton.color = CONFIG.colors.buttonTextColor;
+    fireButton.thickness = 2;
+    fireButton.cornerRadius = 60;
+    fireButton.background = CONFIG.colors.fireButtonColor;
+    fireButton.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    fireButton.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    fireButton.top = "-40px";
+    fireButton.left = "-40px";
+    
+    // Create glow effect for the fire button
+    const fireButtonHover = new BABYLON.Animation(
+        "fireButtonHover", 
+        "alpha", 
+        30, 
+        BABYLON.Animation.ANIMATIONTYPE_FLOAT, 
+        BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+    );
+    
+    // Animation keyframes
+    const hoverKeys = [
+        { frame: 0, value: 0.85 },
+        { frame: 15, value: 1 },
+        { frame: 30, value: 0.85 }
+    ];
+    
+    fireButtonHover.setKeys(hoverKeys);
+    fireButton.animations = [];
+    fireButton.animations.push(fireButtonHover);
+    
+    // Start animation
+    scene.beginAnimation(fireButton, 0, 30, true);
+    
+    // Rapid fire functionality
+    // Touch/click down = start firing
+    fireButton.onPointerDownObservable.add(function() {
+        isFireButtonDown = true;
+        // Visual feedback
+        fireButton.background = "darkred";
+        // Fire one shot immediately
+        fireProjectile();
+    });
+    
+    // Touch/click up = stop firing
+    fireButton.onPointerUpObservable.add(function() {
+        isFireButtonDown = false;
+        // Reset button color
+        fireButton.background = CONFIG.colors.fireButtonColor;
+    });
+    
+    gameUI.addControl(fireButton);
+    
+    // Main game update loop
+    scene.registerBeforeRender(() => {
+        if (gameOver) return;
+        
+        // Update time for shader
+        time += 0.01;
+        groundShader.setFloat("time", time);
+        
+        // Auto forward movement
+        player.position.z += gameSpeed;
+        
+        // Adjust ground and skybox position to follow player
+        ground.position.z = player.position.z;
+        skybox.position.z = player.position.z;
+        
+        // Handle player movement based on keys
+        if (keys.a || keys.arrowLeft) player.position.x -= 0.5;
+        if (keys.d || keys.arrowRight) player.position.x += 0.5;
+        if (keys.w || keys.arrowUp) player.position.y += 0.5;
+        if (keys.s || keys.arrowDown) player.position.y -= 0.5;
+        
+        // Handle rapid fire from either space key or fire button
+        const currentTime = performance.now() / 1000; // Convert to seconds
+        const fireRate = isFireButtonDown ? CONFIG.game.rapidFireRate : CONFIG.game.fireRate;
+        
+        // Check if it's time to fire based on space key or fire button
+        if ((isSpaceKeyDown || isFireButtonDown) && (currentTime - lastFireTime) > fireRate) {
+            fireProjectile();
+            lastFireTime = currentTime;
+        }
+        
+        // Auto-fire when moving with touch on mobile
+        if ((joystickPointerID >= 0 || isTouching) && (currentTime - lastFireTime) > CONFIG.game.rapidFireRate) {
+            fireProjectile();
+            lastFireTime = currentTime;
+        }
+        
+        // Clamp player position
+        if (player.position.y < 2) player.position.y = 2;
+        if (player.position.y > 20) player.position.y = 20;
+        if (player.position.x < -50) player.position.x = -50;
+        if (player.position.x > 50) player.position.x = 50;
+        
+        // Update projectiles
+        for (let i = 0; i < projectiles.length; i++) {
+            const projectile = projectiles[i];
+            
+            // Move projectile forward
+            projectile.position.addInPlace(projectile.direction.scale(projectile.speed));
+            
+            // Update life time
+            projectile.lifeTime += engine.getDeltaTime() / 1000;
+            
+            // Remove projectile if it exceeds max life time
+            if (projectile.lifeTime > projectile.maxLifeTime) {
+                projectile.dispose();
+                projectiles.splice(i, 1);
+                i--;
+            }
+        }
+        
+        // Update enemies
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+            
+            // Animate VoxelVader enemies with glowing effect
+            if (enemy.isVoxelVader) {
+                // Find all glowing meshes
+                enemy.getChildMeshes().forEach(mesh => {
+                    if (mesh.isGlowing && mesh.material) {
+                        mesh.material.emissiveIntensity = 0.7 + Math.sin(time * 10) * 0.3;
+                    }
+                });
+                
+                // No rotation - keep enemies facing forward
+                // Just add a slight downward motion to make them look more menacing
+                enemy.position.y -= 0.02;
+                
+                // Optional: Add slight forward speed variation for more dynamic movement
+                enemy.position.z -= 0.05; // Make enemies move slightly faster toward player
+            } else {
+                // Simple rotation animation for non-VoxelVader enemies
+                enemy.rotation.y += 0.01;
+                enemy.rotation.x += 0.005;
+            }
+            
+            // Remove enemies that are behind the player
+            if (enemy.position.z < player.position.z - 20) {
+                enemy.dispose();
+                enemies.splice(i, 1);
+                i--;
+            }
+        }
+        
+        // Create enemies when needed
+        if (enemies.length < maxEnemies && Math.random() < 0.02) {
+            createEnemy();
+        }
+        
+        // Check collisions
+        checkCollisions();
+        
+        // Update score display
+        scoreText.text = CONFIG.text.scoreText + gameScore;
+    });
+    
+    // Glow layer for all glowing objects
+    const gl = new BABYLON.GlowLayer("glow", scene);
+    gl.intensity = 0.75;
+    
+    // Initial enemies
+    for (let i = 0; i < 5; i++) {
+        createEnemy();
+    }
+    
+    return scene;
+};
+
+// ------- GAME OVER SCENE -------
+const createGameOverScene = function() {
+    // Create the scene
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color3(0, 0, 0);
+    
+    // Create camera
+    const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 5, -10), scene);
+    camera.setTarget(BABYLON.Vector3.Zero());
+    
+    // Create lights
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    light.intensity = 0.7;
+    
+    // Add keyboard support for Enter key
+    scene.onKeyboardObservable.add((kbInfo) => {
+        // Check for Enter key press to restart the game
+        if(kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN && kbInfo.event.key === 'Enter') {
+            // Restart the game - same action as clicking Play Again button
+            switchScene("game");
+        }
+        // Use Escape key to return to main menu
+        if(kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN && kbInfo.event.key === 'Escape') {
+            // Go back to start menu
+            switchScene("start");
+        }
+    });
+    
+    // Create skybox
+    const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {size: 1000.0}, scene);
+    const skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(CONFIG.assets.skybox, scene);
+    skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+    skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+    skybox.material = skyboxMaterial;
+    
+    // Add slow rotation to skybox for visual effect
+    scene.registerBeforeRender(() => {
+        skybox.rotation.y += 0.0005;
+    });
+    
+    // Create UI
+    const gameOverTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("gameOverUI", true, scene);
+    
+    // Game Over text
+    const gameOverText = new BABYLON.GUI.TextBlock();
+    gameOverText.text = CONFIG.text.gameOver;
+    gameOverText.color = CONFIG.colors.gameOverColor;
+    gameOverText.fontSize = 60;
+    gameOverText.fontFamily = "Impact";
+    gameOverText.shadowColor = "black";
+    gameOverText.shadowBlur = 10;
+    gameOverText.shadowOffsetX = 3;
+    gameOverText.shadowOffsetY = 3;
+    gameOverText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    gameOverText.top = "100px";
+    gameOverTexture.addControl(gameOverText);
+    
+    // Score text
+    const finalScoreText = new BABYLON.GUI.TextBlock();
+    finalScoreText.text = CONFIG.text.yourScoreText + gameScore;
+    finalScoreText.color = CONFIG.colors.scoreColor;
+    finalScoreText.fontSize = 30;
+    finalScoreText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    finalScoreText.top = "180px";
+    gameOverTexture.addControl(finalScoreText);
+    
+    // High score text
+    const highScoreText = new BABYLON.GUI.TextBlock();
+    highScoreText.text = CONFIG.text.highScoreText + highScore;
+    highScoreText.color = CONFIG.colors.highScoreColor;
+    highScoreText.fontSize = 30;
+    highScoreText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    highScoreText.top = "230px";
+    gameOverTexture.addControl(highScoreText);
+    
+    // Keyboard controls info
+    const keyboardInfo = new BABYLON.GUI.TextBlock();
+    keyboardInfo.text = CONFIG.text.keyboardGameOverInfo;
+    keyboardInfo.color = CONFIG.colors.subtitleColor;
+    keyboardInfo.fontSize = 18;
+    keyboardInfo.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    keyboardInfo.top = "-50px";
+    gameOverTexture.addControl(keyboardInfo);
+    
+    // New high score message (conditionally displayed)
+    if (gameScore >= highScore && gameScore > 0) {
+        const newHighScoreText = new BABYLON.GUI.TextBlock();
+        newHighScoreText.text = CONFIG.text.newHighScoreText;
+        newHighScoreText.color = CONFIG.colors.newHighScoreColor;
+        newHighScoreText.fontSize = 36;
+        newHighScoreText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        newHighScoreText.top = "280px";
+        gameOverTexture.addControl(newHighScoreText);
+        
+        // Add a simple pulsing animation to the text
+        let time = 0;
+        scene.registerBeforeRender(() => {
+            time += engine.getDeltaTime() / 1000;
+            newHighScoreText.alpha = 0.7 + Math.sin(time * 3) * 0.3;
+            newHighScoreText.fontSize = 36 + Math.sin(time * 2) * 4;
+        });
+    }
+    
+    // Play Again button
+    const playAgainButton = BABYLON.GUI.Button.CreateSimpleButton("playAgainButton", CONFIG.text.playAgainButton);
+    playAgainButton.width = "250px";
+    playAgainButton.height = "60px";
+    playAgainButton.color = CONFIG.colors.buttonTextColor;
+    playAgainButton.background = CONFIG.colors.playAgainButtonColor;
+    playAgainButton.cornerRadius = 10;
+    playAgainButton.fontSize = 24;
+    playAgainButton.top = "0px"; // Center position
+    playAgainButton.onPointerUpObservable.add(() => {
+        // Switch to game scene
+        switchScene("game");
+    });
+    gameOverTexture.addControl(playAgainButton);
+    
+    // Main Menu button
+    const mainMenuButton = BABYLON.GUI.Button.CreateSimpleButton("mainMenuButton", CONFIG.text.mainMenuButton);
+    mainMenuButton.width = "250px";
+    mainMenuButton.height = "60px";
+    mainMenuButton.color = CONFIG.colors.buttonTextColor;
+    mainMenuButton.background = CONFIG.colors.mainMenuButtonColor;
+    mainMenuButton.cornerRadius = 10;
+    mainMenuButton.fontSize = 24;
+    mainMenuButton.top = "80px"; // Below play again button
+    mainMenuButton.onPointerUpObservable.add(() => {
+        // Switch to start scene
+        switchScene("start");
+    });
+    gameOverTexture.addControl(mainMenuButton);
+    
+    return scene;
+};
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions?.();
+                    if (!engineOptions || engineOptions.audioEngine !== false) {
+                        BABYLON.AbstractEngine.audioEngine = BABYLON.AbstractEngine.AudioEngineFactory(window.engine.getRenderingCanvas(), window.engine.getAudioContext(), window.engine.getAudioDestination());
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,1194 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        /* Made with passion
+              ________                .___                                                      
+  ______ ____/   __   \             __| _/____   _____   ____  ______ ____  ____   ____   ____  
+ /  ___// ___\____    /   ______   / __ |/ __ \ /     \ /  _ \/  ___// ___\/ __ \ /    \_/ __ \ 
+ \___ \\  \___  /    /   /_____/  / /_/ \  ___/|  Y Y  (  <_> )___ \\  \__\  ___/|   |  \  ___/ 
+/____  >\___  >/____/             \____ |\___  >__|_|  /\____/____  >\___  >___  >___|  /\___   >
+     \/     \/                         \/    \/      \/           \/     \/    \/     \/     \/ 
+
+    SeaCloud9 Studio LLC
+    #babylonSc9Playbits 
+    https://seacloud9.studio
+*/
+
+const createScene = function () {
+    // Create scene
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0, 0, 0, 1);
+    
+    // Configuration object for colors and settings
+    const CONFIG = {
+        colors: {
+            primary: new BABYLON.Color3(0.2, 0.4, 1.0),    // Blue
+            secondary: new BABYLON.Color3(0.7, 0.3, 1.0),  // Purple
+            accent: new BABYLON.Color3(1.0, 0.3, 0.5),     // Pink
+            emissive: new BABYLON.Color3(0.8, 0.4, 1.0),   // Glow color
+        },
+        voxelSize: 1,
+        wormholeRadius: 6,
+        speed: 0.15
+    };
+    
+    // Create camera
+    const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2, 20, new BABYLON.Vector3(0, 0, 0), scene);
+    camera.attachControl(canvas, true);
+    camera.lowerRadiusLimit = 5;
+    camera.upperRadiusLimit = 100;
+    camera.wheelDeltaPercentage = 0.01; // Smoother zooming
+    
+    // Set initial position for better view of the tunnel
+    camera.position = new BABYLON.Vector3(0, 0, -10);
+    
+    // Add ambient light
+    const ambientLight = new BABYLON.HemisphericLight("ambientLight", new BABYLON.Vector3(0, 1, 0), scene);
+    ambientLight.intensity = 0.7;
+    
+    // Add point lights inside the wormhole for dramatic effect
+    const colors = [
+        CONFIG.colors.primary,
+        CONFIG.colors.secondary,
+        CONFIG.colors.accent
+    ];
+    
+    // Store references to lights for later updates
+    const sceneLights = [];
+    
+    for (let i = 0; i < 5; i++) {
+        const light = new BABYLON.PointLight(`light${i}`, new BABYLON.Vector3(0, 0, -15 + i * 8), scene);
+        light.intensity = 1.0;
+        light.diffuse = colors[i % colors.length];
+        light.specular = colors[i % colors.length];
+        light.range = 30;
+        
+        // Store which color this light is using (0=primary, 1=secondary, 2=accent)
+        light.colorIndex = i % colors.length;
+        sceneLights.push(light);
+    }
+    
+    // Add a strong directional light to illuminate the scene
+    const dirLight = new BABYLON.DirectionalLight("dirLight", new BABYLON.Vector3(0, -1, 1), scene);
+    dirLight.intensity = 1.5;
+    dirLight.diffuse = new BABYLON.Color3(1, 1, 1);
+    dirLight.specular = new BABYLON.Color3(1, 1, 1);
+    
+    // Create voxel materials
+    const createVoxelMaterial = function(r, g, b, emissive = false) {
+        const mat = new BABYLON.StandardMaterial("voxelMat", scene);
+        mat.diffuseColor = new BABYLON.Color3(r, g, b);
+        
+        if (emissive) {
+            mat.emissiveColor = new BABYLON.Color3(r, g, b);
+            mat.specularColor = new BABYLON.Color3(1, 1, 1);
+            mat.specularPower = 32;
+        } else {
+            mat.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+        }
+        
+        return mat;
+    };
+    
+    // Create various materials for the wormhole blocks
+    const materials = [
+        createVoxelMaterial(0.3, 0.3, 0.6),         // Light blue
+        createVoxelMaterial(0.4, 0.4, 0.8),         // Medium blue
+        createVoxelMaterial(0.5, 0.3, 0.8),         // Purple
+        createVoxelMaterial(0.7, 0.3, 0.7),         // Magenta
+        createVoxelMaterial(0.5, 0.7, 1.0, true),   // Glowing blue
+        createVoxelMaterial(0.8, 0.4, 1.0, true),   // Glowing purple
+        createVoxelMaterial(1.0, 0.4, 1.0, true)    // Glowing pink
+    ];
+    
+    // Update materials initially to match CONFIG colors
+    const updateMaterialsToConfig = function() {
+        materials[0].diffuseColor = CONFIG.colors.primary.scale(0.5);  // Light blue
+        materials[1].diffuseColor = CONFIG.colors.primary.scale(0.8);  // Medium blue
+        materials[2].diffuseColor = CONFIG.colors.secondary.scale(0.8); // Purple
+        materials[3].diffuseColor = CONFIG.colors.accent.scale(0.6);   // Magenta
+        
+        materials[4].emissiveColor = CONFIG.colors.primary.scale(1.2);  // Glowing blue
+        materials[5].emissiveColor = CONFIG.colors.secondary.scale(1.2); // Glowing purple
+        materials[6].emissiveColor = CONFIG.colors.accent.scale(1.2);   // Glowing pink
+    };
+    
+    // Run initial update
+    updateMaterialsToConfig();
+    
+    // Create wormhole container
+    const wormhole = new BABYLON.TransformNode("wormhole", scene);
+    
+    // Create noise for more natural, procedural look
+    const simplex = new SimplexNoise();
+    
+    // Helper function to check if a voxel should be created at a given position
+    const shouldCreateVoxel = function(x, y, z, radius, thickness) {
+        const distFromCenter = Math.sqrt(x * x + y * y);
+        const noiseVal = simplex.noise3D(x * 0.15, y * 0.15, z * 0.1) * 2;
+        
+        return distFromCenter >= radius - thickness + noiseVal && 
+               distFromCenter <= radius + noiseVal;
+    };
+    
+    // Create the voxel tunnel with infinite generation
+    let activeVoxels = [];
+    const maxVoxels = 2000; // Limit for performance
+    const cullingDistance = 10; // Distance at which to remove voxels
+    let voxelSpeed = CONFIG.speed; // Speed at which voxels move
+    
+    // Function to generate a ring of voxels at a given z position
+    const generateVoxelRing = function(zPos) {
+        const ringRadius = CONFIG.wormholeRadius + Math.sin(zPos * 0.2) * 2;
+        const thickness = 2 + Math.cos(zPos * 0.3) * 0.8;
+        let newVoxels = [];
+        
+        for (let x = -ringRadius - 3; x <= ringRadius + 3; x += 1) {
+            for (let y = -ringRadius - 3; y <= ringRadius + 3; y += 1) {
+                if (shouldCreateVoxel(x, y, zPos, ringRadius, thickness)) {
+                    // Determine material based on position and noise
+                    const noiseValue = simplex.noise3D(x * 0.3, y * 0.3, zPos * 0.3);
+                    let materialIndex;
+                    
+                    if (noiseValue > 0.4) {
+                        materialIndex = 4 + Math.floor(Math.random() * 3); // Glowing materials
+                    } else {
+                        materialIndex = Math.floor(Math.random() * 4); // Non-glowing materials
+                    }
+                    
+                    // Create the voxel box
+                    const box = BABYLON.MeshBuilder.CreateBox(`voxel-${x}-${y}-${zPos}`, {size: CONFIG.voxelSize}, scene);
+                    box.position = new BABYLON.Vector3(x, y, zPos);
+                    box.material = materials[materialIndex];
+                    box.parent = wormhole;
+                    
+                    // Add to active voxels
+                    newVoxels.push(box);
+                }
+            }
+        }
+        
+        return newVoxels;
+    };
+    
+    // Function to cull voxels that are too close to the camera
+    const cullVoxels = function() {
+        // Remove voxels that are too close to camera or behind it
+        const toRemove = [];
+        
+        for (let i = 0; i < activeVoxels.length; i++) {
+            const voxel = activeVoxels[i];
+            // Check if voxel is behind camera or too close
+            if (voxel.position.z > cullingDistance) {
+                toRemove.push(i);
+                voxel.dispose();
+            }
+        }
+        
+        // Remove from array (in reverse order to not mess up indices)
+        for (let i = toRemove.length - 1; i >= 0; i--) {
+            activeVoxels.splice(toRemove[i], 1);
+        }
+    };
+    
+    // Initial generation of a few rings
+    for (let z = 0; z > -20; z -= 1) {
+        const newVoxels = generateVoxelRing(z);
+        activeVoxels = activeVoxels.concat(newVoxels);
+    }
+    
+    // Counter for new ring generation
+    let nextRingZ = -20;
+    
+    // Create a proper Super Mario star at the center
+    const createMarioStar = function() {
+        // Create a parent container for the star
+        const starParent = new BABYLON.TransformNode("starParent", scene);
+        
+        // Main star shape - create a custom mesh
+        const starRadius = 1.0;
+        const positions = [];
+        const indices = [];
+        const normals = [];
+        const uvs = [];
+        
+        // Create a proper 3D star
+        // Top point
+        positions.push(0, starRadius, 0);
+        
+        // Create the 5 points of the star
+        const numPoints = 5;
+        const innerRadius = starRadius * 0.4; // Inner radius for the star dips
+        
+        for (let i = 0; i < numPoints * 2; i++) {
+            const radius = i % 2 === 0 ? starRadius : innerRadius;
+            const angle = (i * Math.PI) / numPoints - Math.PI / 2;
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
+            
+            // Add to front face
+            positions.push(x, y, 0.3);
+        }
+        
+        // Center point for front face
+        positions.push(0, 0, 0.3);
+        
+        // Add to back face (mirror of front)
+        for (let i = 0; i < numPoints * 2; i++) {
+            const radius = i % 2 === 0 ? starRadius : innerRadius;
+            const angle = (i * Math.PI) / numPoints - Math.PI / 2;
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
+            
+            positions.push(x, y, -0.3);
+        }
+        
+        // Center point for back face
+        positions.push(0, 0, -0.3);
+        
+        // Create indices for faces
+        // Front face - connecting each edge to the center
+        const frontCenterIndex = numPoints * 2 + 1;
+        for (let i = 1; i <= numPoints * 2; i++) {
+            const nextIndex = (i % (numPoints * 2)) + 1;
+            indices.push(i, nextIndex, frontCenterIndex);
+        }
+        
+        // Back face - connecting each edge to the center
+        const backCenterIndex = (numPoints * 2) * 2 + 2;
+        const backStartIndex = frontCenterIndex + 1;
+        for (let i = 0; i < numPoints * 2; i++) {
+            const currentIndex = backStartIndex + i;
+            const nextIndex = backStartIndex + ((i + 1) % (numPoints * 2));
+            indices.push(currentIndex, nextIndex, backCenterIndex);
+        }
+        
+        // Side faces - connecting front to back
+        for (let i = 0; i < numPoints * 2; i++) {
+            const frontCurrent = i + 1;
+            const frontNext = ((i + 1) % (numPoints * 2)) + 1;
+            const backCurrent = backStartIndex + i;
+            const backNext = backStartIndex + ((i + 1) % (numPoints * 2));
+            
+            indices.push(frontCurrent, backCurrent, frontNext);
+            indices.push(frontNext, backCurrent, backNext);
+        }
+        
+        // Compute normals
+        BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+        
+        // Create UVs (simple mapping)
+        for (let i = 0; i < positions.length / 3; i++) {
+            uvs.push(positions[i * 3] / (2 * starRadius) + 0.5, positions[i * 3 + 1] / (2 * starRadius) + 0.5);
+        }
+        
+        // Create star mesh
+        const starMesh = new BABYLON.Mesh("marioStar", scene);
+        const vertexData = new BABYLON.VertexData();
+        
+        vertexData.positions = positions;
+        vertexData.indices = indices;
+        vertexData.normals = normals;
+        vertexData.uvs = uvs;
+        
+        vertexData.applyToMesh(starMesh);
+        
+        // Create material for the star
+        const starMaterial = new BABYLON.StandardMaterial("starMaterial", scene);
+        starMaterial.diffuseColor = new BABYLON.Color3(1, 0.8, 0);  // Gold color
+        starMaterial.emissiveColor = new BABYLON.Color3(0.8, 0.6, 0); // Make it glow
+        starMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
+        starMaterial.specularPower = 32;
+        
+        starMesh.material = starMaterial;
+        starMesh.rotation.z = 1.9
+        starMesh.parent = starParent;
+        
+        // Add eyes to the star (black spheres)
+        const leftEye = BABYLON.MeshBuilder.CreateSphere("leftEye", { diameter: 0.2 }, scene);
+        leftEye.position = new BABYLON.Vector3(-0.12, 0.01, -1);
+        leftEye.parent = starParent;
+        
+        const rightEye = BABYLON.MeshBuilder.CreateSphere("rightEye", { diameter: 0.2 }, scene);
+        rightEye.position = new BABYLON.Vector3(0.12, 0.01, -1);
+        rightEye.parent = starParent;
+        
+        // Create eye material
+        const eyeMaterial = new BABYLON.StandardMaterial("eyeMaterial", scene);
+        eyeMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);  // Black
+        leftEye.material = eyeMaterial;
+        rightEye.material = eyeMaterial;
+        // Add rotation animation
+        scene.registerBeforeRender(function() {
+            //starParent.rotation.y += 0.02;
+            //starParent.rotation.x = Math.sin(Date.now() * 0.001) * 0.2; // Slight wobble
+        });
+        
+        return starParent;
+    };
+    
+    const marioStar = createMarioStar();
+    
+    // Bloom effect setup
+    const bloomPipeline = new BABYLON.DefaultRenderingPipeline(
+        "bloom", 
+        true, 
+        scene, 
+        [camera]
+    );
+    
+    // Initialize bloom properties
+    bloomPipeline.bloomEnabled = true;
+    bloomPipeline.bloomThreshold = 0.1;
+    bloomPipeline.bloomWeight = 2.0;
+    bloomPipeline.bloomKernel = 64;
+    bloomPipeline.bloomScale = 0.5;
+    
+    // Create a container for bloom properties to display in UI
+    const bloomProperties = {
+        enabled: true,
+        threshold: 0.1,
+        weight: 2.0,
+        kernel: 64,
+        scale: 0.5
+    };
+    
+    // Anaglyph post-process for 3D effect
+    let anaglyphEffect = null;
+    try {
+        if (!camera._rigCameras) {
+            camera._rigCameras = [];
+        }
+        anaglyphEffect = new BABYLON.AnaglyphPostProcess("anaglyph", 1.0, camera);
+    } catch (e) {
+        console.log("Could not initialize anaglyph effect:", e);
+    }
+    
+    // Create a container for anaglyph properties
+    const anaglyphProperties = {
+        enabled: true,
+        eyeSpace: 0.1  // This will control the eye separation in the anaglyph effect
+    };
+    
+    // ======== HTML UI SETUP INSTEAD OF BABYLONJS GUI =========
+    
+    // Create UI container
+    const uiContainer = document.createElement('div');
+    uiContainer.id = 'wormhole-ui';
+    uiContainer.style.position = 'absolute';
+    uiContainer.style.top = '0';
+    uiContainer.style.left = '0';
+    uiContainer.style.width = '100%';
+    uiContainer.style.height = '100%';
+    uiContainer.style.pointerEvents = 'none'; // Allow click-through by default
+    document.body.appendChild(uiContainer);
+    
+    // Function to create panel containers
+    const createPanel = function(id, title, top, right, width, height) {
+        const panel = document.createElement('div');
+        panel.id = id;
+        panel.style.position = 'absolute';
+        panel.style.top = top;
+        panel.style.right = right;
+        panel.style.width = width;
+        panel.style.padding = '10px';
+        panel.style.background = 'rgba(0, 0, 0, 0.7)';
+        panel.style.border = '1px solid rgba(255, 255, 255, 0.5)';
+        panel.style.borderRadius = '5px';
+        panel.style.color = 'white';
+        panel.style.fontFamily = 'Arial, sans-serif';
+        panel.style.pointerEvents = 'auto'; // Make panel interactive
+        panel.style.overflowY = 'auto'; // Add scrolling for long panels
+        
+        if (height) {
+            panel.style.height = height;
+            panel.style.maxHeight = height;
+        }
+        
+        // Add title if provided
+        if (title) {
+            const titleElem = document.createElement('div');
+            titleElem.textContent = title;
+            titleElem.style.fontWeight = 'bold';
+            titleElem.style.fontSize = '16px';
+            titleElem.style.marginBottom = '10px';
+            titleElem.style.textAlign = 'center';
+            panel.appendChild(titleElem);
+        }
+        
+        // Mouse interaction with panel should disable camera controls
+        panel.addEventListener('mouseenter', function() {
+            camera.detachControl(canvas);
+        });
+        
+        panel.addEventListener('mouseleave', function() {
+            camera.attachControl(canvas, true);
+        });
+        
+        uiContainer.appendChild(panel);
+        return panel;
+    };
+    
+    // Create debug info panel
+    const debugPanel = createPanel('debug-panel', 'Wormhole Debug Info', '10px', 'auto', '250px');
+    debugPanel.style.left = '10px';
+    debugPanel.style.right = 'auto';
+    
+    const debugInfo = document.createElement('pre');
+    debugInfo.style.margin = '0';
+    debugInfo.style.fontSize = '12px';
+    debugInfo.style.fontFamily = 'monospace';
+    debugInfo.style.whiteSpace = 'pre-wrap';
+    debugPanel.appendChild(debugInfo);
+    
+    // Create color control panel
+    const colorPanel = createPanel('color-panel', 'Color Controls', '10px', '10px', '200px');
+    
+    // Function to create a color picker row
+    const createColorPicker = function(label, color, onChange) {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.marginBottom = '10px';
+        
+        const labelElem = document.createElement('span');
+        labelElem.textContent = label;
+        labelElem.style.flex = '1';
+        row.appendChild(labelElem);
+        
+        const picker = document.createElement('input');
+        picker.type = 'color';
+        picker.value = rgbToHex(color.r * 255, color.g * 255, color.b * 255);
+        picker.style.marginLeft = '10px';
+        
+        picker.addEventListener('input', function() {
+            const rgb = hexToRgb(picker.value);
+            onChange(new BABYLON.Color3(rgb.r / 255, rgb.g / 255, rgb.b / 255));
+        });
+        
+        row.appendChild(picker);
+        return row;
+    };
+    
+    // Convert RGB to Hex
+    function rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) + (Math.round(r) << 16) + (Math.round(g) << 8) + Math.round(b)).toString(16).slice(1);
+    }
+    
+    // Convert Hex to RGB
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+    
+    // Add color pickers with updating logic
+    colorPanel.appendChild(createColorPicker('Primary', CONFIG.colors.primary, function(color) {
+        CONFIG.colors.primary = color;
+        
+        // Update all materials and lights using this color
+        updateSceneColors();
+    }));
+    
+    colorPanel.appendChild(createColorPicker('Secondary', CONFIG.colors.secondary, function(color) {
+        CONFIG.colors.secondary = color;
+        
+        // Update all materials and lights using this color
+        updateSceneColors();
+    }));
+    
+    colorPanel.appendChild(createColorPicker('Accent', CONFIG.colors.accent, function(color) {
+        CONFIG.colors.accent = color;
+        
+        // Update all materials and lights using this color
+        updateSceneColors();
+    }));
+    
+    // Create speed and effects panel - make it larger to accommodate the new controls
+    const controlsPanel = createPanel('controls-panel', 'Speed & Effects', '150px', '10px', '250px', '500px');
+    
+    // Create a labeled slider
+    const createSlider = function(label, min, max, value, onChange) {
+        const container = document.createElement('div');
+        container.style.marginBottom = '15px';
+        
+        const labelElem = document.createElement('div');
+        labelElem.textContent = `${label}: ${value.toFixed(2)}`;
+        labelElem.id = `${label.toLowerCase()}-value`;
+        container.appendChild(labelElem);
+        
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = min;
+        slider.max = max;
+        slider.step = 0.01;
+        slider.value = value;
+        slider.style.width = '100%';
+        
+        slider.addEventListener('input', function() {
+            const newValue = parseFloat(slider.value);
+            labelElem.textContent = `${label}: ${newValue.toFixed(2)}`;
+            onChange(newValue);
+        });
+        
+        container.appendChild(slider);
+        return container;
+    };
+    
+    // Create checkbox
+    const createCheckbox = function(label, checked, onChange) {
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.marginBottom = '10px';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = checked;
+        checkbox.style.marginRight = '10px';
+        
+        checkbox.addEventListener('change', function() {
+            onChange(checkbox.checked);
+        });
+        
+        container.appendChild(checkbox);
+        
+        const labelElem = document.createElement('label');
+        labelElem.textContent = label;
+        container.appendChild(labelElem);
+        
+        return container;
+    };
+    
+    // Create button
+    const createButton = function(label, onClick) {
+        const button = document.createElement('button');
+        button.textContent = label;
+        button.style.display = 'block';
+        button.style.width = '100%';
+        button.style.padding = '8px';
+        button.style.marginBottom = '10px';
+        button.style.backgroundColor = '#0084ff';
+        button.style.color = 'white';
+        button.style.border = 'none';
+        button.style.borderRadius = '4px';
+        button.style.cursor = 'pointer';
+        
+        button.addEventListener('mouseenter', function() {
+            button.style.backgroundColor = '#00a2ff';
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            button.style.backgroundColor = '#0084ff';
+        });
+        
+        button.addEventListener('click', onClick);
+        
+        return button;
+    };
+    
+    // Add speed slider
+    controlsPanel.appendChild(createSlider('Speed', 0.05, 0.5, voxelSpeed, function(value) {
+        voxelSpeed = value;
+    }));
+    
+    // Create a section title
+    const createSectionTitle = function(title) {
+        const titleElem = document.createElement('h3');
+        titleElem.textContent = title;
+        titleElem.style.borderBottom = '1px solid white';
+        titleElem.style.paddingBottom = '5px';
+        titleElem.style.marginTop = '15px';
+        titleElem.style.marginBottom = '10px';
+        return titleElem;
+    };
+    
+    // Add bloom controls section
+    controlsPanel.appendChild(createSectionTitle('Bloom Settings'));
+    
+    // Add bloom toggle
+    controlsPanel.appendChild(createCheckbox('Bloom Effect', bloomProperties.enabled, function(checked) {
+        bloomProperties.enabled = checked;
+        bloomPipeline.bloomEnabled = checked;
+    }));
+    
+    // Add bloom threshold slider
+    controlsPanel.appendChild(createSlider('Threshold', 0, 1, bloomProperties.threshold, function(value) {
+        bloomProperties.threshold = value;
+        bloomPipeline.bloomThreshold = value;
+    }));
+    
+    // Add bloom weight slider
+    controlsPanel.appendChild(createSlider('Intensity', 0, 5, bloomProperties.weight, function(value) {
+        bloomProperties.weight = value;
+        bloomPipeline.bloomWeight = value;
+    }));
+    
+    // Add bloom kernel slider
+    controlsPanel.appendChild(createSlider('Kernel', 1, 128, bloomProperties.kernel, function(value) {
+        const kernelValue = Math.round(value);
+        bloomProperties.kernel = kernelValue;
+        bloomPipeline.bloomKernel = kernelValue;
+    }));
+    
+    // Add bloom scale slider
+    controlsPanel.appendChild(createSlider('Scale', 0.1, 2, bloomProperties.scale, function(value) {
+        bloomProperties.scale = value;
+        bloomPipeline.bloomScale = value;
+    }));
+    
+    // Add advanced anaglyph section
+    controlsPanel.appendChild(createSectionTitle('Advanced Anaglyph Settings'));
+    
+    // Create additional anaglyph properties
+    if (anaglyphEffect) {
+        // Create more detailed anaglyph controls
+        
+        // Left Eye Color
+        const leftEyeColorContainer = document.createElement('div');
+        leftEyeColorContainer.style.display = 'flex';
+        leftEyeColorContainer.style.alignItems = 'center';
+        leftEyeColorContainer.style.marginBottom = '10px';
+        
+        const leftEyeLabel = document.createElement('span');
+        leftEyeLabel.textContent = 'Left Eye Color';
+        leftEyeLabel.style.flex = '1';
+        leftEyeColorContainer.appendChild(leftEyeLabel);
+        
+        const leftEyePicker = document.createElement('input');
+        leftEyePicker.type = 'color';
+        leftEyePicker.value = '#FF0000'; // Default red for left eye
+        leftEyePicker.style.marginLeft = '10px';
+        
+        leftEyePicker.addEventListener('input', function() {
+            const rgb = hexToRgb(leftEyePicker.value);
+            
+            try {
+                // Recreate anaglyph effect with new colors if possible
+                if (anaglyphProperties.enabled && anaglyphEffect) {
+                    // In most babylon implementations we can't directly update anaglyph colors
+                    // But we'll provide the UI for potential custom implementations
+                    console.log('Left eye color updated to:', leftEyePicker.value);
+                }
+            } catch (e) {
+                console.log("Error adjusting anaglyph color:", e);
+            }
+        });
+        
+        leftEyeColorContainer.appendChild(leftEyePicker);
+        controlsPanel.appendChild(leftEyeColorContainer);
+        
+        // Right Eye Color
+        const rightEyeColorContainer = document.createElement('div');
+        rightEyeColorContainer.style.display = 'flex';
+        rightEyeColorContainer.style.alignItems = 'center';
+        rightEyeColorContainer.style.marginBottom = '10px';
+        
+        const rightEyeLabel = document.createElement('span');
+        rightEyeLabel.textContent = 'Right Eye Color';
+        rightEyeLabel.style.flex = '1';
+        rightEyeColorContainer.appendChild(rightEyeLabel);
+        
+        const rightEyePicker = document.createElement('input');
+        rightEyePicker.type = 'color';
+        rightEyePicker.value = '#00FFFF'; // Default cyan for right eye
+        rightEyePicker.style.marginLeft = '10px';
+        
+        rightEyePicker.addEventListener('input', function() {
+            const rgb = hexToRgb(rightEyePicker.value);
+            
+            try {
+                // Recreate anaglyph effect with new colors if possible
+                if (anaglyphProperties.enabled && anaglyphEffect) {
+                    // Same as above, providing UI for potential custom implementations
+                    console.log('Right eye color updated to:', rightEyePicker.value);
+                }
+            } catch (e) {
+                console.log("Error adjusting anaglyph color:", e);
+            }
+        });
+        
+        rightEyeColorContainer.appendChild(rightEyePicker);
+        controlsPanel.appendChild(rightEyeColorContainer);
+        
+        // Anaglyph strength
+        controlsPanel.appendChild(createSlider('Anaglyph Strength', 0.1, 3.0, 1.0, function(value) {
+            try {
+                // For custom anaglyph implementations
+                console.log('Anaglyph strength updated to:', value);
+            } catch (e) {
+                console.log("Error adjusting anaglyph strength:", e);
+            }
+        }));
+    }
+    
+    // Add advanced bloom settings
+    controlsPanel.appendChild(createSectionTitle('Advanced Bloom Settings'));
+    
+    // Add bloom hue shift
+    controlsPanel.appendChild(createSlider('Hue Shift', 0, 360, 0, function(value) {
+        // This would require a custom bloom implementation to fully support
+        console.log('Bloom hue shift set to:', value);
+    }));
+    
+    // Add bloom quality options if available
+    if (bloomPipeline.bloomKernelSize !== undefined) {
+        // Create a dropdown for bloom quality
+        const qualityContainer = document.createElement('div');
+        qualityContainer.style.marginBottom = '15px';
+        
+        const qualityLabel = document.createElement('div');
+        qualityLabel.textContent = 'Bloom Quality';
+        qualityContainer.appendChild(qualityLabel);
+        
+        const qualitySelect = document.createElement('select');
+        qualitySelect.style.width = '100%';
+        qualitySelect.style.marginTop = '5px';
+        qualitySelect.style.padding = '5px';
+        qualitySelect.style.backgroundColor = '#333';
+        qualitySelect.style.color = 'white';
+        qualitySelect.style.border = '1px solid white';
+        
+        // Add quality options
+        const qualities = [
+            { label: 'Low', value: 32 },
+            { label: 'Medium', value: 64 },
+            { label: 'High', value: 128 },
+            { label: 'Ultra', value: 256 }
+        ];
+        
+        qualities.forEach(quality => {
+            const option = document.createElement('option');
+            option.value = quality.value;
+            option.textContent = quality.label;
+            if (quality.value === 64) {
+                option.selected = true;
+            }
+            qualitySelect.appendChild(option);
+        });
+        
+        qualitySelect.addEventListener('change', function() {
+            const value = parseInt(qualitySelect.value);
+            bloomPipeline.bloomKernel = value;
+        });
+        
+        qualityContainer.appendChild(qualitySelect);
+        controlsPanel.appendChild(qualityContainer);
+    }
+    
+    // Add bloom processing order (if available)
+    const bloomOrderContainer = document.createElement('div');
+    bloomOrderContainer.style.marginBottom = '15px';
+    
+    const bloomOrderLabel = document.createElement('div');
+    bloomOrderLabel.textContent = 'Processing Order';
+    bloomOrderContainer.appendChild(bloomOrderLabel);
+    
+    const orderSelect = document.createElement('select');
+    orderSelect.style.width = '100%';
+    orderSelect.style.marginTop = '5px';
+    orderSelect.style.padding = '5px';
+    orderSelect.style.backgroundColor = '#333';
+    orderSelect.style.color = 'white';
+    orderSelect.style.border = '1px solid white';
+    
+    // Add order options
+    const orderOptions = [
+        { label: 'Before Anaglyph', value: 'before' },
+        { label: 'After Anaglyph', value: 'after' }
+    ];
+    
+    orderOptions.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option.value;
+        opt.textContent = option.label;
+        if (option.value === 'before') {
+            opt.selected = true;
+        }
+        orderSelect.appendChild(opt);
+    });
+    
+    orderSelect.addEventListener('change', function() {
+        const value = orderSelect.value;
+        try {
+            if (value === 'before' && anaglyphEffect) {
+                // Reorder the post processes if possible
+                console.log('Setting bloom to process before anaglyph');
+            } else if (value === 'after' && anaglyphEffect) {
+                console.log('Setting bloom to process after anaglyph');
+            }
+        } catch (e) {
+            console.log('Error changing processing order:', e);
+        }
+    });
+    
+    bloomOrderContainer.appendChild(orderSelect);
+    controlsPanel.appendChild(bloomOrderContainer);
+    
+    // Add reset button
+    controlsPanel.appendChild(createButton('Reset Camera', function() {
+        camera.position = new BABYLON.Vector3(0, 0, -20);
+        camera.target = new BABYLON.Vector3(0, 0, 0);
+    }));
+    
+    // Add stats display for performance monitoring
+    const statsDiv = document.createElement("div");
+    statsDiv.style.position = "absolute";
+    statsDiv.style.left = "10px";
+    statsDiv.style.bottom = "10px";
+    statsDiv.style.color = "white";
+    statsDiv.style.backgroundColor = "rgba(0,0,0,0.5)";
+    statsDiv.style.padding = "5px";
+    statsDiv.style.borderRadius = "5px";
+    statsDiv.style.fontFamily = "monospace";
+    statsDiv.style.pointerEvents = 'none'; // Don't interfere with mouse interaction
+    document.body.appendChild(statsDiv);
+    
+    // Create status text for keyboard shortcuts
+    const statusDiv = document.createElement("div");
+    statusDiv.style.position = "absolute";
+    statusDiv.style.right = "10px";
+    statusDiv.style.bottom = "10px";
+    statusDiv.style.color = "white";
+    statusDiv.style.backgroundColor = "rgba(0,0,0,0.5)";
+    statusDiv.style.padding = "5px";
+    statusDiv.style.borderRadius = "5px";
+    statusDiv.style.fontFamily = "monospace";
+    statusDiv.style.pointerEvents = 'none'; // Don't interfere with mouse interaction
+    document.body.appendChild(statusDiv);
+    
+    // Add keyboard control info
+    const keyInfo = document.createElement("div");
+    keyInfo.style.position = "absolute";
+    keyInfo.style.left = "50%";
+    keyInfo.style.transform = "translateX(-50%)";
+    keyInfo.style.bottom = "10px";
+    keyInfo.style.color = "white";
+    keyInfo.style.backgroundColor = "rgba(0,0,0,0.5)";
+    keyInfo.style.padding = "5px";
+    keyInfo.style.borderRadius = "5px";
+    keyInfo.style.fontFamily = "monospace";
+    keyInfo.style.pointerEvents = 'none'; // Don't interfere with mouse interaction
+    keyInfo.textContent = "Press X to toggle UI, P to take screenshot";
+    uiContainer.appendChild(keyInfo);
+    
+    // Function to take screenshot
+    const takeScreenshot = function() {
+        BABYLON.Tools.CreateScreenshot(engine, camera, { precision: 1 });
+    };
+    
+    // UI visibility toggle
+    let guiVisible = true;
+    const toggleGUI = function() {
+        guiVisible = !guiVisible;
+        uiContainer.style.display = guiVisible ? 'block' : 'none';
+        return guiVisible;
+    };
+    
+    // Add keyboard event listener
+    scene.onKeyboardObservable.add((kbInfo) => {
+        switch (kbInfo.type) {
+            case BABYLON.KeyboardEventTypes.KEYDOWN:
+                switch (kbInfo.event.key.toLowerCase()) {
+                    case 'x':
+                        toggleGUI();
+                        break;
+                    case 'p':
+                        takeScreenshot();
+                        break;
+                }
+                break;
+        }
+    });
+    
+    // Stats tracking
+    let frameCount = 0;
+    let lastTime = performance.now();
+    
+    // Function to update all colors in the scene
+    const updateSceneColors = function() {
+        // Update light colors based on CONFIG.colors
+        const colorArray = [CONFIG.colors.primary, CONFIG.colors.secondary, CONFIG.colors.accent];
+        
+        // Update each light's color
+        for (const light of sceneLights) {
+            const colorToUse = colorArray[light.colorIndex];
+            light.diffuse = colorToUse;
+            light.specular = colorToUse;
+        }
+        
+        // Update materials that use glowing colors
+        materials[4].emissiveColor = CONFIG.colors.primary.scale(1.2); // Glowing blue
+        materials[5].emissiveColor = CONFIG.colors.secondary.scale(1.2); // Glowing purple
+        materials[6].emissiveColor = CONFIG.colors.accent.scale(1.2); // Glowing pink
+        
+        // Update non-glowing materials too for consistency
+        materials[0].diffuseColor = CONFIG.colors.primary.scale(0.5); // Light blue
+        materials[1].diffuseColor = CONFIG.colors.primary.scale(0.8); // Medium blue
+        materials[2].diffuseColor = CONFIG.colors.secondary.scale(0.8); // Purple
+        materials[3].diffuseColor = CONFIG.colors.accent.scale(0.6); // Magenta
+    };
+
+    // Set up the update loop
+    scene.registerBeforeRender(function() {
+        // Move all voxels toward camera
+        for (let voxel of activeVoxels) {
+            voxel.position.z += voxelSpeed;
+        }
+        
+        // Cull voxels that are too close
+        cullVoxels();
+        
+        // Generate new voxels at the far end if needed
+        if (activeVoxels.length < maxVoxels) {
+            const newVoxels = generateVoxelRing(nextRingZ);
+            activeVoxels = activeVoxels.concat(newVoxels);
+            nextRingZ -= 1;
+        }
+        
+        // Update debug text
+        debugInfo.textContent = `Camera Position: ${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)}
+Active Voxels: ${activeVoxels.length}
+Next Ring Z: ${nextRingZ}`;
+        
+        // Update FPS counter
+        frameCount++;
+        const now = performance.now();
+        if (now - lastTime >= 1000) {
+            const fps = Math.round((frameCount * 1000) / (now - lastTime));
+            statsDiv.textContent = `FPS: ${fps} | Voxels: ${activeVoxels.length}`;
+            statusDiv.textContent = `GUI: ${guiVisible ? "Visible" : "Hidden"} | X: Toggle GUI | P: Screenshot`;
+            frameCount = 0;
+            lastTime = now;
+        }
+    });
+    
+    return scene;
+};
+
+// SimplexNoise implementation (no external dependencies)
+// Based on https://github.com/jwagner/simplex-noise.js
+class SimplexNoise {
+    constructor() {
+        this.grad3 = [
+            [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
+            [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
+            [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]
+        ];
+        
+        this.p = [];
+        for (let i = 0; i < 256; i++) {
+            this.p[i] = Math.floor(Math.random() * 256);
+        }
+        
+        // To remove the need for index wrapping, double the permutation table length
+        this.perm = new Array(512);
+        this.gradP = new Array(512);
+        
+        // Skipping the usual seed function for simplicity
+        for (let i = 0; i < 512; i++) {
+            const v = this.p[i & 255];
+            this.perm[i] = v;
+            this.gradP[i] = this.grad3[v % 12];
+        }
+    }
+    
+    // 3D simplex noise
+    noise3D(xin, yin, zin) {
+        const gradP = this.gradP;
+        const perm = this.perm;
+        
+        // Noise contributions from the four corners
+        let n0, n1, n2, n3;
+        
+        // Skew the input space to determine which simplex cell we're in
+        const s = (xin + yin + zin) * (1.0 / 3.0); // Factor for 3D skewing
+        const i = Math.floor(xin + s);
+        const j = Math.floor(yin + s);
+        const k = Math.floor(zin + s);
+        
+        const t = (i + j + k) * (1.0 / 6.0); // Factor for 3D unskewing
+        const X0 = i - t; // Unskewed coordinates for the cell origin
+        const Y0 = j - t;
+        const Z0 = k - t;
+        
+        const x0 = xin - X0; // The x,y,z distances from the cell origin
+        const y0 = yin - Y0;
+        const z0 = zin - Z0;
+        
+        // For the 3D case, the simplex shape is a slightly irregular tetrahedron
+        // Determine which simplex we are in
+        let i1, j1, k1; // Offsets for second corner of simplex in (i,j,k) coords
+        let i2, j2, k2; // Offsets for third corner of simplex in (i,j,k) coords
+        
+        if (x0 >= y0) {
+            if (y0 >= z0) {
+                i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 1; k2 = 0; // XYZ order
+            } else if (x0 >= z0) {
+                i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 0; k2 = 1; // XZY order
+            } else {
+                i1 = 0; j1 = 0; k1 = 1; i2 = 1; j2 = 0; k2 = 1; // ZXY order
+            }
+        } else { // x0<y0
+            if (y0 < z0) {
+                i1 = 0; j1 = 0; k1 = 1; i2 = 0; j2 = 1; k2 = 1; // ZYX order
+            } else if (x0 < z0) {
+                i1 = 0; j1 = 1; k1 = 0; i2 = 0; j2 = 1; k2 = 1; // YZX order
+            } else {
+                i1 = 0; j1 = 1; k1 = 0; i2 = 1; j2 = 1; k2 = 0; // YXZ order
+            }
+        }
+        
+        // Offsets for corners
+        const x1 = x0 - i1 + (1.0 / 6.0);
+        const y1 = y0 - j1 + (1.0 / 6.0);
+        const z1 = z0 - k1 + (1.0 / 6.0);
+        
+        const x2 = x0 - i2 + (2.0 / 6.0);
+        const y2 = y0 - j2 + (2.0 / 6.0);
+        const z2 = z0 - k2 + (2.0 / 6.0);
+        
+        const x3 = x0 - 1 + (3.0 / 6.0);
+        const y3 = y0 - 1 + (3.0 / 6.0);
+        const z3 = z0 - 1 + (3.0 / 6.0);
+        
+        // Wrap coordinates to [0,1)
+        const ii = i & 255;
+        const jj = j & 255;
+        const kk = k & 255;
+        
+        // Calculate noise contributions from each corner
+        let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
+        if (t0 < 0) n0 = 0;
+        else {
+            t0 *= t0;
+            n0 = t0 * t0 * this.dot(gradP[(ii + perm[(jj + perm[kk]) & 255]) & 255], x0, y0, z0);
+        }
+        
+        let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
+        if (t1 < 0) n1 = 0;
+        else {
+            t1 *= t1;
+            n1 = t1 * t1 * this.dot(gradP[(ii + i1 + perm[(jj + j1 + perm[(kk + k1) & 255]) & 255]) & 255], x1, y1, z1);
+        }
+        
+        let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
+        if (t2 < 0) n2 = 0;
+        else {
+            t2 *= t2;
+            n2 = t2 * t2 * this.dot(gradP[(ii + i2 + perm[(jj + j2 + perm[(kk + k2) & 255]) & 255]) & 255], x2, y2, z2);
+        }
+        
+        let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
+        if (t3 < 0) n3 = 0;
+        else {
+            t3 *= t3;
+            n3 = t3 * t3 * this.dot(gradP[(ii + 1 + perm[(jj + 1 + perm[(kk + 1) & 255]) & 255]) & 255], x3, y3, z3);
+        }
+        
+        // Sum up and scale the result to the range [-1, 1]
+        return 32 * (n0 + n1 + n2 + n3);
+    }
+    
+    // Helper function for 3D noise
+    dot(g, x, y, z) {
+        return g[0] * x + g[1] * y + g[2] * z;
+    }
+}
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions?.();
+                    if (!engineOptions || engineOptions.audioEngine !== false) {
+                        
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>

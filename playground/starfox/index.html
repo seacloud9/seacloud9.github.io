@@ -1,0 +1,1235 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        // StarFox Clone in BabylonJS
+// Copy this code and paste it into the BabylonJS Playground (https://playground.babylonjs.com/)
+
+const createScene = function () {
+    // Create a basic BabylonJS Scene object
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color3(0, 0, 0.05);
+    
+    // Setup follow camera (more like StarFox)
+    const camera = new BABYLON.FollowCamera("camera", new BABYLON.Vector3(0, 3, -10), scene);
+    camera.radius = 15; // Distance from the target
+    camera.heightOffset = 2; // Height above the target
+    camera.rotationOffset = 180; // Face the same direction as the target
+    camera.cameraAcceleration = 0.05; // Acceleration of the camera
+    camera.maxCameraSpeed = 10; // Maximum speed of the camera
+    camera.attachControl(canvas, true);
+    
+    // Add lights to the scene
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    light.intensity = 0.7;
+    
+    const directionalLight = new BABYLON.DirectionalLight("directionalLight", new BABYLON.Vector3(0, -1, 1), scene);
+    directionalLight.intensity = 0.6;
+    
+    // Game variables
+    let score = 0;
+    let gameOver = false;
+    let gameStarted = false;
+    let laserCooldown = 0;
+    let asteroids = [];
+    let enemies = [];
+    let lasers = [];
+    let tunnelSegments = [];
+    let powerUps = [];
+    let barrelRolling = 0;
+    let invincible = false;
+    let speed = 1.0;
+    let isRolling = false;
+    const tunnelRadius = 30;
+    let currentLevel = 1;
+    
+    // Create starfield particles
+    const starfieldParticles = new BABYLON.ParticleSystem("starfield", 3000, scene);
+    starfieldParticles.particleTexture = new BABYLON.Texture("https://playground.babylonjs.com/textures/flare.png", scene);
+    starfieldParticles.minLifeTime = 5.0;
+    starfieldParticles.maxLifeTime = 10.0;
+    starfieldParticles.minSize = 0.1;
+    starfieldParticles.maxSize = 0.5;
+    starfieldParticles.emitRate = 500;
+    starfieldParticles.minEmitBox = new BABYLON.Vector3(-100, -100, -10);
+    starfieldParticles.maxEmitBox = new BABYLON.Vector3(100, 100, 200);
+    starfieldParticles.direction1 = new BABYLON.Vector3(0, 0, -1);
+    starfieldParticles.direction2 = new BABYLON.Vector3(0, 0, -1);
+    starfieldParticles.minEmitPower = 30;
+    starfieldParticles.maxEmitPower = 50;
+    starfieldParticles.color1 = new BABYLON.Color4(0.8, 0.8, 1.0, 1.0);
+    starfieldParticles.color2 = new BABYLON.Color4(0.5, 0.5, 1.0, 1.0);
+    starfieldParticles.start();
+    
+    // Create skybox
+    const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
+    const skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMaterial", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("https://playground.babylonjs.com/textures/space", scene);
+    skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+    skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+    skybox.material = skyboxMaterial;
+    skybox.infiniteDistance = true;
+    
+    // Create player ship (Arwing style)
+    const playerShip = BABYLON.MeshBuilder.CreateBox("playerShip", { width: 0.8, height: 0.4, depth: 2 }, scene);
+    playerShip.position = new BABYLON.Vector3(0, 0, 0);
+    
+    // Create ship wings (more Arwing-like)
+    const leftWing = BABYLON.MeshBuilder.CreateBox("leftWing", { width: 3, height: 0.1, depth: 1.5 }, scene);
+    leftWing.position = new BABYLON.Vector3(-1.8, 0, -0.3);
+    leftWing.scaling = new BABYLON.Vector3(1, 1, 0.6);
+    leftWing.rotation.z = -0.1;
+    leftWing.parent = playerShip;
+    
+    const rightWing = BABYLON.MeshBuilder.CreateBox("rightWing", { width: 3, height: 0.1, depth: 1.5 }, scene);
+    rightWing.position = new BABYLON.Vector3(1.8, 0, -0.3);
+    rightWing.scaling = new BABYLON.Vector3(1, 1, 0.6);
+    rightWing.rotation.z = 0.1;
+    rightWing.parent = playerShip;
+    
+    // Wing tips (the iconic red parts at the ends of the wings)
+    const leftWingTip = BABYLON.MeshBuilder.CreateBox("leftWingTip", { width: 0.6, height: 0.3, depth: 1 }, scene);
+    leftWingTip.position = new BABYLON.Vector3(-3.2, 0, -0.3);
+    leftWingTip.parent = playerShip;
+    
+    const rightWingTip = BABYLON.MeshBuilder.CreateBox("rightWingTip", { width: 0.6, height: 0.3, depth: 1 }, scene);
+    rightWingTip.position = new BABYLON.Vector3(3.2, 0, -0.3);
+    rightWingTip.parent = playerShip;
+    
+    // Create G-Diffuser parts (the blue engine parts)
+    const leftGDiffuser = BABYLON.MeshBuilder.CreateCylinder("leftGDiffuser", { height: 0.7, diameter: 0.4 }, scene);
+    leftGDiffuser.position = new BABYLON.Vector3(-1.8, -0.3, -0.7);
+    leftGDiffuser.rotation.x = Math.PI / 2;
+    leftGDiffuser.parent = playerShip;
+    
+    const rightGDiffuser = BABYLON.MeshBuilder.CreateCylinder("rightGDiffuser", { height: 0.7, diameter: 0.4 }, scene);
+    rightGDiffuser.position = new BABYLON.Vector3(1.8, -0.3, -0.7);
+    rightGDiffuser.rotation.x = Math.PI / 2;
+    rightGDiffuser.parent = playerShip;
+    
+    // Create ship cockpit
+    const cockpit = BABYLON.MeshBuilder.CreateSphere("cockpit", { diameterX: 0.8, diameterY: 0.6, diameterZ: 1.2 }, scene);
+    cockpit.position = new BABYLON.Vector3(0, 0.3, 0.5);
+    cockpit.parent = playerShip;
+    
+    // Create ship nose
+    const nose = BABYLON.MeshBuilder.CreateCylinder("nose", { height: 1, diameterTop: 0.6, diameterBottom: 0.1 }, scene);
+    nose.position = new BABYLON.Vector3(0, 0, 1.5);
+    nose.rotation.x = Math.PI / 2;
+    nose.parent = playerShip;
+    
+    // Create ship tail
+    const tail = BABYLON.MeshBuilder.CreateBox("tail", { width: 0.3, height: 0.8, depth: 0.5 }, scene);
+    tail.position = new BABYLON.Vector3(0, 0.6, -1);
+    tail.parent = playerShip;
+    
+    // Create engine thruster effects
+    const engineParticles = new BABYLON.ParticleSystem("engines", 500, scene);
+    engineParticles.particleTexture = new BABYLON.Texture("https://playground.babylonjs.com/textures/flare.png", scene);
+    engineParticles.minLifeTime = 0.1;
+    engineParticles.maxLifeTime = 0.2;
+    engineParticles.minSize = 0.2;
+    engineParticles.maxSize = 0.5;
+    engineParticles.emitRate = 200;
+    engineParticles.minEmitBox = new BABYLON.Vector3(-0.5, -0.1, -1.5);
+    engineParticles.maxEmitBox = new BABYLON.Vector3(0.5, 0.1, -1.5);
+    engineParticles.direction1 = new BABYLON.Vector3(0, 0, -1);
+    engineParticles.direction2 = new BABYLON.Vector3(0, 0, -1);
+    engineParticles.minEmitPower = 3;
+    engineParticles.maxEmitPower = 5;
+    engineParticles.updateSpeed = 0.01;
+    engineParticles.color1 = new BABYLON.Color4(0.1, 0.5, 1.0, 1.0);
+    engineParticles.color2 = new BABYLON.Color4(0.1, 0.1, 1.0, 1.0);
+    engineParticles.emitter = playerShip;
+    engineParticles.start();
+    
+    // Create materials for player ship
+    const shipMaterial = new BABYLON.StandardMaterial("shipMaterial", scene);
+    shipMaterial.diffuseColor = new BABYLON.Color3(0.9, 0.9, 0.95);
+    shipMaterial.specularColor = new BABYLON.Color3(0.6, 0.6, 0.9);
+    shipMaterial.specularPower = 20;
+    playerShip.material = shipMaterial;
+    leftWing.material = shipMaterial;
+    rightWing.material = shipMaterial;
+    tail.material = shipMaterial;
+    nose.material = shipMaterial;
+    
+    const cockpitMaterial = new BABYLON.StandardMaterial("cockpitMaterial", scene);
+    cockpitMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.6, 0.8);
+    cockpitMaterial.alpha = 0.7;
+    cockpitMaterial.specularPower = 100;
+    cockpit.material = cockpitMaterial;
+    
+    const wingTipMaterial = new BABYLON.StandardMaterial("wingTipMaterial", scene);
+    wingTipMaterial.diffuseColor = new BABYLON.Color3(0.9, 0.1, 0.1);
+    wingTipMaterial.emissiveColor = new BABYLON.Color3(0.5, 0, 0);
+    leftWingTip.material = wingTipMaterial;
+    rightWingTip.material = wingTipMaterial;
+    
+    const gDiffuserMaterial = new BABYLON.StandardMaterial("gDiffuserMaterial", scene);
+    gDiffuserMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.3, 0.8);
+    gDiffuserMaterial.emissiveColor = new BABYLON.Color3(0, 0.1, 0.3);
+    leftGDiffuser.material = gDiffuserMaterial;
+    rightGDiffuser.material = gDiffuserMaterial;
+    
+    // Set camera target to player ship
+    camera.lockedTarget = playerShip;
+    
+    // Create UI
+    const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+    
+    const startPanel = new BABYLON.GUI.StackPanel();
+    startPanel.width = "320px";
+    startPanel.isVertical = true;
+    startPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    startPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    advancedTexture.addControl(startPanel);
+    
+    // Create title image container
+    const titleContainer = new BABYLON.GUI.Rectangle();
+    titleContainer.width = "300px";
+    titleContainer.height = "100px";
+    titleContainer.thickness = 0;
+    startPanel.addControl(titleContainer);
+    
+    // Title text (styled like StarFox)
+    const titleText = new BABYLON.GUI.TextBlock();
+    titleText.text = "STAR FOX 3D";
+    titleText.color = "white";
+    titleText.fontSize = 36;
+    titleText.fontFamily = "Impact";
+    titleText.outlineWidth = 3;
+    titleText.outlineColor = "#004080";
+    titleText.shadowOffsetX = 2;
+    titleText.shadowOffsetY = 2;
+    titleText.shadowBlur = 5;
+    titleText.shadowColor = "black";
+    titleContainer.addControl(titleText);
+    
+    // Subtitle
+    const subtitleText = new BABYLON.GUI.TextBlock();
+    subtitleText.text = "Lylat System Defender";
+    subtitleText.color = "#00FFFF";
+    subtitleText.fontSize = 18;
+    subtitleText.top = "50px";
+    titleContainer.addControl(subtitleText);
+    
+    const startButton = BABYLON.GUI.Button.CreateSimpleButton("startButton", "START MISSION");
+    startButton.width = "200px";
+    startButton.height = "40px";
+    startButton.color = "white";
+    startButton.fontSize = 18;
+    startButton.fontFamily = "Impact";
+    startButton.cornerRadius = 5;
+    startButton.background = "#FF4500";
+    startButton.thickness = 2;
+    startButton.hoverCursor = "pointer";
+    startButton.onPointerUpObservable.add(function() {
+        gameStarted = true;
+        startPanel.isVisible = false;
+        playerShip.position.z = -10;
+        scoreText.isVisible = true;
+        levelText.isVisible = true;
+        healthBar.isVisible = true;
+    });
+    startPanel.addControl(startButton);
+    
+    const controlsText = new BABYLON.GUI.TextBlock();
+    controlsText.text = "Controls:\nW/S or ↑/↓ - Pitch Up/Down\nA/D or ←/→ - Roll Left/Right\nQ/E - Barrel Roll Left/Right\nSpace - Shoot";
+    controlsText.color = "white";
+    controlsText.fontSize = 14;
+    controlsText.height = "100px";
+    controlsText.top = "20px";
+    startPanel.addControl(controlsText);
+    
+    // Game HUD
+    // Score display
+    const scoreText = new BABYLON.GUI.TextBlock();
+    scoreText.text = "Score: 0";
+    scoreText.color = "white";
+    scoreText.fontSize = 22;
+    scoreText.fontFamily = "Impact";
+    scoreText.top = "20px";
+    scoreText.left = "20px";
+    scoreText.outlineWidth = 1;
+    scoreText.outlineColor = "black";
+    scoreText.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    scoreText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    scoreText.isVisible = false;
+    advancedTexture.addControl(scoreText);
+    
+    // Level display
+    const levelText = new BABYLON.GUI.TextBlock();
+    levelText.text = "Level: 1";
+    levelText.color = "white";
+    levelText.fontSize = 22;
+    levelText.fontFamily = "Impact";
+    levelText.top = "50px";
+    levelText.left = "20px";
+    levelText.outlineWidth = 1;
+    levelText.outlineColor = "black";
+    levelText.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    levelText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    levelText.isVisible = false;
+    advancedTexture.addControl(levelText);
+    
+    // Health bar
+    const healthBar = new BABYLON.GUI.Rectangle();
+    healthBar.width = "200px";
+    healthBar.height = "20px";
+    healthBar.cornerRadius = 5;
+    healthBar.color = "white";
+    healthBar.thickness = 2;
+    healthBar.background = "green";
+    healthBar.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    healthBar.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    healthBar.top = "20px";
+    healthBar.left = "-20px";
+    healthBar.isVisible = false;
+    advancedTexture.addControl(healthBar);
+    
+    // Health bar label
+    const healthLabel = new BABYLON.GUI.TextBlock();
+    healthLabel.text = "SHIELDS";
+    healthLabel.color = "white";
+    healthLabel.fontSize = 12;
+    healthLabel.fontFamily = "Impact";
+    healthBar.addControl(healthLabel);
+    
+    // Messages during gameplay (for power-ups, etc.)
+    const messageText = new BABYLON.GUI.TextBlock();
+    messageText.text = "";
+    messageText.color = "yellow";
+    messageText.fontSize = 28;
+    messageText.fontFamily = "Impact";
+    messageText.outlineWidth = 2;
+    messageText.outlineColor = "black";
+    messageText.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    messageText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    messageText.isVisible = false;
+    advancedTexture.addControl(messageText);
+    
+    // Game over panel
+    const gameOverPanel = new BABYLON.GUI.StackPanel();
+    gameOverPanel.width = "320px";
+    gameOverPanel.isVertical = true;
+    gameOverPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    gameOverPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    gameOverPanel.isVisible = false;
+    advancedTexture.addControl(gameOverPanel);
+    
+    const gameOverText = new BABYLON.GUI.TextBlock();
+    gameOverText.text = "MISSION FAILED";
+    gameOverText.color = "red";
+    gameOverText.fontSize = 36;
+    gameOverText.fontFamily = "Impact";
+    gameOverText.height = "60px";
+    gameOverPanel.addControl(gameOverText);
+    
+    const finalScoreText = new BABYLON.GUI.TextBlock();
+    finalScoreText.text = "Score: 0";
+    finalScoreText.color = "white";
+    finalScoreText.fontSize = 24;
+    finalScoreText.height = "40px";
+    gameOverPanel.addControl(finalScoreText);
+    
+    const restartButton = BABYLON.GUI.Button.CreateSimpleButton("restartButton", "TRY AGAIN");
+    restartButton.width = "200px";
+    restartButton.height = "40px";
+    restartButton.color = "white";
+    restartButton.fontSize = 18;
+    restartButton.fontFamily = "Impact";
+    restartButton.cornerRadius = 5;
+    restartButton.background = "#FF4500";
+    restartButton.thickness = 2;
+    restartButton.top = "20px";
+    restartButton.onPointerUpObservable.add(function() {
+        resetGame();
+    });
+    gameOverPanel.addControl(restartButton);
+    
+    // Create sound effects (requires assets to be hosted)
+    // These are commented out since they would require hosted sound files
+    /*
+    const laserSound = new BABYLON.Sound("laser", "https://yoursite.com/sounds/laser.wav", scene, null, {
+        volume: 0.5
+    });
+    
+    const explosionSound = new BABYLON.Sound("explosion", "https://yoursite.com/sounds/explosion.wav", scene, null, {
+        volume: 0.7
+    });
+    
+    const barrelRollSound = new BABYLON.Sound("barrelRoll", "https://yoursite.com/sounds/barrelroll.wav", scene, null, {
+        volume: 0.6
+    });
+    
+    const powerupSound = new BABYLON.Sound("powerup", "https://yoursite.com/sounds/powerup.wav", scene, null, {
+        volume: 0.6
+    });
+    */
+    
+    // Create a health system
+    let playerHealth = 100;
+    
+    // Function to reset the game
+    function resetGame() {
+        // Reset game variables
+        score = 0;
+        gameOver = false;
+        gameStarted = true;
+        playerHealth = 100;
+        currentLevel = 1;
+        speed = 1.0;
+        
+        // Update UI
+        scoreText.text = "Score: 0";
+        levelText.text = "Level: 1";
+        scoreText.isVisible = true;
+        levelText.isVisible = true;
+        healthBar.isVisible = true;
+        healthBar.width = "200px";
+        healthBar.background = "green";
+        gameOverPanel.isVisible = false;
+        
+        // Reset player position
+        playerShip.position = new BABYLON.Vector3(0, 0, -10);
+        playerShip.rotation = new BABYLON.Vector3(0, 0, 0);
+        
+        // Clean up all game objects
+        clearGameObjects();
+        
+        // Create new tunnel
+        createTunnel();
+    }
+    
+    // Clear all game objects
+    function clearGameObjects() {
+        // Remove all objects
+        for (let segment of tunnelSegments) {
+            segment.dispose();
+        }
+        tunnelSegments = [];
+        
+        for (let asteroid of asteroids) {
+            asteroid.dispose();
+        }
+        asteroids = [];
+        
+        for (let enemy of enemies) {
+            enemy.dispose();
+        }
+        enemies = [];
+        
+        for (let laser of lasers) {
+            laser.dispose();
+        }
+        lasers = [];
+        
+        for (let powerUp of powerUps) {
+            powerUp.dispose();
+        }
+        powerUps = [];
+    }
+    
+    // Create a tunnel/corridor
+    function createTunnel() {
+        const tunnelMaterial = new BABYLON.StandardMaterial("tunnelMaterial", scene);
+        tunnelMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.5, 0.8);
+        tunnelMaterial.emissiveColor = new BABYLON.Color3(0, 0.2, 0.5);
+        tunnelMaterial.wireframe = true;
+        
+        // Create multiple segments
+        const segments = 20;
+        const segmentLength = 30;
+        const totalLength = segments * segmentLength;
+        
+        for (let i = 0; i < segments; i++) {
+            const segment = BABYLON.MeshBuilder.CreateTube("tunnel" + i, {
+                path: [
+                    new BABYLON.Vector3(0, 0, i * segmentLength),
+                    new BABYLON.Vector3(0, 0, (i + 1) * segmentLength)
+                ],
+                radius: tunnelRadius,
+                tessellation: 16,
+                sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+                updatable: true
+            }, scene);
+            
+            segment.material = tunnelMaterial;
+            tunnelSegments.push(segment);
+        }
+    }
+    
+    // Function to create an asteroid
+    function createAsteroid() {
+        const size = Math.random() * 2 + 1;
+        const asteroid = BABYLON.MeshBuilder.CreateSphere("asteroid", { diameter: size, segments: 5 }, scene);
+        
+        // Set asteroid position randomly within the tunnel
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.random() * (tunnelRadius - 5);
+        asteroid.position.x = Math.sin(angle) * radius;
+        asteroid.position.y = Math.cos(angle) * radius;
+        asteroid.position.z = 100 + Math.random() * 50;
+        
+        // Add random rotation
+        asteroid.rotation = new BABYLON.Vector3(
+            Math.random() * Math.PI,
+            Math.random() * Math.PI,
+            Math.random() * Math.PI
+        );
+        
+        // Create asteroid material
+        const asteroidMaterial = new BABYLON.StandardMaterial("asteroidMaterial", scene);
+        asteroidMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+        asteroidMaterial.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+        asteroid.material = asteroidMaterial;
+        
+        // Store the rotation speed for animation
+        asteroid.rotationSpeed = new BABYLON.Vector3(
+            Math.random() * 0.05,
+            Math.random() * 0.05,
+            Math.random() * 0.05
+        );
+        
+        // Add asteroid to array
+        asteroids.push(asteroid);
+    }
+    
+    // Function to create an enemy ship
+    function createEnemy() {
+        // Create enemy base
+        const enemy = BABYLON.MeshBuilder.CreateBox("enemy", { width: 1.5, height: 0.5, depth: 2 }, scene);
+        
+        // Set enemy position randomly within the tunnel
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.random() * (tunnelRadius - 8);
+        enemy.position.x = Math.sin(angle) * radius;
+        enemy.position.y = Math.cos(angle) * radius;
+        enemy.position.z = 100 + Math.random() * 50;
+        
+        // Create enemy wings
+        const leftWing = BABYLON.MeshBuilder.CreateBox("enemyLeftWing", { width: 1, height: 0.2, depth: 1 }, scene);
+        leftWing.position = new BABYLON.Vector3(-1, 0, 0);
+        leftWing.parent = enemy;
+        
+        const rightWing = BABYLON.MeshBuilder.CreateBox("enemyRightWing", { width: 1, height: 0.2, depth: 1 }, scene);
+        rightWing.position = new BABYLON.Vector3(1, 0, 0);
+        rightWing.parent = enemy;
+        
+        // Create enemy materials
+        const enemyMaterial = new BABYLON.StandardMaterial("enemyMaterial", scene);
+        enemyMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2);
+        enemyMaterial.emissiveColor = new BABYLON.Color3(0.3, 0, 0);
+        enemy.material = enemyMaterial;
+        leftWing.material = enemyMaterial;
+        rightWing.material = enemyMaterial;
+        
+        // Store the movement pattern
+        enemy.movementPattern = Math.floor(Math.random() * 3); // 0: straight, 1: circular, 2: sine wave
+        enemy.movementPhase = Math.random() * Math.PI * 2;
+        enemy.basePosition = new BABYLON.Vector3(enemy.position.x, enemy.position.y, enemy.position.z);
+        
+        // Add enemy to array
+        enemies.push(enemy);
+    }
+    
+    // Function to create a power-up
+    function createPowerUp() {
+        const types = ["health", "shield", "doubleLaser", "speedBoost"];
+        const type = types[Math.floor(Math.random() * types.length)];
+        
+        let powerUp;
+        if (type === "health" || type === "shield") {
+            powerUp = BABYLON.MeshBuilder.CreateBox("powerUp", { size: 1 }, scene);
+        } else if (type === "doubleLaser") {
+            powerUp = BABYLON.MeshBuilder.CreateCylinder("powerUp", { height: 1, diameter: 1 }, scene);
+        } else {
+            powerUp = BABYLON.MeshBuilder.CreateSphere("powerUp", { diameter: 1 }, scene);
+        }
+        
+        // Set power-up position randomly within the tunnel
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.random() * (tunnelRadius - 10);
+        powerUp.position.x = Math.sin(angle) * radius;
+        powerUp.position.y = Math.cos(angle) * radius;
+        powerUp.position.z = 100 + Math.random() * 50;
+        
+        // Create power-up material based on type
+        const powerUpMaterial = new BABYLON.StandardMaterial("powerUpMaterial", scene);
+        
+        if (type === "health") {
+            powerUpMaterial.diffuseColor = new BABYLON.Color3(0, 1, 0); // Green for health
+            powerUpMaterial.emissiveColor = new BABYLON.Color3(0, 0.5, 0);
+        } else if (type === "shield") {
+            powerUpMaterial.diffuseColor = new BABYLON.Color3(0, 0.5, 1); // Blue for shield
+            powerUpMaterial.emissiveColor = new BABYLON.Color3(0, 0.2, 0.5);
+        } else if (type === "doubleLaser") {
+            powerUpMaterial.diffuseColor = new BABYLON.Color3(1, 0, 1); // Purple for double laser
+            powerUpMaterial.emissiveColor = new BABYLON.Color3(0.5, 0, 0.5);
+        } else {
+            powerUpMaterial.diffuseColor = new BABYLON.Color3(1, 1, 0); // Yellow for speed boost
+            powerUpMaterial.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0);
+        }
+        
+        powerUp.material = powerUpMaterial;
+        powerUp.type = type;
+        
+        // Add rotation animation
+        powerUp.rotation = new BABYLON.Vector3(0, 0, 0);
+        powerUp.rotationSpeed = new BABYLON.Vector3(0, 0.05, 0);
+        
+        // Add power-up to array
+        powerUps.push(powerUp);
+    }
+    
+    // Function to create a laser
+    function createLaser(isDouble = false) {
+        if (laserCooldown > 0) return;
+        
+        // Function to create a single laser beam
+        function createSingleLaser(offsetX) {
+            const laser = BABYLON.MeshBuilder.CreateCylinder("laser", { height: 2, diameter: 0.2 }, scene);
+            laser.rotation.x = Math.PI / 2;
+            
+            // Set laser position
+            laser.position = new BABYLON.Vector3(
+                playerShip.position.x + offsetX,
+                playerShip.position.y,
+                playerShip.position.z + 1.5
+            );
+            
+            // Create laser material with glow effect
+            const laserMaterial = new BABYLON.StandardMaterial("laserMaterial", scene);
+            laserMaterial.diffuseColor = new BABYLON.Color3(1, 0.3, 0.3);
+            laserMaterial.emissiveColor = new BABYLON.Color3(1, 0, 0);
+            laserMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
+            laser.material = laserMaterial;
+            
+            // Add laser effects (glow)
+            const glowLayer = new BABYLON.GlowLayer("laserGlow", scene);
+            glowLayer.intensity = 0.8;
+            glowLayer.addIncludedOnlyMesh(laser);
+            
+            // Create small light source for the laser
+            const laserLight = new BABYLON.PointLight("laserLight", laser.position, scene);
+            laserLight.diffuse = new BABYLON.Color3(1, 0, 0);
+            laserLight.range = 5;
+            laserLight.intensity = 0.5;
+            
+            // Parent the light to the laser so it moves with it
+            laserLight.parent = laser;
+            
+            return laser;
+        }
+        
+        if (isDouble) {
+            const laserLeft = createSingleLaser(-0.5);
+            const laserRight = createSingleLaser(0.5);
+            lasers.push(laserLeft, laserRight);
+        } else {
+            const laser = createSingleLaser(0);
+            lasers.push(laser);
+        }
+        
+        // Set cooldown
+        laserCooldown = 10;
+        
+        // Play laser sound
+        // if (laserSound) laserSound.play();
+    }
+    
+    // Function to create an explosion
+    function createExplosion(position) {
+        // Create explosion particle system
+        const explosion = new BABYLON.ParticleSystem("explosion", 200, scene);
+        explosion.particleTexture = new BABYLON.Texture("https://playground.babylonjs.com/textures/flare.png", scene);
+        explosion.emitter = position;
+        explosion.minEmitBox = new BABYLON.Vector3(-0.5, -0.5, -0.5);
+        explosion.maxEmitBox = new BABYLON.Vector3(0.5, 0.5, 0.5);
+        explosion.color1 = new BABYLON.Color4(1, 0.5, 0.1, 1);
+        explosion.color2 = new BABYLON.Color4(1, 0.2, 0.1, 1);
+        explosion.colorDead = new BABYLON.Color4(0.5, 0, 0, 0);
+        explosion.minSize = 0.3;
+        explosion.maxSize = 1.5;
+        explosion.minLifeTime = 0.2;
+        explosion.maxLifeTime = 0.5;
+        explosion.emitRate = 500;
+        explosion.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+        explosion.gravity = new BABYLON.Vector3(0, 0, 0);
+        explosion.direction1 = new BABYLON.Vector3(-1, -1, -1);
+        explosion.direction2 = new BABYLON.Vector3(1, 1, 1);
+        explosion.minEmitPower = 5;
+        explosion.maxEmitPower = 15;
+        explosion.updateSpeed = 0.01;
+        
+        // Start the explosion
+        explosion.start();
+        
+        // Play explosion sound
+        // if (explosionSound) explosionSound.play();
+        
+        // Stop the explosion after 0.5 seconds
+        setTimeout(() => {
+            explosion.stop();
+        }, 500);
+    }
+    
+    // Function to show a message
+    function showMessage(text, duration = 2000) {
+        messageText.text = text;
+        messageText.isVisible = true;
+        
+        // Hide message after duration
+        setTimeout(() => {
+            messageText.isVisible = false;
+        }, duration);
+    }
+    
+    // Function to apply a power-up
+    function applyPowerUp(type) {
+        switch (type) {
+            case "health":
+                playerHealth = Math.min(playerHealth + 25, 100);
+                updateHealthBar();
+                showMessage("HEALTH RESTORED!", 2000);
+                break;
+            case "shield":
+                invincible = true;
+                showMessage("SHIELDS UP!", 2000);
+                
+                // Create shield visual effect
+                const shield = BABYLON.MeshBuilder.CreateSphere("shield", { diameter: 6 }, scene);
+                shield.position = playerShip.position.clone();
+                shield.parent = playerShip;
+                
+                const shieldMaterial = new BABYLON.StandardMaterial("shieldMaterial", scene);
+                shieldMaterial.diffuseColor = new BABYLON.Color3(0, 0.5, 1);
+                shieldMaterial.alpha = 0.3;
+                shieldMaterial.specularPower = 200;
+                shield.material = shieldMaterial;
+                
+                // Remove shield after 10 seconds
+                setTimeout(() => {
+                    invincible = false;
+                    shield.dispose();
+                    showMessage("SHIELDS DOWN", 1500);
+                }, 10000);
+                break;
+            case "doubleLaser":
+                // Create flag for double lasers
+                playerShip.doubleLaser = true;
+                showMessage("DOUBLE LASERS!", 2000);
+                
+                // Reset after 15 seconds
+                setTimeout(() => {
+                    playerShip.doubleLaser = false;
+                    showMessage("LASER POWER NORMAL", 1500);
+                }, 15000);
+                break;
+            case "speedBoost":
+                speed = 2.0;
+                showMessage("SPEED BOOST!", 2000);
+                
+                // Reset after 10 seconds
+                setTimeout(() => {
+                    speed = 1.0;
+                    showMessage("SPEED NORMAL", 1500);
+                }, 10000);
+                break;
+        }
+        
+        // Play power-up sound
+        // if (powerupSound) powerupSound.play();
+    }
+    
+    // Function to damage the player
+    function damagePlayer(damage) {
+        if (invincible) return;
+        
+        playerHealth -= damage;
+        updateHealthBar();
+        
+        // Create damaged effect
+        const flash = new BABYLON.HighlightLayer("flash", scene);
+        flash.addMesh(playerShip, new BABYLON.Color3(1, 0, 0));
+        setTimeout(() => {
+            flash.dispose();
+        }, 200);
+        
+        if (playerHealth <= 0) {
+            endGame();
+        }
+    }
+    
+    // Update health bar
+    function updateHealthBar() {
+        healthBar.width = (playerHealth * 2) + "px";
+        
+        if (playerHealth > 60) {
+            healthBar.background = "green";
+        } else if (playerHealth > 30) {
+            healthBar.background = "yellow";
+        } else {
+            healthBar.background = "red";
+        }
+    }
+    
+    // Function to perform a barrel roll
+    function doBarrelRoll(direction) {
+        if (isRolling) return;
+        
+        isRolling = true;
+        barrelRolling = direction;
+        invincible = true;
+        
+        // Play barrel roll sound
+        // if (barrelRollSound) barrelRollSound.play();
+        
+        showMessage("BARREL ROLL!", 1000);
+        
+        // Reset after 1 second
+        setTimeout(() => {
+            isRolling = false;
+            barrelRolling = 0;
+            invincible = false;
+        }, 1000);
+    }
+    
+    // Function to advance to the next level
+    function advanceLevel() {
+        currentLevel++;
+        levelText.text = "Level: " + currentLevel;
+        showMessage("LEVEL " + currentLevel + "!", 2000);
+        
+        // Increase difficulty based on level
+        // For simplicity, we just spawn more enemies and asteroids per level
+    }
+    
+    // Function to end the game
+    function endGame() {
+        gameOver = true;
+        finalScoreText.text = "Final Score: " + score;
+        gameOverPanel.isVisible = true;
+        scoreText.isVisible = false;
+        levelText.isVisible = false;
+        healthBar.isVisible = false;
+        
+        // Create final explosion at player position
+        createExplosion(playerShip.position.clone());
+        
+        // Hide player ship
+        playerShip.isVisible = false;
+    }
+    
+    // Input handling
+    const inputMap = {};
+    scene.actionManager = new BABYLON.ActionManager(scene);
+    
+    scene.actionManager.registerAction(
+        new BABYLON.ExecuteCodeAction(
+            BABYLON.ActionManager.OnKeyDownTrigger,
+            function (evt) {
+                inputMap[evt.sourceEvent.key] = evt.sourceEvent.type === "keydown";
+            }
+        )
+    );
+    
+    scene.actionManager.registerAction(
+        new BABYLON.ExecuteCodeAction(
+            BABYLON.ActionManager.OnKeyUpTrigger,
+            function (evt) {
+                inputMap[evt.sourceEvent.key] = evt.sourceEvent.type === "keydown";
+            }
+        )
+    );
+    
+    // Collision detection function
+    function checkCollisions() {
+        // Check laser collisions with asteroids and enemies
+        for (let i = lasers.length - 1; i >= 0; i--) {
+            const laser = lasers[i];
+            
+            // Check collisions with asteroids
+            for (let j = asteroids.length - 1; j >= 0; j--) {
+                const asteroid = asteroids[j];
+                if (laser.intersectsMesh(asteroid, false)) {
+                    // Create explosion
+                    createExplosion(asteroid.position.clone());
+                    
+                    // Remove laser and asteroid
+                    laser.dispose();
+                    lasers.splice(i, 1);
+                    
+                    asteroid.dispose();
+                    asteroids.splice(j, 1);
+                    
+                    // Update score
+                    score += 10;
+                    scoreText.text = "Score: " + score;
+                    
+                    // Check if it's time to advance level
+                    if (score >= currentLevel * 500) {
+                        advanceLevel();
+                    }
+                    
+                    break;
+                }
+            }
+            
+            // Check collisions with enemies
+            for (let j = enemies.length - 1; j >= 0; j--) {
+                const enemy = enemies[j];
+                if (laser.intersectsMesh(enemy, false)) {
+                    // Create explosion
+                    createExplosion(enemy.position.clone());
+                    
+                    // Remove laser and enemy
+                    laser.dispose();
+                    lasers.splice(i, 1);
+                    
+                    enemy.dispose();
+                    enemies.splice(j, 1);
+                    
+                    // Update score
+                    score += 50;
+                    scoreText.text = "Score: " + score;
+                    
+                    // Check if it's time to advance level
+                    if (score >= currentLevel * 500) {
+                        advanceLevel();
+                    }
+                    
+                    break;
+                }
+            }
+        }
+        
+        // Check player collisions with asteroids and enemies
+        if (!gameOver) {
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                const asteroid = asteroids[i];
+                if (playerShip.intersectsMesh(asteroid, false)) {
+                    // Create explosion
+                    createExplosion(asteroid.position.clone());
+                    
+                    // Remove asteroid
+                    asteroid.dispose();
+                    asteroids.splice(i, 1);
+                    
+                    // Damage player
+                    damagePlayer(20);
+                }
+            }
+            
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                if (playerShip.intersectsMesh(enemy, false)) {
+                    // Create explosion
+                    createExplosion(enemy.position.clone());
+                    
+                    // Remove enemy
+                    enemy.dispose();
+                    enemies.splice(i, 1);
+                    
+                    // Damage player
+                    damagePlayer(30);
+                }
+            }
+            
+            // Check player collisions with power-ups
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                const powerUp = powerUps[i];
+                if (playerShip.intersectsMesh(powerUp, false)) {
+                    // Apply power-up
+                    applyPowerUp(powerUp.type);
+                    
+                    // Remove power-up
+                    powerUp.dispose();
+                    powerUps.splice(i, 1);
+                }
+            }
+        }
+    }
+    
+    // Create initial tunnel
+    createTunnel();
+    
+    // Main game loop
+    scene.onBeforeRenderObservable.add(() => {
+        if (!gameStarted) return;
+        
+        if (!gameOver) {
+            // Update player position based on input
+            const moveSpeed = 0.2 * speed;
+            
+            // Pitch control (up/down)
+            if (inputMap["w"] || inputMap["W"] || inputMap["ArrowUp"]) {
+                playerShip.position.y += moveSpeed;
+                playerShip.rotation.x = -0.3;
+            } else if (inputMap["s"] || inputMap["S"] || inputMap["ArrowDown"]) {
+                playerShip.position.y -= moveSpeed;
+                playerShip.rotation.x = 0.3;
+            } else {
+                playerShip.rotation.x *= 0.9; // Smooth return to neutral
+            }
+            
+            // Roll control (left/right)
+            if (inputMap["a"] || inputMap["A"] || inputMap["ArrowLeft"]) {
+                playerShip.position.x -= moveSpeed;
+                playerShip.rotation.z = 0.4;
+            } else if (inputMap["d"] || inputMap["D"] || inputMap["ArrowRight"]) {
+                playerShip.position.x += moveSpeed;
+                playerShip.rotation.z = -0.4;
+            } else {
+                playerShip.rotation.z *= 0.9; // Smooth return to neutral
+            }
+            
+            // Handle barrel rolls
+            if (barrelRolling !== 0) {
+                playerShip.rotation.z += barrelRolling * 0.25;
+            } else if (!isRolling) {
+                // Barrel roll left (Q)
+                if (inputMap["q"] || inputMap["Q"]) {
+                    doBarrelRoll(-1);
+                }
+                // Barrel roll right (E)
+                else if (inputMap["e"] || inputMap["E"]) {
+                    doBarrelRoll(1);
+                }
+            }
+            
+            // Limit player position (stay within tunnel)
+            const maxRad = tunnelRadius - 5;
+            const distFromCenter = Math.sqrt(playerShip.position.x * playerShip.position.x + playerShip.position.y * playerShip.position.y);
+            if (distFromCenter > maxRad) {
+                const angle = Math.atan2(playerShip.position.y, playerShip.position.x);
+                playerShip.position.x = Math.cos(angle) * maxRad;
+                playerShip.position.y = Math.sin(angle) * maxRad;
+            }
+            
+            // Shoot laser
+            if (inputMap[" "]) {
+                createLaser(playerShip.doubleLaser);
+            }
+            
+            // Update laser cooldown
+            if (laserCooldown > 0) {
+                laserCooldown--;
+            }
+            
+            // Move the world instead of the player (to create forward motion)
+            const worldSpeed = 1 * speed;
+            
+            // Move tunnel segments
+            for (let i = tunnelSegments.length - 1; i >= 0; i--) {
+                const segment = tunnelSegments[i];
+                segment.position.z -= worldSpeed;
+                
+                // If segment is behind us, move it to the front
+                if (segment.position.z < -50) {
+                    segment.position.z += tunnelSegments.length * 30;
+                }
+            }
+            
+            // Create game elements based on current level
+            const asteroidChance = 0.01 + (currentLevel * 0.002);
+            const enemyChance = 0.005 + (currentLevel * 0.001);
+            const powerUpChance = 0.002;
+            
+            // Create asteroids randomly
+            if (Math.random() < asteroidChance) {
+                createAsteroid();
+            }
+            
+            // Create enemies randomly
+            if (Math.random() < enemyChance) {
+                createEnemy();
+            }
+            
+            // Create power-ups rarely
+            if (Math.random() < powerUpChance) {
+                createPowerUp();
+            }
+            
+            // Move asteroids
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                const asteroid = asteroids[i];
+                asteroid.position.z -= worldSpeed;
+                
+                // Apply rotation
+                asteroid.rotation.x += asteroid.rotationSpeed.x;
+                asteroid.rotation.y += asteroid.rotationSpeed.y;
+                asteroid.rotation.z += asteroid.rotationSpeed.z;
+                
+                // Remove asteroids that are behind the player
+                if (asteroid.position.z < -20) {
+                    asteroid.dispose();
+                    asteroids.splice(i, 1);
+                }
+            }
+            
+            // Move enemies
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                enemy.position.z -= worldSpeed;
+                
+                // Apply movement pattern
+                const time = scene.getEngine().getFps() / 100;
+                
+                if (enemy.movementPattern === 1) {
+                    // Circular movement
+                    const radius = 5;
+                    const phase = enemy.movementPhase + time * 0.2;
+                    enemy.position.x = enemy.basePosition.x + Math.cos(phase) * radius;
+                    enemy.position.y = enemy.basePosition.y + Math.sin(phase) * radius;
+                } else if (enemy.movementPattern === 2) {
+                    // Sine wave movement
+                    const amplitude = 5;
+                    const phase = enemy.movementPhase + time * 0.3;
+                    enemy.position.x = enemy.basePosition.x + Math.sin(phase) * amplitude;
+                }
+                
+                // Make enemy face in the direction it's moving
+                enemy.rotation.z = Math.atan2(
+                    enemy.position.y - enemy.position.y, 
+                    enemy.position.x - enemy.position.x
+                ) * 0.1;
+                
+                // Remove enemies that are behind the player
+                if (enemy.position.z < -20) {
+                    enemy.dispose();
+                    enemies.splice(i, 1);
+                }
+            }
+            
+            // Move lasers
+            for (let i = lasers.length - 1; i >= 0; i--) {
+                const laser = lasers[i];
+                laser.position.z += 2; // Lasers move forward faster than the world
+                
+                // Remove lasers that are too far
+                if (laser.position.z > 150) {
+                    laser.dispose();
+                    lasers.splice(i, 1);
+                }
+            }
+            
+            // Move power-ups
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                const powerUp = powerUps[i];
+                powerUp.position.z -= worldSpeed;
+                
+                // Apply rotation for visual effect
+                powerUp.rotation.y += powerUp.rotationSpeed.y;
+                
+                // Remove power-ups that are behind the player
+                if (powerUp.position.z < -20) {
+                    powerUp.dispose();
+                    powerUps.splice(i, 1);
+                }
+            }
+            
+            // Check collisions
+            checkCollisions();
+        }
+    });
+    
+    return scene;
+};
+
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions?.();
+                    if (!engineOptions || engineOptions.audioEngine !== false) {
+                        BABYLON.AbstractEngine.audioEngine = BABYLON.AbstractEngine.AudioEngineFactory(window.engine.getRenderingCanvas(), window.engine.getAudioContext(), window.engine.getAudioDestination());
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>
