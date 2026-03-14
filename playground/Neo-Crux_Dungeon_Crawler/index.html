@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NEO-CRUX: Tactical Protocol</title>
+    <!-- A-Frame 1.7.0 -->
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <!-- Tailwind CSS for UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
+        
+        body, html { font-family: 'Rajdhani', sans-serif; margin: 0; padding: 0; overflow: hidden; background-color: #000; touch-action: none; user-select: none; -webkit-user-select: none; width: 100%; height: 100%; }
+        h1, h2, h3, .cyber-font { font-family: 'Orbitron', sans-serif; }
+
+        /* CRT Scanline Overlay */
+        body::after {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 100; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        }
+
+        .ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 50; pointer-events: none; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background: rgba(5, 5, 10, 0.85); backdrop-filter: blur(5px);
+            transition: opacity 0.3s ease;
+        }
+
+        .ui-layer.hidden { opacity: 0; pointer-events: none; display: none !important; }
+        .ui-layer.active { pointer-events: auto; display: flex; }
+
+        .cyber-panel {
+            background: linear-gradient(135deg, rgba(20,20,30,0.95), rgba(10,10,15,0.95));
+            border: 2px solid #0ff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.4), inset 0 0 15px rgba(0, 255, 255, 0.2);
+            border-radius: 8px; padding: 1.5rem; max-width: 500px; width: 90%;
+            text-align: center; color: #fff; position: relative; overflow: hidden;
+            pointer-events: auto;
+        }
+
+        .cyber-btn {
+            background: rgba(0,255,255,0.05); color: #0ff; font-family: 'Orbitron', sans-serif;
+            border: 1px solid #0ff; padding: 12px 20px; font-size: 1.1rem; cursor: pointer;
+            transition: all 0.2s; text-transform: uppercase; letter-spacing: 2px; margin: 8px 0;
+            box-shadow: 0 0 5px rgba(0,255,255,0.2); width: 100%; font-weight: bold;
+        }
+
+        .cyber-btn:active, .cyber-btn.active-click { background: #0ff; color: #000; box-shadow: 0 0 20px rgba(0,255,255,0.8); transform: scale(0.98); }
+        .cyber-btn:disabled { border-color: #555; color: #555; cursor: not-allowed; box-shadow: none; background: transparent; }
+
+        .text-glow-cyan { text-shadow: 0 0 10px rgba(0, 255, 255, 0.8); }
+        .text-glow-red { text-shadow: 0 0 10px rgba(255, 0, 85, 0.8); }
+
+        /* HUD Styles */
+        #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 40; display: none; flex-direction: column; justify-content: space-between; }
+        
+        .hud-damage { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, transparent 50%, rgba(255,0,0,0.6) 100%); opacity: 0; transition: opacity 0.2s; z-index: -1; }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px; width: 100%; pointer-events: none; z-index: 60; position: relative; }
+        
+        .hud-stats {
+            background: rgba(0,0,0,0.8); border: 1px solid #0ff; padding: 10px;
+            color: white; border-radius: 4px; backdrop-filter: blur(4px);
+            box-shadow: 0 0 10px rgba(0,255,255,0.2); pointer-events: auto;
+        }
+
+        .stat-bar-container { width: 100%; min-width: 140px; height: 10px; border: 1px solid #444; background: #111; margin-top: 4px; border-radius: 2px; overflow: hidden; }
+        .hp-bar-fill { height: 100%; background: #0ff; width: 100%; transition: width 0.3s; box-shadow: 0 0 10px #0ff; }
+        .mp-bar-fill { height: 100%; background: #3b82f6; width: 100%; transition: width 0.3s; box-shadow: 0 0 10px #3b82f6; }
+        .xp-bar-fill { height: 100%; background: #a855f7; width: 0%; transition: width 0.3s; box-shadow: 0 0 10px #a855f7; }
+
+        .hud-minimap {
+            background: rgba(0,0,0,0.8); border: 1px solid #0ff; padding: 5px;
+            border-radius: 4px; backdrop-filter: blur(4px); box-shadow: 0 0 10px rgba(0,255,255,0.2);
+            display: flex; flex-direction: column; align-items: center; pointer-events: auto;
+        }
+
+        /* Mobile D-Pad Container - Anchored Left */
+        .d-pad-container {
+            width: 100%; padding: 15px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
+            pointer-events: none; z-index: 60;
+        }
+        
+        .d-pad {
+            display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(2, 60px); gap: 10px; pointer-events: auto;
+        }
+
+        .d-btn {
+            background: rgba(0, 255, 255, 0.1); border: 2px solid #0ff; border-radius: 8px;
+            color: #0ff; display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 10px rgba(0,255,255,0.2); transition: all 0.1s; cursor: pointer;
+        }
+        .d-btn:active { background: rgba(0, 255, 255, 0.4); transform: scale(0.9); box-shadow: 0 0 20px #0ff; }
+        .d-btn svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+        .auto-btn {
+            background: rgba(0,0,0,0.8); border: 1px solid #555; color: #888; padding: 5px 10px;
+            border-radius: 4px; font-family: 'Orbitron', sans-serif; font-size: 0.8rem;
+            cursor: pointer; pointer-events: auto; transition: all 0.2s; margin-bottom: 10px; margin-left: 65px;
+        }
+        .auto-btn.active { border-color: #0f0; color: #0f0; box-shadow: 0 0 10px rgba(0,255,0,0.4); }
+
+        /* Gesture Zone */
+        #gesture-zone { position: absolute; top: 0; left: 0; width: 100%; height: 75%; z-index: 10; pointer-events: auto; }
+
+        .combat-log-entry { margin-bottom: 4px; animation: fadeIn 0.3s ease-in; font-size: 0.8rem; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Hide VR Button */
+        .a-enter-vr { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- ========================================== -->
+    <!-- UI OVERLAYS -->
+    <!-- ========================================== -->
+
+    <div id="screen-start" class="ui-layer active">
+        <div class="cyber-panel">
+            <h1 class="text-5xl md:text-6xl font-black mb-2 text-cyan-400 text-glow-cyan tracking-widest">NEO-CRUX</h1>
+            <h2 class="text-lg md:text-xl text-gray-300 mb-6 tracking-widest border-b border-cyan-900 pb-4">T A C T I C A L</h2>
+            <p class="mb-6 text-gray-400 text-sm md:text-lg">Grid-Based Dungeon Crawler</p>
+            <button class="cyber-btn" onclick="Game.setScreen('avatar')">Initialize Link</button>
+        </div>
+    </div>
+
+    <div id="screen-avatar" class="ui-layer hidden">
+        <div class="cyber-panel w-full max-w-3xl h-[80vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-4 text-cyan-400 border-b border-cyan-900 pb-2 sticky top-0 bg-[#0c0c11] z-10">SELECT ECHO</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="avatar-container"></div>
+        </div>
+    </div>
+
+    <div id="screen-story" class="ui-layer hidden">
+        <div class="cyber-panel">
+            <h2 class="text-2xl font-bold mb-4" id="story-title" style="color: #0ff;">BIOME PROTOCOL</h2>
+            <div class="text-left bg-black/60 p-3 border border-cyan-900 rounded mb-4 h-40 overflow-y-auto font-mono text-xs md:text-sm leading-relaxed text-cyan-100" id="story-text"></div>
+            <button class="cyber-btn" onclick="Game.setScreen('basecamp')">Acknowledge</button>
+        </div>
+    </div>
+
+    <div id="screen-basecamp" class="ui-layer hidden">
+        <div class="cyber-panel">
+            <h2 class="text-2xl font-bold mb-2 text-cyan-400">BASE CAMP NODE</h2>
+            <p class="text-gray-400 mb-4 border-b border-gray-700 pb-2 text-sm" id="basecamp-location">Sector Safe-Zone</p>
+            
+            <div class="grid grid-cols-2 gap-3 mb-6 text-left text-sm md:text-lg">
+                <div class="bg-black/50 p-2 rounded border border-cyan-900">
+                    <span class="text-gray-500 block text-[10px] md:text-xs">INTEGRITY (HP)</span>
+                    <span id="bc-hp" class="font-bold text-cyan-400">100/100</span>
+                </div>
+                <div class="bg-black/50 p-2 rounded border border-blue-900">
+                    <span class="text-gray-500 block text-[10px] md:text-xs">ENERGY (MP)</span>
+                    <span id="bc-mp" class="font-bold text-blue-400">30/30</span>
+                </div>
+                <div class="bg-black/50 p-2 rounded border border-purple-900 col-span-2 flex justify-between items-center">
+                    <div>
+                        <span class="text-gray-500 block text-[10px] md:text-xs">ECHO LEVEL</span>
+                        <span id="bc-lvl" class="font-bold text-purple-400">LVL 1</span>
+                    </div>
+                    <div class="text-center">
+                        <span class="text-gray-500 block text-[10px] md:text-xs">DATA-CREDITS</span>
+                        <span id="bc-credits" class="font-bold text-yellow-400">0 CR</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-gray-500 block text-[10px] md:text-xs">OUTPUT</span>
+                        <span id="bc-dmg" class="font-bold text-red-400">20 DMG</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <button class="cyber-btn" id="btn-heal" onclick="Game.healPlayer()">System Patch (30 CR)</button>
+                <button class="cyber-btn" style="background: rgba(0,255,255,0.15);" onclick="Game.startDungeon()">Jack Into Sector</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="screen-settings" class="ui-layer hidden" style="z-index: 70;">
+        <div class="cyber-panel">
+            <h2 class="text-2xl font-bold mb-6 text-cyan-400 border-b border-cyan-900 pb-2">SYSTEM OVERRIDES</h2>
+            
+            <div class="flex justify-between items-center mb-4 bg-black/40 p-3 rounded border border-gray-800">
+                <span class="text-sm md:text-lg">Shoulder Flashlight</span>
+                <button id="btn-toggle-light" class="border border-cyan-500 text-cyan-400 px-3 py-1 text-sm rounded hover:bg-cyan-900" onclick="Game.toggleSetting('flashlight')">ON</button>
+            </div>
+
+            <div class="flex justify-between items-center mb-6 bg-black/40 p-3 rounded border border-gray-800">
+                <span class="text-sm md:text-lg">God Mode (Invincible)</span>
+                <button id="btn-toggle-god" class="border border-gray-500 text-gray-400 px-3 py-1 text-sm rounded hover:bg-gray-800" onclick="Game.toggleSetting('godmode')">OFF</button>
+            </div>
+
+            <button class="cyber-btn" onclick="Game.closeSettings()">Resume Link</button>
+        </div>
+    </div>
+
+    <!-- Dungeon HUD & Controls -->
+    <div id="hud">
+        <div class="hud-damage" id="hud-damage-overlay"></div>
+        <div id="gesture-zone"></div>
+
+        <!-- Top HUD Elements -->
+        <div class="top-bar">
+            <!-- Stats -->
+            <div class="hud-stats flex flex-col gap-1 w-1/2 max-w-[200px]">
+                <div class="flex justify-between items-end mb-1 border-b border-gray-700 pb-1">
+                    <span class="text-[10px] md:text-xs text-cyan-300 font-mono" id="hud-biome-name">NEON SLUMS</span>
+                    <span class="text-[10px] md:text-xs text-purple-400 font-mono font-bold" id="hud-lvl-text">LVL 1</span>
+                </div>
+                
+                <div class="flex justify-between text-xs md:text-sm cyber-font font-bold">
+                    <span id="hud-hp-text">HP: 100</span>
+                    <span id="hud-mp-text" class="text-blue-400">MP: 30</span>
+                </div>
+                
+                <div class="stat-bar-container"><div class="hp-bar-fill" id="hud-hp-bar"></div></div>
+                <div class="stat-bar-container !h-[6px] !border-blue-900"><div class="mp-bar-fill" id="hud-mp-bar"></div></div>
+                
+                <div class="flex justify-between items-center mt-1">
+                    <span class="text-[9px] text-gray-400">XP</span>
+                    <div class="stat-bar-container !w-[80%] !h-[4px] !mt-0 !border-purple-900"><div class="xp-bar-fill" id="hud-xp-bar"></div></div>
+                </div>
+                <div class="text-yellow-400 font-bold mt-1 text-[10px] md:text-xs text-right" id="hud-credits">CR: 0</div>
+            </div>
+
+            <!-- Minimap & Settings (Ensured Clickable) -->
+            <div class="flex flex-col items-end gap-2" style="pointer-events: auto;">
+                <button class="bg-black/90 border border-cyan-500 text-cyan-400 px-4 py-2 rounded text-xs md:text-sm shadow-[0_0_15px_rgba(0,255,255,0.4)] hover:bg-cyan-900 font-bold tracking-widest" onclick="Game.openSettings()">SYS OVERRIDE</button>
+                <div class="hud-minimap">
+                    <span class="text-[9px] text-cyan-400 mb-1 tracking-widest font-bold">SCANNER</span>
+                    <canvas id="minimapCanvas" width="90" height="90" class="image-rendering-pixelated bg-black/90"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile D-Pad Anchored Left -->
+        <div class="d-pad-container">
+            <button id="btn-auto-move" class="auto-btn" onclick="Game.toggleAutoMove()">AUTO NAV: OFF</button>
+            <div class="d-pad">
+                <div class="d-btn col-start-2" onclick="Game.inputMove(1)"><svg viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg></div>
+                <div class="d-btn col-start-1 row-start-2" onclick="Game.inputTurn(-1)"><svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg></div>
+                <div class="d-btn col-start-2 row-start-2" onclick="Game.inputMove(-1)"><svg viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg></div>
+                <div class="d-btn col-start-3 row-start-2" onclick="Game.inputTurn(1)"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
+            </div>
+        </div>
+
+        <!-- TURN-BASED COMBAT OVERLAY -->
+        <div id="combat-ui" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/90 border-2 border-red-500 rounded-lg p-4 w-[90%] max-w-[350px] z-[80] shadow-[0_0_30px_rgba(255,0,0,0.4)] backdrop-blur-md pointer-events-auto flex flex-col">
+            <div class="flex justify-between items-center mb-2">
+                <h3 id="combat-enemy-name" class="text-xl md:text-2xl font-bold text-red-400 cyber-font tracking-wider">Enemy</h3>
+                <button id="btn-auto-fight" class="auto-btn !m-0 !text-[10px]" onclick="Game.toggleAutoFight()">AUTO: OFF</button>
+            </div>
+            
+            <div class="w-full bg-red-950 h-2 md:h-3 rounded mb-3 border border-red-800 overflow-hidden">
+                <div id="combat-enemy-hp" class="bg-red-500 h-full transition-all duration-300" style="width: 100%;"></div>
+            </div>
+            
+            <div id="combat-log" class="flex-grow h-24 md:h-28 overflow-y-auto text-xs text-gray-300 font-mono mb-4 border border-gray-700 p-2 bg-black/80 rounded flex flex-col gap-1"></div>
+
+            <div id="combat-actions" class="grid grid-cols-2 gap-2">
+                <button class="cyber-btn !text-xs md:!text-sm !p-2 hover:bg-red-900 !border-red-500 !text-red-400" onclick="Game.combatAction('attack')">ATTACK</button>
+                <button class="cyber-btn !text-xs md:!text-sm !p-2 hover:bg-green-900 !border-green-500 !text-green-400" onclick="Game.combatAction('heal')">HEAL (10 MP)</button>
+                <button class="cyber-btn !text-xs md:!text-sm !p-2 hover:bg-blue-900 !border-blue-500 !text-blue-400" onclick="Game.combatAction('guard')">GUARD</button>
+                <button class="cyber-btn !text-xs md:!text-sm !p-2 hover:bg-gray-800 !border-gray-500 !text-gray-400" onclick="Game.combatAction('flee')">FLEE</button>
+            </div>
+            
+            <button id="combat-continue" class="hidden cyber-btn !border-yellow-500 !text-yellow-400 hover:bg-yellow-900" onclick="Game.endCombat(true)">COLLECT BOUNTY</button>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- A-FRAME 3D SCENE -->
+    <!-- ========================================== -->
+    <a-scene id="game-scene" background="color: #000000" fog="type: exponential; color: #000; density: 0.035" renderer="antialias: true; colorManagement: true;">
+        <a-assets>
+            <img id="tex-grid" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBXaW5kb3dzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjlFNDg2QkRFMjkxRTExRTFBREM5OEQwNzBGQTBDNzBBIiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOjlFNDg2QkRGMjkxRTExRTFBREM5OEQwNzBGQTBDNzBBIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6OUU0ODZCREMyOTFFMTFFMUFEQzU4RDA3MEZBMEM3MEEiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6OUU0ODZCREQyOTFFMTFFMUFEQzU4RDA3MEZBMEM3MEEiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz5/l4PPAAAAhklEQVR42uzQAQ0AAAgDoOt/tDN4QAAAAAAAAAAAACo1yA4AAAAAAACw4wEAAAAAALABAAAAAAAAGwAAAAAAALABAAAAAAAAGwAAAAAAALABAAAAAAAAGwAAAAAAALABAAAAAAAAGwAAAAAAALABAAAAAAAAGwAAAAAAALABAAAAAAAAGwAAgL8B8XAAEc3b2/QAAAAASUVORK5CYII=">
+            <a-mixin id="enemy-body" geometry="primitive: cone; radiusBottom: 0.4; radiusTop: 0.1; height: 1.2" position="0 0.6 0"></a-mixin>
+            <a-mixin id="enemy-head" geometry="primitive: cylinder; radius: 0.25; height: 0.3" position="0 1.4 0"></a-mixin>
+        </a-assets>
+
+        <!-- Ambient Lighting -->
+        <a-entity id="env-light-ambient" light="type: ambient; color: #444; intensity: 1"></a-entity>
+
+        <!-- Player Rig (Grid Locked, No Look Controls) -->
+        <a-entity id="player-rig" position="0 0 0" rotation="0 0 0">
+            <a-camera id="main-camera" position="0 1.6 0" wasd-controls="enabled: false" look-controls="enabled: false">
+                <!-- Point Light Flashlight -->
+                <a-entity id="player-flashlight" light="type: point; distance: 20; intensity: 1.2; color: #e0f7fa; decay: 1.5" position="0 0 0"></a-entity>
+                
+                <!-- Weapon Model -->
+                <a-entity id="weapon" position="0.3 -0.4 -0.6" rotation="45 -10 0">
+                    <a-cylinder color="#333" radius="0.02" height="0.2"></a-cylinder>
+                    <a-cylinder id="weapon-blade" color="#0ff" radius="0.012" height="1.0" position="0 0.6 0" material="emissive: #0ff; emissiveIntensity: 0.8; transparent: true; opacity: 0.9">
+                        <a-entity light="type: point; color: #0ff; intensity: 0.4; distance: 2" position="0 0 0"></a-entity>
+                    </a-cylinder>
+                </a-entity>
+            </a-camera>
+        </a-entity>
+
+        <!-- Dungeon Environment Container -->
+        <a-entity id="dungeon-container"></a-entity>
+
+        <!-- High-Gloss Base Floor & Ceiling -->
+        <a-plane id="dungeon-floor" position="0 0 0" rotation="-90 0 0" width="500" height="500" material="src: #tex-grid; repeat: 250 250; metalness: 0.9; roughness: 0.1; color: #151515"></a-plane>
+        <a-plane id="dungeon-ceiling" position="0 4 0" rotation="90 0 0" width="500" height="500" color="#050505" material="src: #tex-grid; repeat: 250 250; metalness: 0.8; roughness: 0.5; emissive: #111; emissiveIntensity: 0.1"></a-plane>
+
+    </a-scene>
+
+    <!-- ========================================== -->
+    <!-- GAME LOGIC (JAVASCRIPT) -->
+    <!-- ========================================== -->
+    <script>
+        const TILE_SIZE = 4;
+        const DIRS = [ {dx: 0, dz: -1}, {dx: 1, dz: 0}, {dx: 0, dz: 1}, {dx: -1, dz: 0} ]; // N, E, S, W
+
+        const CONFIG = {
+            avatars: [
+                { id: 'synth', name: 'Synth-Knight', role: 'Heavy Chassis', desc: 'High integrity shielding.', maxHp: 150, maxMp: 30, dmg: 18, color: '#0ff' },
+                { id: 'hacker', name: 'Net-Ronin', role: 'Glass Cannon', desc: 'Over-volted plasma blade.', maxHp: 80, maxMp: 60, dmg: 35, color: '#f0f' }
+            ],
+            biomes: [
+                {
+                    id: 'neon-slums', name: 'Sector 7: Neon Slums',
+                    wallColor: '#101018', floorColor: '#050508', ambientColor: '#334', fogColor: '#020205', lightColor: '#ff0055',
+                    story: "You are an Echo. A fragmented backup of the original System Administrator.\n\n<span class='text-cyan-400'>PROTOCOL:</span> Traverse the facility, purge rogue programs, and locate the Data-Terminal to descend.",
+                    enemies: [{ name: 'Junk-Droid', hp: 45, dmg: 12, color: '#ff5555', points: 15, xp: 20 }], layoutSize: 15
+                },
+                {
+                    id: 'bio-circuits', name: 'Bio-Circuit Gardens',
+                    wallColor: '#0a150a', floorColor: '#051105', ambientColor: '#232', fogColor: '#001a00', lightColor: '#00ff55',
+                    story: "Nature algorithms have gone rogue. The facility structure is intact, but the server racks are overgrown.\n\n<span class='text-green-400'>PROTOCOL:</span> Survive the Flora-Bots. Find the Terminal.",
+                    enemies: [
+                        { name: 'Flora-Bot', hp: 75, dmg: 18, color: '#55ff55', points: 25, xp: 35 },
+                        { name: 'Spore-Drone', hp: 50, dmg: 28, color: '#aaff00', points: 15, xp: 25 }
+                    ], layoutSize: 18
+                },
+                {
+                    id: 'obsidian-core', name: 'The Obsidian Core',
+                    wallColor: '#110000', floorColor: '#0a0000', ambientColor: '#422', fogColor: '#110000', lightColor: '#ff0000',
+                    story: "The inner sanctum. The architecture is cold and mathematically perfect.\n\n<span class='text-red-400'>TRUTH UNLOCKED:</span> The tyrant AI you are here to destroy is your original consciousness. Hard reset initiated.",
+                    enemies: [
+                        { name: 'Shadow-Inquisitor', hp: 150, dmg: 35, color: '#ff2222', points: 50, xp: 75 },
+                        { name: 'Core-Guard', hp: 250, dmg: 18, color: '#550000', points: 30, xp: 50 }
+                    ], layoutSize: 20
+                }
+            ]
+        };
+
+        const Game = {
+            state: {
+                currentScreen: 'start',
+                biomeIndex: 0,
+                player: { avatar: null, hp: 100, maxHp: 100, mp: 30, maxMp: 30, dmg: 20, credits: 0, xp: 0, level: 1, x: 1, z: 1, dir: 0 },
+                settings: { flashlight: true, godmode: false },
+                autoMove: false, autoFight: false, lastAutoMoveTime: 0,
+                inDungeon: false, isPaused: false, isAnimating: false,
+                combatMode: false, activeEnemy: null, isGuarding: false,
+                grid: [], mapSize: 0, enemies: [], exitPos: null
+            },
+
+            init() {
+                window.Game = this; 
+                this.renderAvatars();
+                this.setupInputs();
+                requestAnimationFrame(this.gameLoop.bind(this));
+            },
+
+            setupInputs() {
+                window.addEventListener('keydown', (e) => {
+                    if (!this.state.inDungeon || this.state.isPaused || this.state.combatMode || this.state.isAnimating) return;
+                    if (this.state.autoMove) this.toggleAutoMove(); // Cancel auto-move on manual input
+                    
+                    if (e.code === 'KeyW' || e.code === 'ArrowUp') this.inputMove(1);
+                    else if (e.code === 'KeyS' || e.code === 'ArrowDown') this.inputMove(-1);
+                    else if (e.code === 'KeyA' || e.code === 'ArrowLeft') this.inputTurn(-1);
+                    else if (e.code === 'KeyD' || e.code === 'ArrowRight') this.inputTurn(1);
+                });
+
+                const zone = document.getElementById('gesture-zone');
+                let startX = 0, startY = 0, startTime = 0;
+                
+                zone.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX; startY = e.touches[0].clientY; startTime = performance.now();
+                }, {passive: true});
+
+                zone.addEventListener('touchend', (e) => {
+                    if (!this.state.inDungeon || this.state.isPaused || this.state.combatMode || this.state.isAnimating) return;
+                    
+                    const dx = e.changedTouches[0].clientX - startX;
+                    const dy = e.changedTouches[0].clientY - startY;
+                    const dt = performance.now() - startTime;
+                    
+                    if (dt < 500) { 
+                        if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+                            if (this.state.autoMove) this.toggleAutoMove(); // Cancel auto-move
+                            if (Math.abs(dx) > Math.abs(dy)) {
+                                if (dx > 40) this.inputTurn(1); 
+                                else if (dx < -40) this.inputTurn(-1); 
+                            } else {
+                                if (dy > 40) this.inputMove(-1); 
+                                else if (dy < -40) this.inputMove(1); 
+                            }
+                        }
+                    }
+                }, {passive: true});
+            },
+
+            setScreen(screenId) {
+                document.querySelectorAll('.ui-layer').forEach(el => {
+                    if(el.id !== 'screen-settings') { 
+                        el.classList.remove('active'); el.classList.add('hidden');
+                    }
+                });
+                document.getElementById('hud').style.display = 'none';
+
+                if (screenId !== 'dungeon') {
+                    const target = document.getElementById(`screen-${screenId}`);
+                    if(target) { target.classList.remove('hidden'); target.classList.add('active'); }
+                }
+
+                this.state.currentScreen = screenId;
+
+                if (screenId === 'story') this.setupStoryScreen();
+                else if (screenId === 'basecamp') this.updateBaseCampUI();
+                else if (screenId === 'dungeon') {
+                    document.getElementById('hud').style.display = 'flex';
+                    this.state.inDungeon = true;
+                    this.updateHUD();
+                } else this.state.inDungeon = false;
+            },
+
+            // --- SETTINGS LOGIC ---
+            openSettings() {
+                if(this.state.combatMode || this.state.isAnimating) return;
+                this.state.isPaused = true;
+                if(this.state.autoMove) this.toggleAutoMove(); // Pause auto nav
+                document.getElementById('screen-settings').classList.remove('hidden');
+                document.getElementById('screen-settings').classList.add('active');
+            },
+            closeSettings() {
+                this.state.isPaused = false;
+                document.getElementById('screen-settings').classList.add('hidden');
+                document.getElementById('screen-settings').classList.remove('active');
+            },
+            toggleSetting(key) {
+                this.state.settings[key] = !this.state.settings[key];
+                
+                if (key === 'flashlight') {
+                    const btn = document.getElementById('btn-toggle-light');
+                    const light = document.getElementById('player-flashlight');
+                    if (this.state.settings.flashlight) {
+                        btn.innerText = "ON"; btn.className = "border border-cyan-500 text-cyan-400 px-3 py-1 text-sm rounded hover:bg-cyan-900";
+                        light.setAttribute('light', 'intensity: 1.2');
+                    } else {
+                        btn.innerText = "OFF"; btn.className = "border border-gray-500 text-gray-400 px-3 py-1 text-sm rounded hover:bg-gray-800";
+                        light.setAttribute('light', 'intensity: 0');
+                    }
+                }
+                else if (key === 'godmode') {
+                    const btn = document.getElementById('btn-toggle-god');
+                    if (this.state.settings.godmode) {
+                        btn.innerText = "ON"; btn.className = "border border-red-500 text-red-400 px-3 py-1 text-sm rounded hover:bg-red-900";
+                        this.state.player.hp = this.state.player.maxHp;
+                        this.state.player.mp = this.state.player.maxMp;
+                        this.updateHUD();
+                    } else {
+                        btn.innerText = "OFF"; btn.className = "border border-gray-500 text-gray-400 px-3 py-1 text-sm rounded hover:bg-gray-800";
+                    }
+                }
+            },
+
+            // --- AUTO SYSTEMS ---
+            toggleAutoMove() {
+                this.state.autoMove = !this.state.autoMove;
+                const btn = document.getElementById('btn-auto-move');
+                if (this.state.autoMove) {
+                    btn.innerText = "AUTO NAV: ON";
+                    btn.classList.add('active');
+                } else {
+                    btn.innerText = "AUTO NAV: OFF";
+                    btn.classList.remove('active');
+                }
+            },
+
+            toggleAutoFight() {
+                this.state.autoFight = !this.state.autoFight;
+                const btn = document.getElementById('btn-auto-fight');
+                if (this.state.autoFight) {
+                    btn.innerText = "AUTO: ON";
+                    btn.classList.add('active');
+                    this.tryAutoFight(); // Immediately attempt if possible
+                } else {
+                    btn.innerText = "AUTO: OFF";
+                    btn.classList.remove('active');
+                }
+            },
+
+            processAutoMove() {
+                let p = this.state.player;
+                let d = DIRS[p.dir];
+                let nx = p.x + d.dx, nz = p.z + d.dz;
+                let frontCell = this.state.grid[nx] ? this.state.grid[nx][nz] : 1;
+                let enemy = this.state.enemies.find(e => e.x === nx && e.z === nz);
+                let isExit = (this.state.exitPos && nx === this.state.exitPos.x && nz === this.state.exitPos.z);
+                
+                if (enemy || frontCell === 2 || frontCell === 0 || isExit) {
+                    this.inputMove(1); // Move forward or interact
+                } else {
+                    // Blocked. Try to turn to an open space.
+                    let leftDir = (p.dir - 1 + 4) % 4;
+                    let rightDir = (p.dir + 1) % 4;
+                    let leftCell = this.state.grid[p.x + DIRS[leftDir].dx] ? this.state.grid[p.x + DIRS[leftDir].dx][p.z + DIRS[leftDir].dz] : 1;
+                    let rightCell = this.state.grid[p.x + DIRS[rightDir].dx] ? this.state.grid[p.x + DIRS[rightDir].dx][p.z + DIRS[rightDir].dz] : 1;
+
+                    if (leftCell !== 1 && rightCell === 1) this.inputTurn(-1);
+                    else if (rightCell !== 1 && leftCell === 1) this.inputTurn(1);
+                    else this.inputTurn(Math.random() > 0.5 ? 1 : -1); // Random if both or neither are open
+                }
+            },
+
+            tryAutoFight() {
+                if (!this.state.combatMode || !this.state.autoFight) return;
+                const attackBtn = document.querySelector('#combat-actions button');
+                if (attackBtn && !attackBtn.disabled) {
+                    this.combatAction('attack');
+                }
+            },
+
+            gameLoop(timestamp) {
+                requestAnimationFrame(this.gameLoop.bind(this));
+                
+                // Auto Move Tick
+                if (this.state.autoMove && !this.state.isAnimating && !this.state.isPaused && !this.state.combatMode) {
+                    if (timestamp - this.state.lastAutoMoveTime > 400) { // 400ms delay between auto moves
+                        this.state.lastAutoMoveTime = timestamp;
+                        this.processAutoMove();
+                    }
+                }
+            },
+
+            // --- CORE LOGIC ---
+            renderAvatars() {
+                const container = document.getElementById('avatar-container');
+                container.innerHTML = '';
+                CONFIG.avatars.forEach(avatar => {
+                    container.innerHTML += `
+                        <div class="border border-gray-700 bg-black/50 p-4 rounded hover:border-[${avatar.color}] cursor-pointer transition" 
+                             style="border-color: #333;" onmouseover="this.style.borderColor='${avatar.color}'" onmouseout="this.style.borderColor='#333'"
+                             onclick="Game.selectAvatar('${avatar.id}')">
+                            <h3 class="text-xl md:text-2xl font-bold mb-1" style="color: ${avatar.color}">${avatar.name}</h3>
+                            <p class="text-[10px] md:text-xs text-gray-400 mb-2 uppercase tracking-wider">${avatar.role}</p>
+                            <p class="text-xs md:text-sm text-gray-300 mb-3">${avatar.desc}</p>
+                            <div class="flex justify-between text-[10px] md:text-xs font-mono"><span class="text-cyan-400">HP: ${avatar.maxHp} | MP: ${avatar.maxMp}</span><span class="text-red-400">OUTPUT: ${avatar.dmg}</span></div>
+                        </div>`;
+                });
+            },
+
+            selectAvatar(id) {
+                const avatar = CONFIG.avatars.find(a => a.id === id);
+                this.state.player = { ...this.state.player, avatar, hp: avatar.maxHp, maxHp: avatar.maxHp, mp: avatar.maxMp, maxMp: avatar.maxMp, dmg: avatar.dmg };
+                
+                document.getElementById('weapon-blade').setAttribute('material', `emissive: ${avatar.color}; emissiveIntensity: 0.8; transparent: true; opacity: 0.9`);
+                document.getElementById('weapon-blade').setAttribute('color', avatar.color);
+                document.getElementById('weapon-blade').querySelector('a-entity').setAttribute('light', `color: ${avatar.color}`);
+
+                this.state.biomeIndex = 0;
+                this.setScreen('story');
+            },
+
+            setupStoryScreen() {
+                if (this.state.biomeIndex >= CONFIG.biomes.length) {
+                    document.getElementById('story-title').innerText = "SYSTEM PURGED";
+                    document.getElementById('story-title').style.color = "#0f0";
+                    document.getElementById('story-text').innerHTML = "Corrupted prime consciousness deleted. The grid is stabilizing.<br><br>Thank you for playing.";
+                    document.querySelector('#screen-story button').innerText = "Reboot Console (Restart)";
+                    document.querySelector('#screen-story button').onclick = () => location.reload();
+                    return;
+                }
+                const biome = CONFIG.biomes[this.state.biomeIndex];
+                document.getElementById('story-title').innerText = biome.name.toUpperCase();
+                document.getElementById('story-text').innerHTML = biome.story.replace(/\n/g, '<br>');
+                this.applyBiomeLighting(biome);
+            },
+
+            updateBaseCampUI() {
+                const biome = CONFIG.biomes[this.state.biomeIndex];
+                document.getElementById('basecamp-location').innerText = `Preparing to enter: ${biome.name}`;
+                document.getElementById('bc-hp').innerText = `${Math.floor(this.state.player.hp)}/${this.state.player.maxHp}`;
+                document.getElementById('bc-mp').innerText = `${Math.floor(this.state.player.mp)}/${this.state.player.maxMp}`;
+                
+                const hpRatio = this.state.player.hp / this.state.player.maxHp;
+                document.getElementById('bc-hp').className = `font-bold ${hpRatio > 0.5 ? 'text-cyan-400' : hpRatio > 0.25 ? 'text-yellow-400' : 'text-red-500'}`;
+                document.getElementById('bc-credits').innerText = `${this.state.player.credits} CR`;
+                
+                document.getElementById('bc-lvl').innerText = `LVL ${this.state.player.level}`;
+                document.getElementById('bc-dmg').innerText = `${this.state.player.dmg} DMG`;
+
+                const healBtn = document.getElementById('btn-heal');
+                if (this.state.player.hp >= this.state.player.maxHp && this.state.player.mp >= this.state.player.maxMp) { healBtn.innerText = "Systems Optimal"; healBtn.disabled = true; }
+                else if (this.state.player.credits < 30) { healBtn.innerText = "Insufficient Credits (30 CR)"; healBtn.disabled = true; }
+                else { healBtn.innerText = "System Patch (30 CR)"; healBtn.disabled = false; }
+            },
+
+            healPlayer() {
+                if (this.state.player.credits >= 30) {
+                    this.state.player.credits -= 30;
+                    this.state.player.hp = this.state.player.maxHp;
+                    this.state.player.mp = this.state.player.maxMp;
+                    this.updateBaseCampUI();
+                }
+            },
+
+            applyBiomeLighting(biome) {
+                document.getElementById('env-light-ambient').setAttribute('light', `color: ${biome.ambientColor}`);
+                document.querySelector('a-scene').setAttribute('fog', `color: ${biome.fogColor}`);
+                // Use floor color to tint the floor, but keep metalness high for reflections
+                document.getElementById('dungeon-floor').setAttribute('material', `src: #tex-grid; repeat: 250 250; metalness: 0.9; roughness: 0.1; color: ${biome.floorColor}`);
+            },
+
+            startDungeon() {
+                const biome = CONFIG.biomes[this.state.biomeIndex];
+                this.applyBiomeLighting(biome);
+                this.generateMaze(biome);
+                this.setScreen('dungeon');
+            },
+
+            // --- GRID BASED MOVEMENT SYSTEM ---
+
+            inputMove(forward) {
+                if (this.state.isAnimating || this.state.isPaused || this.state.combatMode) return;
+                
+                const p = this.state.player;
+                const d = DIRS[p.dir];
+                let nx = p.x + (forward > 0 ? d.dx : -d.dx);
+                let nz = p.z + (forward > 0 ? d.dz : -d.dz);
+
+                let targetCell = this.state.grid[nx] ? this.state.grid[nx][nz] : 1;
+
+                if (targetCell === 1) {
+                    this.bumpCamera(forward);
+                    if(this.state.autoMove) this.toggleAutoMove(); // Disable if hit a wall directly without turning
+                    return;
+                } else if (targetCell === 2) {
+                    this.openDoor(nx, nz);
+                    return;
+                }
+
+                const enemy = this.state.enemies.find(e => e.x === nx && e.z === nz);
+                if (enemy) {
+                    this.initiateCombat(enemy);
+                    return;
+                }
+
+                if (this.state.exitPos && nx === this.state.exitPos.x && nz === this.state.exitPos.z) {
+                    if(this.state.autoMove) this.toggleAutoMove();
+                    this.completeBiome();
+                    return;
+                }
+
+                p.x = nx; p.z = nz;
+                this.animateCameraMove();
+            },
+
+            inputTurn(dirModifier) {
+                if (this.state.isAnimating || this.state.isPaused || this.state.combatMode) return;
+                
+                const p = this.state.player;
+                p.dir = (p.dir + dirModifier + 4) % 4; 
+                this.animateCameraTurn(dirModifier);
+            },
+
+            animateCameraMove() {
+                this.state.isAnimating = true;
+                const p = this.state.player;
+                const rig = document.getElementById('player-rig');
+                const cam = document.getElementById('main-camera');
+
+                rig.setAttribute('animation', `property: position; to: ${p.x * TILE_SIZE} 0 ${p.z * TILE_SIZE}; dur: 250; easing: easeInOutQuad`);
+                cam.setAttribute('animation__bob', `property: position; to: 0 1.5 0; dir: alternate; dur: 125; loop: 1; easing: easeInOutSine`);
+                
+                setTimeout(() => { 
+                    cam.setAttribute('position', '0 1.6 0');
+                    this.triggerEnemyTurns();
+                }, 260);
+            },
+
+            animateCameraTurn(dirMod) {
+                this.state.isAnimating = true;
+                const rig = document.getElementById('player-rig');
+                
+                let currRot = rig.getAttribute('rotation') || {x:0, y:0, z:0};
+                let targetY = currRot.y - (dirMod * 90); 
+                
+                rig.setAttribute('animation', `property: rotation; to: 0 ${targetY} 0; dur: 200; easing: easeInOutQuad`);
+                
+                setTimeout(() => { 
+                    this.state.isAnimating = false;
+                    this.updateMinimap();
+                }, 210);
+            },
+
+            bumpCamera(forward) {
+                this.state.isAnimating = true;
+                const rig = document.getElementById('player-rig');
+                const p = this.state.player;
+                const d = DIRS[p.dir];
+                
+                let ox = p.x * TILE_SIZE + (forward > 0 ? d.dx : -d.dx) * 0.5;
+                let oz = p.z * TILE_SIZE + (forward > 0 ? d.dz : -d.dz) * 0.5;
+
+                rig.setAttribute('animation', `property: position; to: ${ox} 0 ${oz}; dur: 100; dir: alternate; loop: 1; easing: easeInOutQuad`);
+                setTimeout(() => { 
+                    rig.setAttribute('position', `${p.x * TILE_SIZE} 0 ${p.z * TILE_SIZE}`);
+                    this.state.isAnimating = false; 
+                }, 210);
+            },
+
+            triggerEnemyTurns() {
+                const p = this.state.player;
+                
+                this.state.enemies.forEach(e => {
+                    let dist = Math.abs(p.x - e.x) + Math.abs(p.z - e.z); 
+                    
+                    if (dist > 0 && dist < 6) { 
+                        let dx = 0; let dz = 0;
+                        if (Math.abs(p.x - e.x) > Math.abs(p.z - e.z)) {
+                            dx = p.x > e.x ? 1 : -1;
+                        } else {
+                            dz = p.z > e.z ? 1 : -1;
+                        }
+
+                        let nx = e.x + dx; let nz = e.z + dz;
+
+                        if (this.state.grid[nx] && this.state.grid[nx][nz] === 0) {
+                            if (nx === p.x && nz === p.z) {
+                                this.initiateCombat(e);
+                                if(this.state.autoMove) this.toggleAutoMove();
+                                return; 
+                            } else if (!this.state.enemies.some(o => o.x === nx && o.z === nz)) {
+                                e.x = nx; e.z = nz;
+                                if(e.element) {
+                                    e.element.setAttribute('animation', `property: position; to: ${e.x * TILE_SIZE} 0 ${e.z * TILE_SIZE}; dur: 250; easing: linear`);
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if(!this.state.combatMode) {
+                    this.state.isAnimating = false;
+                    this.updateMinimap();
+                }
+            },
+
+            // --- PROCEDURAL GENERATION ---
+            generateMaze(biome) {
+                const container = document.getElementById('dungeon-container');
+                container.innerHTML = '';
+                this.state.enemies = [];
+
+                const size = biome.layoutSize; 
+                this.state.mapSize = size;
+
+                let grid = Array(size).fill(0).map(() => Array(size).fill(1));
+                let rooms = [];
+                const numRooms = Math.floor(size / 2.5);
+
+                for (let i = 0; i < numRooms; i++) {
+                    let w = Math.floor(Math.random() * 3) + 3; 
+                    let h = Math.floor(Math.random() * 3) + 3; 
+                    let x = Math.floor(Math.random() * (size - w - 2)) + 1;
+                    let z = Math.floor(Math.random() * (size - h - 2)) + 1;
+
+                    let overlap = false;
+                    for (let r of rooms) {
+                        if (x <= r.x + r.w + 1 && x + w + 1 >= r.x && z <= r.z + r.h + 1 && z + h + 1 >= r.z) { overlap = true; break; }
+                    }
+
+                    if (!overlap) {
+                        let room = { x, z, w, h, cx: Math.floor(x + w/2), cz: Math.floor(z + h/2) };
+                        rooms.push(room);
+                        for (let rx = x; rx < x + w; rx++) {
+                            for (let rz = z; rz < z + h; rz++) grid[rx][rz] = 0;
+                        }
+                    }
+                }
+
+                for (let i = 1; i < rooms.length; i++) {
+                    let r1 = rooms[i-1], r2 = rooms[i];
+                    let currX = r1.cx, currZ = r1.cz;
+                    if (Math.random() > 0.5) {
+                        while(currX !== r2.cx) { grid[currX][currZ] = 0; currX += (r2.cx > currX ? 1 : -1); }
+                        while(currZ !== r2.cz) { grid[currX][currZ] = 0; currZ += (r2.cz > currZ ? 1 : -1); }
+                    } else {
+                        while(currZ !== r2.cz) { grid[currX][currZ] = 0; currZ += (r2.cz > currZ ? 1 : -1); }
+                        while(currX !== r2.cx) { grid[currX][currZ] = 0; currX += (r2.cx > currX ? 1 : -1); }
+                    }
+                }
+
+                for (let x=1; x<size-1; x++) {
+                    for (let z=1; z<size-1; z++) {
+                        if (grid[x][z] === 0) {
+                            let top = grid[x][z-1], bot = grid[x][z+1];
+                            let left = grid[x-1][z], right = grid[x+1][z];
+                            
+                            if (top === 1 && bot === 1 && left === 0 && right === 0 && Math.random() > 0.6) grid[x][z] = 2; // Door
+                            else if (left === 1 && right === 1 && top === 0 && bot === 0 && Math.random() > 0.6) grid[x][z] = 2; // Door
+                        }
+                    }
+                }
+
+                this.state.grid = grid;
+                let floorTiles = [];
+
+                for (let ix = 0; ix < size; ix++) {
+                    for (let iz = 0; iz < size; iz++) {
+                        let cell = grid[ix][iz];
+                        let posX = ix * TILE_SIZE;
+                        let posZ = iz * TILE_SIZE;
+
+                        if (cell === 1) { // Wall
+                            let touchesFloor = false;
+                            const adjacent = [[0,1],[1,0],[0,-1],[-1,0],[1,1],[-1,-1],[1,-1],[-1,1]];
+                            for(let d of adjacent) {
+                                let nx = ix+d[0], nz = iz+d[1];
+                                if(nx >= 0 && nx < size && nz >= 0 && nz < size && (grid[nx][nz] === 0 || grid[nx][nz] === 2)) { touchesFloor = true; break; }
+                            }
+                            if (touchesFloor) {
+                                const wall = document.createElement('a-box');
+                                wall.setAttribute('position', `${posX} ${4/2} ${posZ}`);
+                                wall.setAttribute('width', TILE_SIZE); wall.setAttribute('height', 4); wall.setAttribute('depth', TILE_SIZE);
+                                wall.setAttribute('color', biome.wallColor);
+                                wall.setAttribute('material', `src: #tex-grid; repeat: 1 1; metalness: 0.8; roughness: 0.2; emissive: ${biome.wallColor}; emissiveIntensity: 0.2`);
+                                
+                                // Glowing Baseboard With Pulse Animation
+                                const trim = document.createElement('a-box');
+                                trim.setAttribute('position', `0 -1.9 0`);
+                                trim.setAttribute('width', TILE_SIZE + 0.1); trim.setAttribute('height', 0.2); trim.setAttribute('depth', TILE_SIZE + 0.1);
+                                trim.setAttribute('color', biome.lightColor);
+                                trim.setAttribute('material', `emissive: ${biome.lightColor}; emissiveIntensity: 0.8`);
+                                trim.setAttribute('animation', `property: components.material.material.emissiveIntensity; dir: alternate; loop: true; from: 0.4; to: 1.0; dur: 1500`);
+                                wall.appendChild(trim);
+
+                                container.appendChild(wall);
+                            }
+                        } else if (cell === 2) { // Door
+                            const door = document.createElement('a-box');
+                            door.setAttribute('id', `door_${ix}_${iz}`);
+                            door.setAttribute('position', `${posX} 2 ${posZ}`);
+                            
+                            if (grid[ix-1][iz] === 1 && grid[ix+1][iz] === 1) { 
+                                door.setAttribute('width', TILE_SIZE); door.setAttribute('height', 4); door.setAttribute('depth', 0.5);
+                            } else { 
+                                door.setAttribute('width', 0.5); door.setAttribute('height', 4); door.setAttribute('depth', TILE_SIZE);
+                            }
+                            
+                            door.setAttribute('color', '#111');
+                            door.setAttribute('material', `src: #tex-grid; repeat: 1 1; emissive: ${biome.lightColor}; emissiveIntensity: 0.7; wireframe: true`);
+                            container.appendChild(door);
+                            floorTiles.push({x: ix, z: iz}); 
+                        } else {
+                            floorTiles.push({x: ix, z: iz});
+                        }
+                    }
+                }
+
+                const exitRoom = rooms[rooms.length - 1];
+                this.state.exitPos = {x: exitRoom.cx, z: exitRoom.cz};
+                const exitEl = document.createElement('a-box');
+                exitEl.setAttribute('position', `${exitRoom.cx * TILE_SIZE} 1 ${exitRoom.cz * TILE_SIZE}`);
+                exitEl.setAttribute('width', '1'); exitEl.setAttribute('height', '2'); exitEl.setAttribute('depth', '1');
+                exitEl.setAttribute('color', '#ffffff');
+                exitEl.setAttribute('material', `emissive: #fff; emissiveIntensity: 1; wireframe: true`);
+                exitEl.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear');
+                exitEl.setAttribute('animation__bounce', `property: position; dir: alternate; to: ${exitRoom.cx * TILE_SIZE} 1.5 ${exitRoom.cz * TILE_SIZE}; loop: true; dur: 2000; easing: easeInOutSine`);
+                container.appendChild(exitEl);
+
+                const safeZoneX = rooms[0].cx, safeZoneZ = rooms[0].cz;
+                floorTiles = floorTiles.filter(t => Math.abs(t.x - safeZoneX) > 2 || Math.abs(t.z - safeZoneZ) > 2);
+                floorTiles.sort(() => Math.random() - 0.5);
+                
+                const enemyCount = Math.floor(rooms.length * 1.5);
+                for(let i=0; i < Math.min(enemyCount, floorTiles.length); i++) {
+                    const tile = floorTiles[i];
+                    if (this.state.grid[tile.x][tile.z] === 2) continue; 
+
+                    const template = biome.enemies[Math.floor(Math.random() * biome.enemies.length)];
+                    this.spawnEnemy(template, tile.x, tile.z, container);
+                }
+
+                // Initialize Player Logic
+                this.state.player.x = safeZoneX;
+                this.state.player.z = safeZoneZ;
+                this.state.player.dir = 0; // N
+                const rig = document.getElementById('player-rig');
+                rig.setAttribute('position', `${safeZoneX * TILE_SIZE} 0 ${safeZoneZ * TILE_SIZE}`);
+                rig.setAttribute('rotation', `0 0 0`);
+                this.updateMinimap();
+            },
+
+            openDoor(x, z) {
+                this.state.grid[x][z] = 0; // Open logic
+                const doorEl = document.getElementById(`door_${x}_${z}`);
+                if (doorEl) {
+                    doorEl.setAttribute('animation', `property: position; to: ${x * TILE_SIZE} -4 ${z * TILE_SIZE}; dur: 400; easing: easeInQuad`);
+                    setTimeout(() => { if (doorEl.parentNode) doorEl.parentNode.removeChild(doorEl); }, 450);
+                }
+                
+                this.state.isAnimating = true;
+                setTimeout(() => { this.state.isAnimating = false; this.triggerEnemyTurns(); }, 200);
+            },
+
+            spawnEnemy(template, gx, gz, container) {
+                const id = 'enemy_' + Math.random().toString(36).substring(7);
+                const enemyEl = document.createElement('a-entity');
+                enemyEl.setAttribute('id', id);
+                enemyEl.setAttribute('position', `${gx * TILE_SIZE} 0 ${gz * TILE_SIZE}`);
+                
+                enemyEl.innerHTML = `
+                    <a-entity mixin="enemy-body" material="color: #222; metalness: 0.8; roughness: 0.2; emissive: ${template.color}; emissiveIntensity: 0.4"></a-entity>
+                    <a-entity mixin="enemy-head" material="color: #111; emissive: ${template.color}; emissiveIntensity: 0.9"></a-entity>
+                `;
+                
+                enemyEl.setAttribute('animation', `property: rotation; to: 0 360 0; loop: true; dur: 5000; easing: linear`);
+
+                container.appendChild(enemyEl);
+
+                this.state.enemies.push({ 
+                    id, element: enemyEl, name: template.name, color: template.color, 
+                    hp: template.hp, maxHp: template.hp, dmg: template.dmg, 
+                    points: template.points, xp: template.xp,
+                    x: gx, z: gz
+                });
+            },
+
+            // --- TURN-BASED COMBAT ENGINE ---
+            initiateCombat(enemy) {
+                this.state.combatMode = true;
+                this.state.activeEnemy = enemy;
+                this.state.isGuarding = false;
+                
+                document.getElementById('combat-ui').classList.remove('hidden');
+                document.getElementById('combat-enemy-name').innerText = enemy.name;
+                document.getElementById('combat-enemy-name').style.color = enemy.color;
+                
+                document.getElementById('combat-actions').classList.remove('hidden');
+                document.getElementById('combat-continue').classList.add('hidden');
+                
+                document.getElementById('combat-log').innerHTML = '';
+                this.combatLog(`<span style="color:${enemy.color}">Encountered ${enemy.name}!</span>`);
+                
+                this.updateCombatUI();
+
+                if(this.state.autoFight) setTimeout(() => this.tryAutoFight(), 300);
+            },
+
+            combatLog(msg) {
+                const logDiv = document.getElementById('combat-log');
+                const entry = document.createElement('div');
+                entry.className = 'combat-log-entry';
+                entry.innerHTML = msg;
+                logDiv.appendChild(entry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            },
+
+            combatAction(action) {
+                if (!this.state.combatMode || !this.state.activeEnemy) return;
+
+                const p = this.state.player;
+                const e = this.state.activeEnemy;
+                let actionTaken = false;
+
+                if (action === 'attack') {
+                    const weapon = document.getElementById('weapon');
+                    weapon.setAttribute('animation__swing', 'property: rotation; from: 45 -10 0; to: 10 -60 -45; dur: 150; dir: alternate; loop: 1; easing: easeInOutQuad');
+                    setTimeout(() => weapon.removeAttribute('animation__swing'), 300);
+
+                    let isCrit = Math.random() < 0.15; 
+                    let dmg = Math.floor(p.dmg * (0.8 + Math.random() * 0.4));
+                    if(isCrit) dmg = Math.floor(dmg * 2.0);
+
+                    e.hp -= dmg;
+                    this.combatLog(`You strike for <span class="text-cyan-300">${dmg} dmg</span>! ${isCrit ? '<span class="text-yellow-400 font-bold">CRIT!</span>' : ''}`);
+                    
+                    const meshes = e.element.querySelectorAll('a-entity');
+                    meshes.forEach(m => m.setAttribute('material', 'color', '#ffffff'));
+                    setTimeout(() => { if(e && e.element) meshes.forEach(m => m.setAttribute('material', 'color', '#222')); }, 100);
+
+                    actionTaken = true;
+
+                } else if (action === 'heal') {
+                    if (p.mp >= 10 || this.state.settings.godmode) {
+                        if (!this.state.settings.godmode) p.mp -= 10;
+                        let heal = Math.floor(p.maxHp * 0.4); 
+                        p.hp = Math.min(p.maxHp, p.hp + heal);
+                        this.combatLog(`System patched. Restored <span class="text-green-400">${heal} HP</span>.`);
+                        actionTaken = true;
+                    } else {
+                        this.combatLog(`<span class="text-red-500">Insufficient Energy.</span>`);
+                        if(this.state.autoFight) this.toggleAutoFight(); // Cancel auto if stuck
+                        return; 
+                    }
+
+                } else if (action === 'guard') {
+                    this.state.isGuarding = true;
+                    this.combatLog(`Shielding boosted.`);
+                    actionTaken = true;
+
+                } else if (action === 'flee') {
+                    if(this.state.autoFight) this.toggleAutoFight(); // Turn off auto fight on flee
+                    if (Math.random() > 0.4) {
+                        this.combatLog(`Escape successful! Retreating...`);
+                        
+                        // Push player back logically
+                        const d = DIRS[p.dir];
+                        let bx = p.x - d.dx; let bz = p.z - d.dz;
+                        if (this.state.grid[bx] && this.state.grid[bx][bz] === 0) {
+                            p.x = bx; p.z = bz;
+                            this.animateCameraMove(); 
+                        }
+
+                        this.endCombat(false);
+                        return;
+                    } else {
+                        this.combatLog(`<span class="text-red-500">Escape failed!</span>`);
+                        actionTaken = true;
+                    }
+                }
+
+                this.updateCombatUI();
+                this.updateHUD();
+
+                if (e.hp <= 0) {
+                    this.combatLog(`<span style="color:${e.color}">${e.name} deleted.</span>`);
+                    document.getElementById('combat-actions').classList.add('hidden');
+                    document.getElementById('combat-continue').classList.remove('hidden');
+                    
+                    e.element.setAttribute('animation__death', 'property: scale; to: 0 0 0; dur: 400; easing: easeInBack');
+                    setTimeout(() => { 
+                        if(e.element && e.element.parentNode) e.element.parentNode.removeChild(e.element); 
+                    }, 400);
+                    
+                    if (this.state.autoFight) {
+                        setTimeout(() => this.endCombat(true), 1000); // Auto-collect bounty
+                    }
+                    return;
+                }
+
+                if (actionTaken) {
+                    const btns = document.querySelectorAll('#combat-actions button');
+                    btns.forEach(b => b.disabled = true);
+
+                    setTimeout(() => {
+                        if(!this.state.combatMode || this.state.activeEnemy.hp <= 0) return;
+                        
+                        let eDmg = Math.floor(e.dmg * (0.8 + Math.random() * 0.4));
+                        if (this.state.isGuarding) {
+                            eDmg = Math.floor(eDmg * 0.4); 
+                            this.state.isGuarding = false;
+                        }
+
+                        if (this.state.settings.godmode) eDmg = 0;
+
+                        p.hp -= eDmg;
+                        this.combatLog(`<span style="color:${e.color}">${e.name}</span> attacks for <span class="text-red-400">${eDmg} dmg</span>!`);
+                        
+                        const overlay = document.getElementById('hud-damage-overlay');
+                        overlay.style.opacity = '1';
+                        setTimeout(() => overlay.style.opacity = '0', 200);
+
+                        this.updateHUD();
+                        btns.forEach(b => b.disabled = false);
+
+                        if (p.hp <= 0) {
+                            this.endCombat(false);
+                            this.gameOver();
+                        } else if (this.state.autoFight) {
+                            setTimeout(() => this.tryAutoFight(), 250); // Loop auto-fight
+                        }
+                    }, 800);
+                }
+            },
+
+            updateCombatUI() {
+                if(!this.state.activeEnemy) return;
+                const e = this.state.activeEnemy;
+                const ratio = Math.max(0, e.hp / e.maxHp);
+                document.getElementById('combat-enemy-hp').style.width = `${ratio * 100}%`;
+            },
+
+            endCombat(victory) {
+                if (victory && this.state.activeEnemy) {
+                    const e = this.state.activeEnemy;
+                    this.state.player.credits += e.points;
+                    this.gainXP(e.xp);
+                    this.state.enemies = this.state.enemies.filter(en => en.id !== e.id);
+                }
+
+                this.state.combatMode = false;
+                this.state.activeEnemy = null;
+                
+                document.getElementById('combat-ui').classList.add('hidden');
+                
+                const btns = document.querySelectorAll('#combat-actions button');
+                btns.forEach(b => b.disabled = false);
+
+                this.updateHUD();
+                
+                this.state.isAnimating = true;
+                setTimeout(() => {
+                    this.state.isAnimating = false;
+                    // Auto-resume navigation if it was on
+                    if (this.state.autoMove && !this.state.isPaused) {
+                        this.state.lastAutoMoveTime = performance.now();
+                    }
+                }, 50);
+            },
+
+            gainXP(amount) {
+                this.state.player.xp += amount;
+                const nextLvlXp = this.state.player.level * 100;
+
+                if (this.state.player.xp >= nextLvlXp) {
+                    this.state.player.level++;
+                    this.state.player.xp -= nextLvlXp;
+                    this.state.player.maxHp += 20;
+                    this.state.player.hp = this.state.player.maxHp;
+                    this.state.player.maxMp += 10;
+                    this.state.player.mp = this.state.player.maxMp;
+                    this.state.player.dmg += 5;
+                    
+                    const overlay = document.getElementById('hud-damage-overlay');
+                    overlay.style.background = 'radial-gradient(circle, transparent 50%, rgba(168,85,247,0.5) 100%)';
+                    overlay.style.opacity = '1';
+                    setTimeout(() => { 
+                        overlay.style.opacity = '0';
+                        setTimeout(() => overlay.style.background = 'radial-gradient(circle, transparent 50%, rgba(255,0,0,0.6) 100%)', 200);
+                    }, 500);
+                }
+            },
+
+            updateHUD() {
+                const biome = CONFIG.biomes[this.state.biomeIndex];
+                if(biome) document.getElementById('hud-biome-name').innerText = biome.name.toUpperCase();
+                
+                document.getElementById('hud-hp-text').innerText = `HP: ${Math.floor(Math.max(0, this.state.player.hp))}`;
+                document.getElementById('hud-mp-text').innerText = `MP: ${Math.floor(Math.max(0, this.state.player.mp))}`;
+                document.getElementById('hud-lvl-text').innerText = `LVL ${this.state.player.level}`;
+
+                const hpRatio = Math.max(0, this.state.player.hp / this.state.player.maxHp);
+                const bar = document.getElementById('hud-hp-bar');
+                bar.style.width = `${hpRatio * 100}%`;
+                if (hpRatio > 0.5) { bar.style.backgroundColor = '#0ff'; bar.style.boxShadow = '0 0 10px #0ff'; }
+                else if (hpRatio > 0.25) { bar.style.backgroundColor = '#ff0'; bar.style.boxShadow = '0 0 10px #ff0'; }
+                else { bar.style.backgroundColor = '#f00'; bar.style.boxShadow = '0 0 10px #f00'; }
+
+                const mpRatio = Math.max(0, this.state.player.mp / this.state.player.maxMp);
+                document.getElementById('hud-mp-bar').style.width = `${mpRatio * 100}%`;
+
+                const xpRatio = Math.max(0, this.state.player.xp / (this.state.player.level * 100));
+                document.getElementById('hud-xp-bar').style.width = `${xpRatio * 100}%`;
+
+                document.getElementById('hud-credits').innerText = `CR: ${this.state.player.credits}`;
+            },
+
+            completeBiome() {
+                this.state.biomeIndex++;
+                this.setScreen('story');
+            },
+
+            gameOver() {
+                this.state.inDungeon = false;
+                document.getElementById('hud').style.display = 'none';
+                document.getElementById('dungeon-container').innerHTML = ''; 
+                if(this.state.autoMove) this.toggleAutoMove();
+                if(this.state.autoFight) this.toggleAutoFight();
+                
+                const goScreen = document.createElement('div');
+                goScreen.className = "ui-layer active flex-col pointer-events-auto z-[100]";
+                goScreen.innerHTML = `
+                    <div class="cyber-panel">
+                        <h1 class="text-4xl md:text-6xl text-red-600 font-bold mb-4 text-glow-red">FATAL ERROR</h1>
+                        <p class="text-lg md:text-xl text-gray-300 mb-8">INTEGRITY LOST. ECHO DELETED.</p>
+                        <button class="cyber-btn" onclick="location.reload()">REBOOT SEQUENCE</button>
+                    </div>
+                `;
+                document.body.appendChild(goScreen);
+            },
+
+            updateMinimap() {
+                const canvas = document.getElementById('minimapCanvas');
+                if(!canvas || !this.state.grid) return;
+                const ctx = canvas.getContext('2d');
+                const size = canvas.width;
+                const mapSize = this.state.mapSize;
+                const dotSize = size / mapSize;
+
+                ctx.clearRect(0, 0, size, size);
+
+                for (let x = 0; x < mapSize; x++) {
+                    for (let z = 0; z < mapSize; z++) {
+                        let cell = this.state.grid[x] ? this.state.grid[x][z] : 1;
+                        if (cell === 0) {
+                            ctx.fillStyle = 'rgba(0, 255, 255, 0.2)'; 
+                            ctx.fillRect(x * dotSize, z * dotSize, dotSize, dotSize);
+                        } else if (cell === 2) {
+                            ctx.fillStyle = '#ff8800'; 
+                            ctx.fillRect(x * dotSize, z * dotSize, dotSize, dotSize);
+                        }
+                    }
+                }
+
+                if (this.state.exitPos) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(this.state.exitPos.x * dotSize, this.state.exitPos.z * dotSize, dotSize, dotSize);
+                }
+
+                const px = this.state.player.x * dotSize + (dotSize/2);
+                const pz = this.state.player.z * dotSize + (dotSize/2);
+                
+                ctx.fillStyle = '#0ff'; 
+                ctx.save();
+                ctx.translate(px, pz);
+                ctx.rotate(-this.state.player.dir * Math.PI/2);
+                ctx.beginPath();
+                ctx.moveTo(0, -dotSize);
+                ctx.lineTo(dotSize/1.5, dotSize/2);
+                ctx.lineTo(-dotSize/1.5, dotSize/2);
+                ctx.fill();
+                ctx.restore();
+
+                ctx.fillStyle = '#ffaa00';
+                this.state.enemies.forEach(e => {
+                    ctx.fillRect(e.x * dotSize, e.z * dotSize, dotSize, dotSize);
+                });
+            }
+        };
+
+        window.onload = () => Game.init();
+    </script>
+</body>
+</html>

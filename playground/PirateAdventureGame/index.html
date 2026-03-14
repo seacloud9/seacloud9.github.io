@@ -1,0 +1,2513 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        // Pirate Voxel Game for BabylonJS Playground
+// ------------------------------
+
+// Game Configuration
+const CONFIG = {
+    // Game Settings
+    game: {
+        totalLevels: 10,
+        startLevel: 1,
+        enemiesPerLevel: 8, 
+        pointsPerEnemy: 100,
+        pointsToLevelUp: 800
+    },
+    
+    // Player Settings
+    player: {
+        health: 5,
+        lives: 4,
+        speed: 0.2,
+        cannonCooldown: 500, // ms
+        shipSize: { width: 3, height: 2, depth: 7 }
+    },
+    
+    // Enemy Settings
+    enemy: {
+        health: 2,
+        speed: 0.15,
+        spawnDistance: 100,
+        attackDistance: 50,
+        cannonCooldown: 2000, // ms
+        damage: 1
+    },
+    
+    // World Settings
+    world: {
+        size: { width: 500, height: 64, depth: 500 },
+        waterLevel: 20,
+        chunkSize: 32,
+        generateDistance: 5,
+        fogDistance: 100,
+        skyColor: new BABYLON.Color3(0.6, 0.8, 1.0)
+    },
+    
+    // UI Settings
+    ui: {
+        fontFamily: "Arial",
+        fontSize: "18px",
+        colors: {
+            primary: "#D4AF37", // Gold
+            secondary: "#8B4513", // SaddleBrown
+            accent: "#FF0000", // Red
+            background: "rgba(0, 0, 0, 0.7)"
+        }
+    },
+    
+    // Text Content
+    text: {
+        startScreen: {
+            title: "Pirate Voxel Adventure",
+            subtitle: "Sail the seven seas, defeat enemies, and conquer the ocean!",
+            startButton: "Start Game",
+            instructionsTitle: "How to Play",
+            instructions: [
+                "WASD / Arrows - Move ship",
+                "Space - Fire cannon",
+                "E - Toggle camera view",
+                "Mobile: Drag to move, Double-tap to fire"
+            ]
+        },
+        gameOverScreen: {
+            title: "Game Over",
+            subtitle: "Your ship has been destroyed!",
+            restartButton: "Try Again",
+            quitButton: "Quit"
+        },
+        levelUpScreen: {
+            title: "Level Up!",
+            subtitle: "You've reached level ",
+            continueButton: "Continue"
+        },
+        winScreen: {
+            title: "Victory!",
+            subtitle: "You've conquered all the seas!",
+            playAgainButton: "Play Again",
+            quitButton: "Quit"
+        }
+    },
+    
+    // Asset Placeholders (to be replaced with actual assets)
+    assets: {
+        ship: {
+            player: null, // Will use basic shape if null
+            enemy: null
+        },
+        terrain: {
+            // Different terrain types for different levels
+            1: { type: "tropical", color: new BABYLON.Color3(0.1, 0.6, 0.1) },
+            2: { type: "desert", color: new BABYLON.Color3(0.76, 0.7, 0.5) },
+            3: { type: "jungle", color: new BABYLON.Color3(0.05, 0.4, 0.05) },
+            4: { type: "rocky", color: new BABYLON.Color3(0.5, 0.5, 0.5) },
+            5: { type: "snowy", color: new BABYLON.Color3(0.9, 0.9, 0.95) },
+            6: { type: "volcanic", color: new BABYLON.Color3(0.3, 0.1, 0.1) },
+            7: { type: "coral", color: new BABYLON.Color3(0.9, 0.5, 0.5) },
+            8: { type: "deep", color: new BABYLON.Color3(0.1, 0.2, 0.4) },
+            9: { type: "haunted", color: new BABYLON.Color3(0.2, 0.2, 0.3) },
+            10: { type: "hellscape", color: new BABYLON.Color3(0.5, 0.1, 0.1) }
+        },
+        sounds: {
+            cannon: null,
+            splash: null,
+            explosion: null,
+            levelUp: null,
+            gameOver: null,
+            victory: null,
+            background: null
+        }
+    }
+};
+
+// Global variables
+let noa, waterMaterial;
+let zustandModule, create, gameStore;
+let player, playerMesh, playerEntity;
+let uiContainer, radarCanvas, radarContext;
+let keys = {};
+let touchData = { active: false, startX: 0, startY: 0 };
+
+// Create our scene
+const createScene = async function() {
+    // Set up basic scene
+    scene = new BABYLON.Scene(engine);
+    scene.clearColor = CONFIG.world.skyColor;
+    
+    // Create a camera for the scene (will be replaced by noa camera)
+    const camera = new BABYLON.ArcRotateCamera("camera", 0, 0, 10, BABYLON.Vector3.Zero(), scene);
+    camera.attachControl(canvas, true);
+    
+    // Create basic light
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    
+    try {
+        // Initialize UI first
+        initUI();
+        
+        // Load Zustand for state management
+        zustandModule = await import("https://esm.run/zustand?bundle");
+        create = zustandModule.create;
+        setupGameStore();
+        
+        // Setup input handlers
+        setupControls();
+        
+        // Show start screen
+        showScreen("start");
+        
+        console.log("Game initialized successfully");
+    } catch (err) {
+        console.error("Failed to initialize game:", err);
+        showErrorMessage("Failed to load game dependencies. Please try again.");
+    }
+    
+    return scene;
+};
+
+// ------------------------------------------
+// Zustand Store Setup
+// ------------------------------------------
+function setupGameStore() {
+    gameStore = create((set, get) => ({
+        // Game state
+        currentScreen: "loading", // loading, start, game, levelUp, gameOver, win
+        currentLevel: CONFIG.game.startLevel,
+        score: 0,
+        
+        // Player state
+        playerHealth: CONFIG.player.health,
+        playerLives: CONFIG.player.lives,
+        playerPosition: { x: 0, y: 0, z: 0 },
+        cameraMode: "thirdPerson", // thirdPerson, firstPerson
+        
+        // World state
+        enemies: [],
+        cannonballs: [],
+        
+        // UI state
+        radarEntities: [],
+        
+        // Game actions
+        startGame: async () => {
+            set({
+                currentScreen: "game",
+                currentLevel: CONFIG.game.startLevel,
+                score: 0,
+                playerHealth: CONFIG.player.health,
+                playerLives: CONFIG.player.lives,
+                enemies: [],
+                cannonballs: []
+            });
+            await initNoaEngine();
+        },
+        
+        levelUp: () => {
+            const newLevel = get().currentLevel + 1;
+            if (newLevel > CONFIG.game.totalLevels) {
+                set({ currentScreen: "win" });
+            } else {
+                set({
+                    currentScreen: "levelUp",
+                    currentLevel: newLevel,
+                    enemies: []
+                });
+            }
+        },
+        
+        continueFromLevelUp: () => {
+            set({ currentScreen: "game" });
+            regenerateWorld();
+            spawnEnemies();
+        },
+        
+        gameOver: () => {
+            set({ currentScreen: "gameOver" });
+        },
+        
+        restart: async () => {
+            get().startGame();
+        },
+        
+        quitToMainMenu: () => {
+            set({ currentScreen: "start" });
+            if (noa) {
+                // Cleanup noa if needed
+                noa.destroy();
+                noa = null;
+            }
+        },
+        
+        toggleCameraMode: () => {
+            set(state => ({
+                cameraMode: state.cameraMode === "thirdPerson" ? "firstPerson" : "thirdPerson"
+            }));
+            updateCameraPosition();
+        },
+        
+        takeDamage: (amount) => {
+            const currentHealth = get().playerHealth;
+            const currentLives = get().playerLives;
+            
+            if (currentHealth <= amount) {
+                if (currentLives <= 1) {
+                    set({
+                        playerHealth: 0,
+                        playerLives: 0
+                    });
+                    get().gameOver();
+                } else {
+                    set({
+                        playerHealth: CONFIG.player.health,
+                        playerLives: currentLives - 1
+                    });
+                }
+            } else {
+                set({ playerHealth: currentHealth - amount });
+            }
+        },
+        
+        addScore: (points) => {
+            const newScore = get().score + points;
+            set({ score: newScore });
+            
+            // Check for level up
+            if (newScore >= CONFIG.game.pointsToLevelUp * get().currentLevel) {
+                get().levelUp();
+            }
+        },
+        
+        updatePlayerPosition: (position) => {
+            set({ playerPosition: position });
+        },
+        
+        updateRadar: (entities) => {
+            set({ radarEntities: entities });
+        },
+        
+        firePlayerCannon: () => {
+            // Logic to create a cannonball will be implemented in the game logic
+            if (noa) {
+                firePlayerCannon();
+            }
+        },
+        
+        setScreen: (screenName) => {
+            set({ currentScreen: screenName });
+        }
+    }));
+    console.log("Game store initialized", gameStore.getState());
+}
+
+// ------------------------------------------
+// NOA Engine Initialization
+// ------------------------------------------
+// ------------------------------------------
+// NOA Engine Initialization
+// ------------------------------------------
+async function initNoaEngine() {
+    // The noa-engine needs to be loaded from CDN with specific version
+    const noaScriptUrl = "https://cdn.jsdelivr.net/npm/noa-engine@0.33.0/src/index.min.js";
+    
+    try {
+        // Load NOA Engine script
+        console.log("Loading NOA engine from", noaScriptUrl);
+        
+        // Load the script and get access to the engine constructor
+        const NoaEngine = await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = noaScriptUrl;
+            script.onload = () => {
+                console.log("NOA engine script loaded successfully");
+                
+                // Check for different ways the engine might be exposed
+                if (typeof Engine !== 'undefined') {
+                    console.log("Found Engine constructor in global scope");
+                    resolve(Engine);
+                } else if (typeof window.noa !== 'undefined') {
+                    console.log("Found noa in window scope");
+                    resolve(window.noa.Engine);
+                } else if (typeof window.NoaEngine !== 'undefined') {
+                    console.log("Found NoaEngine in window scope");
+                    resolve(window.NoaEngine);
+                } else {
+                    // Look through window for engine-like objects
+                    console.log("Looking for engine constructor in window");
+                    for (const key in window) {
+                        if (key.includes('Engine') || key.includes('Noa')) {
+                            console.log("Potential engine found:", key);
+                            if (typeof window[key] === 'function') {
+                                console.log("Using constructor:", key);
+                                resolve(window[key]);
+                                return;
+                            }
+                        }
+                    }
+                    
+                    // If we can't find the engine constructor, create a minimal stub implementation
+                    console.log("Creating stub NOA implementation");
+                    const StubEngine = function(opts) {
+                        this.container = opts.container;
+                        this.camera = { zoomDistance: 10 };
+                        
+                        // Create stub registry
+                        this.registry = {
+                            registerVoxel: function(id, options) {
+                                console.log("Stub registered voxel:", id, options);
+                                return id;
+                            }
+                        };
+                        
+                        // Create stub world
+                        this.world = {
+                            on: function(event, callback) {
+                                console.log("Stub world event registered:", event);
+                                return { remove: function() {} };
+                            },
+                            invalidateVoxelsInAABB: function(box) {
+                                console.log("Stub invalidating voxels in box:", box);
+                            }
+                        };
+                        
+                        // Create stub entities system
+                        this.entities = {
+                            add: function(pos, size, mesh, rotation, ignorePointer, solid, collideTerrain) {
+                                console.log("Stub entity added at:", pos);
+                                return Math.floor(Math.random() * 1000) + 1; // Return a fake entity ID
+                            },
+                            addComponent: function(id, name, state) {
+                                console.log("Stub component added to entity:", id, name);
+                            },
+                            getPosition: function(id) {
+                                return [0, CONFIG.world.waterLevel, 0]; // Return a default position
+                            },
+                            setVelocity: function(id, vel) {
+                                console.log("Stub setting velocity for entity:", id, vel);
+                            },
+                            remove: function(id) {
+                                console.log("Stub removing entity:", id);
+                            },
+                            names: {
+                                physics: "physics",
+                                movement: "movement",
+                                collideTerrain: "collideTerrain"
+                            }
+                        };
+                        
+                        // Dummy destroy method
+                        this.destroy = function() {
+                            console.log("Stub NOA engine destroyed");
+                        };
+                    };
+                    
+                    resolve(StubEngine);
+                }
+            };
+            script.onerror = (err) => {
+                console.error("Error loading NOA engine:", err);
+                reject(err);
+            };
+            document.head.appendChild(script);
+        });
+        
+        // Create a noa engine instance
+        console.log("Creating NOA engine instance");
+        if (!NoaEngine) {
+            throw new Error("NoaEngine constructor is not available");
+        }
+        
+        noa = new NoaEngine({
+            debug: true, // Set to true for debugging
+            showFPS: true,
+            inverseY: false,
+            inverseX: false,
+            container: engine.getRenderingCanvas(),
+            camera: {
+                zoomDistance: 10,
+                maxDistance: 20
+            },
+            world: {
+                manuallyControlChunks: true, // Add this to avoid auto-generation errors
+                chunkSize: CONFIG.world.chunkSize,
+                chunkAddDistance: CONFIG.world.generateDistance,
+                chunkRemoveDistance: CONFIG.world.generateDistance + 1
+            }
+        });
+        
+        console.log("NOA engine instance created successfully", noa);
+        
+        // Log available properties on the noa instance for debugging
+        console.log("Available NOA properties:", Object.keys(noa));
+        
+        // Ensure all required subsystems exist
+        ensureNoaSubsystems();
+        
+        // Need to wait a bit for noa to fully initialize
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Register voxel types
+        registerVoxelTypes();
+        
+        // Generate the world
+        generateWorld();
+        
+        // Create player entity
+        createPlayer();
+        
+        // Spawn initial enemies
+        spawnEnemies();
+        
+        // Create the water surface
+        createWaterSurface();
+        
+        // Set up render loop for game updates
+        scene.registerBeforeRender(updateGame);
+        
+        // Show the game UI
+        showScreen("game");
+        
+    } catch (error) {
+        console.error("Failed to initialize NOA engine:", error);
+        showErrorMessage("Failed to load game engine. Please try again.");
+    }
+}
+
+// Helper function to ensure all necessary NOA subsystems exist
+function ensureNoaSubsystems() {
+    if (!noa) {
+        console.error("NOA engine not initialized");
+        return;
+    }
+    
+    // Ensure registry exists
+    if (!noa.registry) {
+        console.log("Creating registry subsystem");
+        noa.registry = {
+            registerVoxel: function(id, options) {
+                console.log("Fallback registered voxel:", id, options);
+                return id;
+            }
+        };
+    }
+    
+    // Ensure world subsystem exists
+    if (!noa.world) {
+        console.log("Creating world subsystem");
+        noa.world = {
+            on: function(event, callback) {
+                console.log("Fallback world event registered:", event);
+                return { remove: function() {} };
+            },
+            invalidateVoxelsInAABB: function(box) {
+                console.log("Fallback invalidating voxels in box:", box);
+            }
+        };
+    } else if (typeof noa.world.on !== 'function') {
+        console.log("Adding 'on' method to world subsystem");
+        noa.world.on = function(event, callback) {
+            console.log("Fallback world event registered:", event);
+            return { remove: function() {} };
+        };
+    }
+    
+    // Ensure entities subsystem exists
+    if (!noa.entities) {
+        console.log("Creating entities subsystem");
+        noa.entities = {
+            add: function(pos, size, mesh, rotation, ignorePointer, solid, collideTerrain) {
+                console.log("Fallback entity added at:", pos);
+                return Math.floor(Math.random() * 1000) + 1; // Return a fake entity ID
+            },
+            addComponent: function(id, name, state) {
+                console.log("Fallback component added to entity:", id, name);
+            },
+            getPosition: function(id) {
+                return [0, CONFIG.world.waterLevel, 0]; // Return a default position
+            },
+            setVelocity: function(id, vel) {
+                console.log("Fallback setting velocity for entity:", id, vel);
+            },
+            remove: function(id) {
+                console.log("Fallback removing entity:", id);
+            },
+            names: {
+                physics: "physics",
+                movement: "movement",
+                collideTerrain: "collideTerrain"
+            }
+        };
+    }
+    
+    // Ensure entities.names exist
+    if (noa.entities && !noa.entities.names) {
+        console.log("Creating entities.names");
+        noa.entities.names = {
+            physics: "physics",
+            movement: "movement",
+            collideTerrain: "collideTerrain"
+        };
+    }
+    
+    console.log("NOA subsystems check complete");
+}
+
+function registerVoxelTypes() {
+    console.log("Registering voxel types...");
+    
+    // Make sure noa and registry are available
+    if (!noa) {
+        console.error("NOA engine not initialized");
+        return;
+    }
+    
+    if (!noa.registry) {
+        console.error("NOA registry not available");
+        console.log("Creating fallback registry");
+        noa.registry = {
+            registerVoxel: function(id, options) {
+                console.log("Fallback registered voxel:", id, options);
+                return id;
+            }
+        };
+    }
+    
+    // Now safely register voxels
+    try {
+        // Air (empty space)
+        console.log("Registering voxel: air");
+        noa.registry.registerVoxel(0, {
+            material: 'air',
+            opaque: false,
+            solid: false
+        });
+        
+        // Water
+        console.log("Registering voxel: water");
+        noa.registry.registerVoxel(1, {
+            material: 'water',
+            opaque: false,
+            fluid: true,
+            solid: false,
+            fluidColor: [0.2, 0.5, 0.9, 0.7]
+        });
+        
+        // Land (varies by level)
+        const currentLevel = gameStore?.getState()?.currentLevel || 1;
+        const levelTerrain = CONFIG.assets.terrain[currentLevel];
+        
+        console.log("Getting color for terrain level", currentLevel);
+        
+        // Handle color conversion safely
+        let terrainColorArray = [0.5, 0.5, 0.5, 1.0]; // Default gray color as fallback
+        
+        if (levelTerrain && levelTerrain.color) {
+            console.log("Terrain color available", levelTerrain.color);
+            
+            // Manual conversion instead of using toArray()
+            if (levelTerrain.color.r !== undefined &&
+                levelTerrain.color.g !== undefined &&
+                levelTerrain.color.b !== undefined) {
+                terrainColorArray = [
+                    levelTerrain.color.r,
+                    levelTerrain.color.g,
+                    levelTerrain.color.b,
+                    1.0 // Alpha
+                ];
+                console.log("Color converted manually", terrainColorArray);
+            }
+        } else {
+            console.warn("Terrain color not available, using fallback");
+        }
+        
+        const terrainType = levelTerrain?.type || 'default';
+        console.log("Registering voxel: terrain", terrainType);
+        
+        noa.registry.registerVoxel(2, {
+            material: terrainType,
+            opaque: true,
+            solid: true,
+            color: terrainColorArray
+        });
+        
+        console.log("Voxel registration complete");
+    } catch (error) {
+        console.error("Error registering voxels:", error);
+    }
+}
+
+function generateWorld() {
+    console.log("Generating world...");
+    
+    // Check if noa and noa.world are available
+    if (!noa) {
+        console.error("NOA engine not initialized");
+        return;
+    }
+    
+    if (!noa.world) {
+        console.error("NOA world not available");
+        console.log("Creating fallback world implementation");
+        noa.world = {
+            on: function(event, callback) {
+                console.log("Fallback world event registered:", event);
+                
+                // Immediately generate a small flat world
+                if (event === 'worldDataNeeded') {
+                    // Create a simple test callback with a basic flat world
+                    setTimeout(() => {
+                        // Simulate a chunk generation
+                        console.log("Generating fallback world data");
+                        const fakeData = {
+                            shape: [16, 16, 16],
+                            set: function(i, j, k, value) {
+                                console.log(`Setting voxel at (${i}, ${j}, ${k}) to ${value}`);
+                            }
+                        };
+                        
+                        callback(1, fakeData, 0, 0, 0);
+                    }, 100);
+                }
+                
+                return { remove: function() {} }; // Return a dummy event handler for cleanup
+            }
+        };
+        console.log("Fallback world created");
+    }
+    
+    // Check if the 'on' method exists
+    if (typeof noa.world.on !== 'function') {
+        console.error("NOA world.on is not a function");
+        console.log("Creating 'on' method");
+        noa.world.on = function(event, callback) {
+            console.log("Manual world event registered:", event);
+            return { remove: function() {} }; // Return a dummy event handler for cleanup
+        };
+    }
+    
+    try {
+        // Customize this function to generate the world differently for each level
+        const currentLevel = gameStore?.getState()?.currentLevel || 1;
+        console.log("Generating world for level", currentLevel);
+        
+        // Set generator function
+        console.log("Setting world data generator function");
+        noa.world.on('worldDataNeeded', function(id, data, x, y, z) {
+            console.log(`Generating chunk data at (${x}, ${y}, ${z})`);
+            
+            try {
+                // Check if data has the expected shape property
+                if (!data || !data.shape || !Array.isArray(data.shape) || data.shape.length !== 3) {
+                    console.error("Invalid data object for chunk generation", data);
+                    return;
+                }
+                
+                // Check if data has the set method
+                if (typeof data.set !== 'function') {
+                    console.error("Data object missing 'set' method", data);
+                    return;
+                }
+                
+                // Simple world generation based on level type
+                for (let i = 0; i < data.shape[0]; i++) {
+                    for (let k = 0; k < data.shape[2]; k++) {
+                        // Get height for this position
+                        const height = getHeightAt(x + i, z + k, currentLevel);
+                        
+                        for (let j = 0; j < data.shape[1]; j++) {
+                            const voxelY = y + j;
+                            
+                            try {
+                                if (voxelY < height) {
+                                    // Land
+                                    data.set(i, j, k, 2);
+                                } else if (voxelY < CONFIG.world.waterLevel) {
+                                    // Water
+                                    data.set(i, j, k, 1);
+                                } else {
+                                    // Air
+                                    data.set(i, j, k, 0);
+                                }
+                            } catch (voxelError) {
+                                console.error(`Error setting voxel at (${i}, ${j}, ${k})`, voxelError);
+                            }
+                        }
+                    }
+                }
+                
+                console.log(`Chunk data generation complete for (${x}, ${y}, ${z})`);
+            } catch (chunkError) {
+                console.error("Error generating chunk data:", chunkError);
+            }
+        });
+        
+        console.log("World generation setup complete");
+    } catch (error) {
+        console.error("Error setting up world generation:", error);
+    }
+}
+
+function getHeightAt(x, z, level) {
+    // Different terrain generation algorithms based on level
+    let baseHeight = CONFIG.world.waterLevel - 5; // Base height below water
+    let amplitude = 8; // Default amplitude
+    let frequency = 0.01; // Default frequency
+    
+    // Customize based on level
+    switch(level) {
+        case 1: // Tropical - small islands
+            amplitude = 7;
+            frequency = 0.02;
+            break;
+        case 2: // Desert - flatter with some dunes
+            amplitude = 5;
+            frequency = 0.007;
+            break;
+        case 3: // Jungle - more varied terrain
+            amplitude = 12;
+            frequency = 0.025;
+            break;
+        case 4: // Rocky - jagged terrain
+            amplitude = 15;
+            frequency = 0.04;
+            break;
+        case 5: // Snowy - smoother, higher terrain
+            amplitude = 10;
+            frequency = 0.015;
+            baseHeight += 2;
+            break;
+        case 6: // Volcanic - islands with tall peaks
+            amplitude = 20;
+            frequency = 0.03;
+            break;
+        case 7: // Coral - shallow areas with occasional tall formations
+            amplitude = 8;
+            frequency = 0.05;
+            baseHeight -= 2;
+            break;
+        case 8: // Deep - mostly deep water with rare islands
+            amplitude = 15;
+            frequency = 0.02;
+            baseHeight -= 5;
+            break;
+        case 9: // Haunted - irregular, spooky terrain
+            amplitude = 12;
+            frequency = 0.035;
+            break;
+        case 10: // Hellscape - extreme terrain
+            amplitude = 25;
+            frequency = 0.04;
+            break;
+    }
+    
+    // Use simplex noise for terrain
+    let noise1 = simplex(x * frequency, z * frequency);
+    let noise2 = simplex((x + 100) * frequency * 2, (z + 100) * frequency * 2) * 0.5;
+    
+    return Math.floor(baseHeight + amplitude * (noise1 + noise2));
+}
+
+// Simple simplex noise function stand-in (would use a proper library in a real game)
+function simplex(x, z) {
+    return Math.sin(x * 0.8) * Math.cos(z * 0.8) * 0.5 + 0.5;
+}
+
+function createPlayer() {
+    console.log("Creating player entity...");
+    
+    try {
+        // Check if noa and entities subsystem exists
+        if (!noa) {
+            console.error("NOA engine not initialized");
+            return;
+        }
+        
+        if (!noa.entities) {
+            console.error("NOA entities subsystem not available");
+            return;
+        }
+        
+        if (typeof noa.entities.add !== 'function') {
+            console.error("NOA entities.add is not a function");
+            return;
+        }
+        
+        // Create mesh for player ship
+        const shipWidth = CONFIG.player.shipSize.width;
+        const shipHeight = CONFIG.player.shipSize.height;
+        const shipLength = CONFIG.player.shipSize.depth;
+        
+        console.log("Creating player ship mesh");
+        if (CONFIG.assets.ship.player) {
+            // Load player ship model if available
+            // This would load a GLB model in a real implementation
+            playerMesh = BABYLON.MeshBuilder.CreateBox(
+                "playerShip", 
+                {width: shipWidth, height: shipHeight, depth: shipLength}, 
+                scene
+            );
+        } else {
+            // Create a simple ship mesh
+            playerMesh = createSimpleShip(shipWidth, shipHeight, shipLength);
+        }
+        
+        if (!playerMesh) {
+            console.error("Failed to create player mesh");
+            return;
+        }
+        
+        // Add player entity to the noa world
+        console.log("Adding player entity to world");
+        const pos = [0, CONFIG.world.waterLevel, 0];
+        
+        try {
+            playerEntity = noa.entities.add(
+                pos,
+                [shipWidth, shipHeight, shipLength],
+                playerMesh,
+                [0, 0, 0],
+                false,
+                false,
+                true
+            );
+            
+            console.log("Player entity created:", playerEntity);
+            
+            // Setup player physics if component system is available
+            if (noa.entities.addComponent) {
+                console.log("Adding physics component to player");
+                try {
+                    noa.entities.addComponent(playerEntity, noa.entities.names.physics, {
+                        mass: 1,
+                        friction: 0.5,
+                        restitution: 0.3
+                    });
+                } catch (physicsError) {
+                    console.error("Failed to add physics component:", physicsError);
+                }
+                
+                // Setup player movement and position tracking
+                console.log("Adding movement component to player");
+                try {
+                    noa.entities.addComponent(playerEntity, noa.entities.names.movement);
+                } catch (movementError) {
+                    console.error("Failed to add movement component:", movementError);
+                }
+                
+                console.log("Adding terrain collision component to player");
+                try {
+                    noa.entities.addComponent(playerEntity, noa.entities.names.collideTerrain);
+                } catch (collisionError) {
+                    console.error("Failed to add terrain collision component:", collisionError);
+                }
+            } else {
+                console.warn("Entity component system not available, skipping component setup");
+            }
+            
+            // Store reference for easy access
+            player = {
+                entity: playerEntity,
+                mesh: playerMesh,
+                cannonCooldown: 0
+            };
+            
+            // Set initial camera mode
+            updateCameraPosition();
+            
+            console.log("Player creation complete");
+            
+        } catch (addError) {
+            console.error("Error adding player entity:", addError);
+            
+            // Create a fallback player object if entity creation fails
+            console.log("Creating fallback player object");
+            player = {
+                entity: -1, // Invalid entity ID
+                mesh: playerMesh,
+                cannonCooldown: 0,
+                position: [0, CONFIG.world.waterLevel, 0]
+            };
+        }
+        
+    } catch (error) {
+        console.error("Error creating player:", error);
+        
+        // Create emergency fallback player
+        player = {
+            entity: -1,
+            mesh: null,
+            cannonCooldown: 0,
+            position: [0, CONFIG.world.waterLevel, 0]
+        };
+    }
+}
+
+function createSimpleShip(width, height, length) {
+    // Create a simple ship shape using babylon meshes
+    const shipBody = new BABYLON.Mesh("shipBody", scene);
+    
+    // Hull
+    const hull = BABYLON.MeshBuilder.CreateBox(
+        "hull", 
+        {width: width, height: height / 2, depth: length},
+        scene
+    );
+    hull.position.y = -height / 4;
+    hull.material = new BABYLON.StandardMaterial("hullMat", scene);
+    hull.material.diffuseColor = new BABYLON.Color3(0.6, 0.4, 0.2);
+    hull.parent = shipBody;
+    
+    // Deck
+    const deck = BABYLON.MeshBuilder.CreateBox(
+        "deck",
+        {width: width * 0.9, height: height / 10, depth: length * 0.9},
+        scene
+    );
+    deck.position.y = height / 4;
+    deck.material = new BABYLON.StandardMaterial("deckMat", scene);
+    deck.material.diffuseColor = new BABYLON.Color3(0.8, 0.6, 0.4);
+    deck.parent = shipBody;
+    
+    // Mast
+    const mast = BABYLON.MeshBuilder.CreateCylinder(
+        "mast",
+        {height: height * 2, diameter: width / 5},
+        scene
+    );
+    mast.position.y = height;
+    mast.position.z = -length / 4;
+    mast.material = new BABYLON.StandardMaterial("mastMat", scene);
+    mast.material.diffuseColor = new BABYLON.Color3(0.4, 0.3, 0.2);
+    mast.parent = shipBody;
+    
+    // Sail
+    const sail = BABYLON.MeshBuilder.CreatePlane(
+        "sail",
+        {width: width * 1.5, height: height * 1.5},
+        scene
+    );
+    sail.position.y = height;
+    sail.position.z = length / 10;
+    sail.material = new BABYLON.StandardMaterial("sailMat", scene);
+    sail.material.diffuseColor = new BABYLON.Color3(0.9, 0.9, 0.8);
+    sail.parent = shipBody;
+    
+    // Cannons
+    const cannonLeft = BABYLON.MeshBuilder.CreateCylinder(
+        "cannonLeft",
+        {height: width / 2, diameter: height / 4},
+        scene
+    );
+    cannonLeft.rotation.z = Math.PI / 2;
+    cannonLeft.position.x = -width / 2 - width / 8;
+    cannonLeft.position.y = height / 4;
+    cannonLeft.material = new BABYLON.StandardMaterial("cannonMat", scene);
+    cannonLeft.material.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+    cannonLeft.parent = shipBody;
+    
+    const cannonRight = cannonLeft.clone("cannonRight");
+    cannonRight.position.x = width / 2 + width / 8;
+    cannonRight.parent = shipBody;
+    
+    return shipBody;
+}
+
+function createWaterSurface() {
+    // Create a large water plane
+    const waterSize = CONFIG.world.size.width;
+    const waterMesh = BABYLON.MeshBuilder.CreateGround(
+        "waterSurface", 
+        {width: waterSize, height: waterSize, subdivisions: 32},
+        scene
+    );
+    
+    // Position the water at the water level
+    waterMesh.position.y = CONFIG.world.waterLevel - 0.1;
+    
+    // Create water material with waves
+    waterMaterial = new BABYLON.WaterMaterial("waterMat", scene);
+    waterMaterial.bumpTexture = new BABYLON.Texture("https://assets.babylonjs.com/textures/waterbump.png", scene);
+    waterMaterial.windForce = 10;
+    waterMaterial.waveHeight = 0.5;
+    waterMaterial.bumpHeight = 0.2;
+    waterMaterial.waterColor = new BABYLON.Color3(0, 0.3, 0.5);
+    waterMaterial.colorBlendFactor = 0.3;
+    
+    // Create skybox
+    const skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {size: 1000.0}, scene);
+    const skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("https://assets.babylonjs.com/textures/skybox", scene);
+    skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+    skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+    skybox.material = skyboxMaterial;
+    
+    // Add skybox to water reflections
+    waterMaterial.addToRenderList(skybox);
+    
+    // Apply the material to the water mesh
+    waterMesh.material = waterMaterial;
+}
+
+function spawnEnemies() {
+    const state = gameStore.getState();
+    const numEnemies = CONFIG.game.enemiesPerLevel;
+    
+    for (let i = 0; i < numEnemies; i++) {
+        // Calculate random position around player
+        const angle = Math.random() * Math.PI * 2;
+        const distance = CONFIG.enemy.spawnDistance;
+        const x = state.playerPosition.x + Math.cos(angle) * distance;
+        const z = state.playerPosition.z + Math.sin(angle) * distance;
+        
+        createEnemy(x, z);
+    }
+}
+
+function createEnemy(x, z) {
+    // Create enemy ship mesh
+    const enemyMesh = createSimpleShip(2, 1.5, 5);
+    enemyMesh.scaling.multiplyByFloats(0.8, 0.8, 0.8); // Smaller than player
+    
+    // Create materials
+    const enemyMaterial = new BABYLON.StandardMaterial("enemyMat", scene);
+    enemyMaterial.diffuseColor = new BABYLON.Color3(0.8, 0.2, 0.2); // Red ships for enemies
+    
+    // Apply materials to all children
+    enemyMesh.getChildMeshes().forEach(mesh => {
+        if (mesh.material) {
+            mesh.material = enemyMaterial;
+        }
+    });
+    
+    // Add enemy entity to the game
+    const pos = [x, CONFIG.world.waterLevel, z];
+    const enemyEntity = noa.entities.add(
+        pos,
+        [2, 1.5, 5],
+        enemyMesh,
+        [0, 0, 0],
+        false,
+        false,
+        true
+    );
+    
+    // Create enemy object for game logic
+    const enemy = {
+        entity: enemyEntity,
+        mesh: enemyMesh,
+        health: CONFIG.enemy.health,
+        cannonCooldown: 0
+    };
+    
+    // Add to game state
+    const enemies = [...gameStore.getState().enemies, enemy];
+    gameStore.setState({ enemies });
+}
+
+function regenerateWorld() {
+    // Re-register voxel types with new level colors
+    registerVoxelTypes();
+    
+    // Clear existing chunks and generate new ones
+    noa.world.invalidateVoxelsInAABB({
+        base: [0, 0, 0],
+        max: [CONFIG.world.size.width, CONFIG.world.size.height, CONFIG.world.size.depth]
+    });
+}
+
+// ------------------------------------------
+// Game UI with BabylonJS GUI
+// ------------------------------------------
+let advancedTexture;
+let uiScreens = {};
+let gameHud;
+let healthText, livesText, scoreText, levelText;
+let radarTexture, radarPlane;
+
+function initUI() {
+    console.log('Initializing UI with BabylonJS GUI');
+    
+    // Create AdvancedDynamicTexture for UI
+    advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
+    
+    // Create each screen
+    createStartScreen();
+    createGameOverScreen();
+    createLevelUpScreen();
+    createWinScreen();
+    createGameHUD();
+    createRadar();
+    
+    // Hide all screens initially
+    for (const screenName in uiScreens) {
+        uiScreens[screenName].isVisible = false;
+    }
+    gameHud.isVisible = false;
+    
+    console.log('UI Initialization complete');
+}
+
+function createStartScreen() {
+    // Create container for start screen
+    const startScreen = new BABYLON.GUI.Rectangle("startScreen");
+    startScreen.width = 1;
+    startScreen.height = 1;
+    startScreen.background = "rgba(0, 0, 0, 0.7)";
+    startScreen.thickness = 0;
+    advancedTexture.addControl(startScreen);
+    
+    // Create Layout container for vertical stacking
+    const stackPanel = new BABYLON.GUI.StackPanel();
+    stackPanel.width = "600px";
+    stackPanel.top = "50px";
+    startScreen.addControl(stackPanel);
+    
+    // Title
+    const title = new BABYLON.GUI.TextBlock("title");
+    title.text = CONFIG.text.startScreen.title;
+    title.color = CONFIG.ui.colors.primary;
+    title.fontSize = 48;
+    title.height = "70px";
+    title.fontFamily = CONFIG.ui.fontFamily;
+    stackPanel.addControl(title);
+    
+    // Subtitle
+    const subtitle = new BABYLON.GUI.TextBlock("subtitle");
+    subtitle.text = CONFIG.text.startScreen.subtitle;
+    subtitle.color = CONFIG.ui.colors.secondary;
+    subtitle.fontSize = 24;
+    subtitle.height = "50px";
+    subtitle.fontFamily = CONFIG.ui.fontFamily;
+    stackPanel.addControl(subtitle);
+    
+    // Empty space
+    const spacer1 = new BABYLON.GUI.Rectangle("spacer1");
+    spacer1.height = "50px";
+    spacer1.thickness = 0;
+    stackPanel.addControl(spacer1);
+    
+    // Start button
+    const startButton = createGUIButton(CONFIG.text.startScreen.startButton);
+    startButton.height = "50px";
+    startButton.width = "200px";
+    startButton.onPointerUpObservable.add(() => {
+        if (gameStore) {
+            gameStore.getState().startGame();
+        } else {
+            console.error("Game store not initialized");
+        }
+    });
+    stackPanel.addControl(startButton);
+    
+    // Empty space
+    const spacer2 = new BABYLON.GUI.Rectangle("spacer2");
+    spacer2.height = "50px";
+    spacer2.thickness = 0;
+    stackPanel.addControl(spacer2);
+    
+    // Instructions title
+    const instructionsTitle = new BABYLON.GUI.TextBlock("instructionsTitle");
+    instructionsTitle.text = CONFIG.text.startScreen.instructionsTitle;
+    instructionsTitle.color = CONFIG.ui.colors.primary;
+    instructionsTitle.fontSize = 24;
+    instructionsTitle.height = "40px";
+    instructionsTitle.fontFamily = CONFIG.ui.fontFamily;
+    stackPanel.addControl(instructionsTitle);
+    
+    // Instructions
+    CONFIG.text.startScreen.instructions.forEach((instruction, index) => {
+        const instructionText = new BABYLON.GUI.TextBlock("instruction" + index);
+        instructionText.text = instruction;
+        instructionText.color = "white";
+        instructionText.fontSize = 18;
+        instructionText.height = "30px";
+        instructionText.fontFamily = CONFIG.ui.fontFamily;
+        stackPanel.addControl(instructionText);
+    });
+    
+    // Store reference
+    uiScreens.start = startScreen;
+}
+
+function createGameOverScreen() {
+    // Create container for game over screen
+    const gameOverScreen = new BABYLON.GUI.Rectangle("gameOverScreen");
+    gameOverScreen.width = 1;
+    gameOverScreen.height = 1;
+    gameOverScreen.background = "rgba(0, 0, 0, 0.7)";
+    gameOverScreen.thickness = 0;
+    advancedTexture.addControl(gameOverScreen);
+    
+    // Create Layout container for vertical stacking
+    const stackPanel = new BABYLON.GUI.StackPanel();
+    stackPanel.width = "600px";
+    stackPanel.top = "50px";
+    gameOverScreen.addControl(stackPanel);
+    
+    // Title
+    const title = new BABYLON.GUI.TextBlock("gameOverTitle");
+    title.text = CONFIG.text.gameOverScreen.title;
+    title.color = CONFIG.ui.colors.accent;
+    title.fontSize = 48;
+    title.height = "70px";
+    title.fontFamily = CONFIG.ui.fontFamily;
+    stackPanel.addControl(title);
+    
+    // Subtitle
+    const subtitle = new BABYLON.GUI.TextBlock("gameOverSubtitle");
+    subtitle.text = CONFIG.text.gameOverScreen.subtitle;
+    subtitle.color = CONFIG.ui.colors.primary;
+    subtitle.fontSize = 24;
+    subtitle.height = "50px";
+    subtitle.fontFamily = CONFIG.ui.fontFamily;
+    stackPanel.addControl(subtitle);
+    
+    // Final score
+    const finalScore = new BABYLON.GUI.TextBlock("finalScore");
+    finalScore.text = "Final Score: 0";
+    finalScore.color = CONFIG.ui.colors.primary;
+    finalScore.fontSize = 36;
+    finalScore.height = "60px";
+    finalScore.fontFamily = CONFIG.ui.fontFamily;
+    stackPanel.addControl(finalScore);
+    
+    // Empty space
+    const spacer = new BABYLON.GUI.Rectangle("spacer");
+    spacer.height = "50px";
+    spacer.thickness = 0;
+    stackPanel.addControl(spacer);
+    
+    // Buttons panel (horizontal)
+    const buttonPanel = new BABYLON.GUI.StackPanel();
+    buttonPanel.isVertical = false;
+    buttonPanel.height = "60px";
+    stackPanel.addControl(buttonPanel);
+    
+    // Restart button
+    const restartButton = createGUIButton(CONFIG.text.gameOverScreen.restartButton);
+    restartButton.width = "150px";
+    restartButton.height = "50px";
+    restartButton.onPointerUpObservable.add(() => {
+        if (gameStore) {
+            gameStore.getState().restart();
+        }
+    });
+    buttonPanel.addControl(restartButton);
+    
+    // Spacer between buttons
+    const buttonSpacer = new BABYLON.GUI.Rectangle("buttonSpacer");
+    buttonSpacer.width = "20px";
+    buttonSpacer.thickness = 0;
+    buttonPanel.addControl(buttonSpacer);
+    
+    // Quit button
+    const quitButton = createGUIButton(CONFIG.text.gameOverScreen.quitButton);
+    quitButton.width = "150px";
+    quitButton.height = "50px";
+    quitButton.onPointerUpObservable.add(() => {
+        if (gameStore) {
+            gameStore.getState().quitToMainMenu();
+        }
+    });
+    buttonPanel.addControl(quitButton);
+    
+    // Store references
+    uiScreens.gameOver = gameOverScreen;
+}
+
+function createLevelUpScreen() {
+    // Create container for level up screen
+    const levelUpScreen = new BABYLON.GUI.Rectangle("levelUpScreen");
+    levelUpScreen.width = 1;
+    levelUpScreen.height = 1;
+    levelUpScreen.background = "rgba(0, 0, 0, 0.7)";
+    levelUpScreen.thickness = 0;
+    advancedTexture.addControl(levelUpScreen);
+    
+    // Create Layout container for vertical stacking
+    const stackPanel = new BABYLON.GUI.StackPanel();
+    stackPanel.width = "600px";
+    stackPanel.top = "50px";
+    levelUpScreen.addControl(stackPanel);
+    
+    // Title
+    const title = new BABYLON.GUI.TextBlock("levelUpTitle");
+    title.text = CONFIG.text.levelUpScreen.title;
+    title.color = CONFIG.ui.colors.primary;
+    title.fontSize = 48;
+    title.height = "70px";
+    title.fontFamily = CONFIG.ui.fontFamily;
+    stackPanel.addControl(title);
+    
+    // Level display
+    const levelDisplay = new BABYLON.GUI.TextBlock("newLevelDisplay");
+    levelDisplay.text = CONFIG.text.levelUpScreen.subtitle + "1";
+    levelDisplay.color = CONFIG.ui.colors.primary;
+    levelDisplay.fontSize = 72;
+    levelDisplay.height = "100px";
+    levelDisplay.fontFamily = CONFIG.ui.fontFamily;
+    stackPanel.addControl(levelDisplay);
+    
+    // Empty space
+    const spacer = new BABYLON.GUI.Rectangle("spacer");
+    spacer.height = "50px";
+    spacer.thickness = 0;
+    stackPanel.addControl(spacer);
+    
+    // Continue button
+    const continueButton = createGUIButton(CONFIG.text.levelUpScreen.continueButton);
+    continueButton.width = "200px";
+    continueButton.height = "50px";
+    continueButton.onPointerUpObservable.add(() => {
+        if (gameStore) {
+            gameStore.getState().continueFromLevelUp();
+        }
+    });
+    stackPanel.addControl(continueButton);
+    
+    // Store references
+    uiScreens.levelUp = levelUpScreen;
+}
+
+function createWinScreen() {
+    // Create container for win screen
+    const winScreen = new BABYLON.GUI.Rectangle("winScreen");
+    winScreen.width = 1;
+    winScreen.height = 1;
+    winScreen.background = "rgba(0, 0, 0, 0.7)";
+    winScreen.thickness = 0;
+    advancedTexture.addControl(winScreen);
+    
+    // Create Layout container for vertical stacking
+    const stackPanel = new BABYLON.GUI.StackPanel();
+    stackPanel.width = "600px";
+    stackPanel.top = "50px";
+    winScreen.addControl(stackPanel);
+    
+    // Title
+    const title = new BABYLON.GUI.TextBlock("winTitle");
+    title.text = CONFIG.text.winScreen.title;
+    title.color = CONFIG.ui.colors.primary;
+    title.fontSize = 48;
+    title.height = "70px";
+    title.fontFamily = CONFIG.ui.fontFamily;
+    stackPanel.addControl(title);
+    
+    // Subtitle
+    const subtitle = new BABYLON.GUI.TextBlock("winSubtitle");
+    subtitle.text = CONFIG.text.winScreen.subtitle;
+    subtitle.color = CONFIG.ui.colors.primary;
+    subtitle.fontSize = 24;
+    subtitle.height = "50px";
+    subtitle.fontFamily = CONFIG.ui.fontFamily;
+    stackPanel.addControl(subtitle);
+    
+    // Final score
+    const finalScore = new BABYLON.GUI.TextBlock("winFinalScore");
+    finalScore.text = "Final Score: 0";
+    finalScore.color = CONFIG.ui.colors.primary;
+    finalScore.fontSize = 36;
+    finalScore.height = "60px";
+    finalScore.fontFamily = CONFIG.ui.fontFamily;
+    stackPanel.addControl(finalScore);
+    
+    // Empty space
+    const spacer = new BABYLON.GUI.Rectangle("spacer");
+    spacer.height = "50px";
+    spacer.thickness = 0;
+    stackPanel.addControl(spacer);
+    
+    // Buttons panel (horizontal)
+    const buttonPanel = new BABYLON.GUI.StackPanel();
+    buttonPanel.isVertical = false;
+    buttonPanel.height = "60px";
+    stackPanel.addControl(buttonPanel);
+    
+    // Play again button
+    const playAgainButton = createGUIButton(CONFIG.text.winScreen.playAgainButton);
+    playAgainButton.width = "150px";
+    playAgainButton.height = "50px";
+    playAgainButton.onPointerUpObservable.add(() => {
+        if (gameStore) {
+            gameStore.getState().restart();
+        }
+    });
+    buttonPanel.addControl(playAgainButton);
+    
+    // Spacer between buttons
+    const buttonSpacer = new BABYLON.GUI.Rectangle("buttonSpacer");
+    buttonSpacer.width = "20px";
+    buttonSpacer.thickness = 0;
+    buttonPanel.addControl(buttonSpacer);
+    
+    // Quit button
+    const quitButton = createGUIButton(CONFIG.text.winScreen.quitButton);
+    quitButton.width = "150px";
+    quitButton.height = "50px";
+    quitButton.onPointerUpObservable.add(() => {
+        if (gameStore) {
+            gameStore.getState().quitToMainMenu();
+        }
+    });
+    buttonPanel.addControl(quitButton);
+    
+    // Store references
+    uiScreens.win = winScreen;
+}
+
+function createGameHUD() {
+    // Create container for in-game HUD
+    gameHud = new BABYLON.GUI.Rectangle("gameHud");
+    gameHud.width = 1;
+    gameHud.height = 1;
+    gameHud.thickness = 0;
+    gameHud.background = "transparent";
+    advancedTexture.addControl(gameHud);
+    
+    // Health and Lives display (top left)
+    const statsContainer = new BABYLON.GUI.Rectangle("statsContainer");
+    statsContainer.width = "160px";
+    statsContainer.height = "80px";
+    statsContainer.cornerRadius = 5;
+    statsContainer.background = CONFIG.ui.colors.background;
+    statsContainer.thickness = 0;
+    statsContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    statsContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    statsContainer.left = 10;
+    statsContainer.top = 10;
+    gameHud.addControl(statsContainer);
+    
+    // Stack panel for stats
+    const statsPanel = new BABYLON.GUI.StackPanel();
+    statsPanel.isVertical = true;
+    statsContainer.addControl(statsPanel);
+    
+    // Lives text
+    livesText = new BABYLON.GUI.TextBlock("livesText");
+    livesText.text = "Lives: 4";
+    livesText.color = CONFIG.ui.colors.primary;
+    livesText.fontSize = 18;
+    livesText.height = "30px";
+    livesText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    livesText.paddingLeft = "10px";
+    livesText.paddingTop = "10px";
+    statsPanel.addControl(livesText);
+    
+    // Health text
+    healthText = new BABYLON.GUI.TextBlock("healthText");
+    healthText.text = "Health: 5";
+    healthText.color = CONFIG.ui.colors.primary;
+    healthText.fontSize = 18;
+    healthText.height = "30px";
+    healthText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    healthText.paddingLeft = "10px";
+    statsPanel.addControl(healthText);
+    
+    // Score display (top right)
+    const scoreContainer = new BABYLON.GUI.Rectangle("scoreContainer");
+    scoreContainer.width = "160px";
+    scoreContainer.height = "40px";
+    scoreContainer.cornerRadius = 5;
+    scoreContainer.background = CONFIG.ui.colors.background;
+    scoreContainer.thickness = 0;
+    scoreContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    scoreContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    scoreContainer.right = 10;
+    scoreContainer.top = 10;
+    gameHud.addControl(scoreContainer);
+    
+    // Score text
+    scoreText = new BABYLON.GUI.TextBlock("scoreText");
+    scoreText.text = "Score: 0";
+    scoreText.color = CONFIG.ui.colors.primary;
+    scoreText.fontSize = 18;
+    scoreText.paddingRight = "10px";
+    scoreText.paddingTop = "10px";
+    scoreContainer.addControl(scoreText);
+    
+    // Level display (top center)
+    const levelContainer = new BABYLON.GUI.Rectangle("levelContainer");
+    levelContainer.width = "160px";
+    levelContainer.height = "40px";
+    levelContainer.cornerRadius = 5;
+    levelContainer.background = CONFIG.ui.colors.background;
+    levelContainer.thickness = 0;
+    levelContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    levelContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    levelContainer.top = 10;
+    gameHud.addControl(levelContainer);
+    
+    // Level text
+    levelText = new BABYLON.GUI.TextBlock("levelText");
+    levelText.text = "Level: 1";
+    levelText.color = CONFIG.ui.colors.primary;
+    levelText.fontSize = 18;
+    levelText.paddingTop = "10px";
+    levelContainer.addControl(levelText);
+    
+    // Camera toggle button (top center)
+    const cameraToggle = BABYLON.GUI.Button.CreateSimpleButton("cameraToggle", "👁️");
+    cameraToggle.width = "40px";
+    cameraToggle.height = "40px";
+    cameraToggle.cornerRadius = 20;
+    cameraToggle.background = CONFIG.ui.colors.background;
+    cameraToggle.color = CONFIG.ui.colors.primary;
+    cameraToggle.fontSize = 20;
+    cameraToggle.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    cameraToggle.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    cameraToggle.top = 60;
+    cameraToggle.onPointerUpObservable.add(() => {
+        if (gameStore) {
+            gameStore.getState().toggleCameraMode();
+        }
+    });
+    gameHud.addControl(cameraToggle);
+    
+    // Mobile touch controls (only for touch devices)
+    if ("ontouchstart" in window) {
+        const touchControls = new BABYLON.GUI.Ellipse("touchControls");
+        touchControls.width = "150px";
+        touchControls.height = "150px";
+        touchControls.background = "rgba(255, 255, 255, 0.2)";
+        touchControls.thickness = 0;
+        touchControls.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        touchControls.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        touchControls.left = 20;
+        touchControls.top = -20;
+        
+        // Add touch functionality
+        touchControls.onPointerDownObservable.add((e) => {
+            touchData.active = true;
+            touchData.startX = e.x;
+            touchData.startY = e.y;
+        });
+        
+        touchControls.onPointerMoveObservable.add((e) => {
+            if (touchData.active) {
+                const dx = e.x - touchData.startX;
+                const dy = e.y - touchData.startY;
+                
+                // Apply movement to ship
+                const moveX = dx / 50;
+                const moveZ = dy / 50;
+                
+                applyMovement(moveX, moveZ);
+            }
+        });
+        
+        touchControls.onPointerUpObservable.add(() => {
+            touchData.active = false;
+        });
+        
+        gameHud.addControl(touchControls);
+    }
+}
+
+function createRadar() {
+    // Create a dynamic texture for radar
+    radarTexture = new BABYLON.DynamicTexture("radarTexture", { width: 200, height: 200 }, scene);
+    
+    // Create a plane to display the radar
+    radarPlane = new BABYLON.GUI.Rectangle("radarPlane");
+    radarPlane.width = "150px";
+    radarPlane.height = "150px";
+    radarPlane.cornerRadius = 75; // Make it circular
+    radarPlane.thickness = 2;
+    radarPlane.background = "rgba(0, 30, 60, 0.7)";
+    radarPlane.color = CONFIG.ui.colors.primary;
+    radarPlane.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    radarPlane.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    radarPlane.right = 20;
+    radarPlane.bottom = 20;
+    radarPlane.isVisible = false;
+    
+    // Add radar to HUD
+    gameHud.addControl(radarPlane);
+}
+
+function createGUIButton(text) {
+    const button = BABYLON.GUI.Button.CreateSimpleButton("button", text);
+    button.cornerRadius = 5;
+    button.background = CONFIG.ui.colors.secondary;
+    button.color = "white";
+    button.thickness = 0;
+    button.fontFamily = CONFIG.ui.fontFamily;
+    button.fontSize = 20;
+    
+    // Hover effects
+    button.pointerEnterAnimation = () => {
+        button.background = "#A56F30";
+    };
+    
+    button.pointerOutAnimation = () => {
+        button.background = CONFIG.ui.colors.secondary;
+    };
+    
+    return button;
+}
+
+function showScreen(screenName) {
+    console.log("Showing screen:", screenName);
+    
+    try {
+        // Hide all screens first
+        for (const screen in uiScreens) {
+            if (uiScreens[screen]) {
+                uiScreens[screen].isVisible = false;
+            }
+        }
+        
+        // Hide game HUD and radar
+        if (gameHud) {
+            gameHud.isVisible = false;
+        }
+        if (radarPlane) {
+            radarPlane.isVisible = false;
+        }
+        
+        // Show the requested screen based on name
+        switch (screenName) {
+            case "start":
+                if (uiScreens.start) {
+                    uiScreens.start.isVisible = true;
+                    console.log("Start screen shown");
+                } else {
+                    console.error("Start screen not found");
+                }
+                break;
+                
+            case "game":
+                // Skip showing radar if we've had issues with it
+                let skipRadar = false;
+                
+                if (gameHud) {
+                    gameHud.isVisible = true;
+                    console.log("Game HUD shown");
+                } else {
+                    console.error("Game HUD not found");
+                }
+                
+                // Update UI elements before deciding whether to show radar
+                try {
+                    updateGameUI();
+                } catch (uiError) {
+                    console.error("Error updating game UI:", uiError);
+                    skipRadar = true;
+                }
+                
+                // Only show radar if it's safe to do so
+                if (radarPlane && !skipRadar) {
+                    try {
+                        radarPlane.isVisible = true;
+                        console.log("Radar shown");
+                    } catch (radarError) {
+                        console.warn("Error showing radar:", radarError);
+                    }
+                }
+                break;
+                
+            case "levelUp":
+                if (uiScreens.levelUp) {
+                    uiScreens.levelUp.isVisible = true;
+                    
+                    // Update level display
+                    if (gameStore) {
+                        const levelDisplay = advancedTexture?.getControlByName("newLevelDisplay");
+                        if (levelDisplay) {
+                            levelDisplay.text = CONFIG.text.levelUpScreen.subtitle + gameStore.getState().currentLevel;
+                        }
+                    }
+                    console.log("Level up screen shown");
+                } else {
+                    console.error("Level up screen not found");
+                }
+                break;
+                
+            case "gameOver":
+                if (uiScreens.gameOver) {
+                    uiScreens.gameOver.isVisible = true;
+                    
+                    // Update score display
+                    if (gameStore) {
+                        const finalScore = advancedTexture?.getControlByName("finalScore");
+                        if (finalScore) {
+                            finalScore.text = "Final Score: " + gameStore.getState().score;
+                        }
+                    }
+                    console.log("Game over screen shown");
+                } else {
+                    console.error("Game over screen not found");
+                }
+                break;
+                
+            case "win":
+                if (uiScreens.win) {
+                    uiScreens.win.isVisible = true;
+                    
+                    // Update score display
+                    if (gameStore) {
+                        const winFinalScore = advancedTexture?.getControlByName("winFinalScore");
+                        if (winFinalScore) {
+                            winFinalScore.text = "Final Score: " + gameStore.getState().score;
+                        }
+                    }
+                    console.log("Win screen shown");
+                } else {
+                    console.error("Win screen not found");
+                }
+                break;
+                
+            default:
+                console.warn("Unknown screen requested:", screenName);
+                break;
+        }
+        
+        // Update store state if gameStore exists
+        if (gameStore) {
+            gameStore.setState({ currentScreen: screenName });
+        }
+    } catch (error) {
+        console.error("Error showing screen:", error);
+        
+        // Fallback to at least showing something if possible
+        try {
+            if (uiScreens.start) {
+                uiScreens.start.isVisible = true;
+                console.log("Fallback to start screen due to error");
+            }
+        } catch (fallbackError) {
+            console.error("Even fallback failed:", fallbackError);
+        }
+    }
+}
+
+// ------------------------------------------
+// Game Controls
+// ------------------------------------------
+function setupControls() {
+    // Keyboard controls
+    window.addEventListener("keydown", (e) => {
+        keys[e.key] = true;
+        
+        // Space to fire cannon
+        if (e.key === " " && gameStore && gameStore.getState().currentScreen === "game") {
+            gameStore.getState().firePlayerCannon();
+        }
+        
+        // E to toggle camera
+        if (e.key === "e" && gameStore && gameStore.getState().currentScreen === "game") {
+            gameStore.getState().toggleCameraMode();
+        }
+    });
+    
+    window.addEventListener("keyup", (e) => {
+        keys[e.key] = false;
+    });
+    
+    // Touch controls (only initialize if touch is available)
+    if ("ontouchstart" in window) {
+        const touchControls = document.getElementById("touchControls");
+        if (touchControls) {
+            touchControls.style.display = "block";
+            
+            // Touch movement
+            touchControls.addEventListener("touchstart", (e) => {
+                e.preventDefault();
+                touchData.active = true;
+                touchData.startX = e.touches[0].clientX;
+                touchData.startY = e.touches[0].clientY;
+            });
+            
+            touchControls.addEventListener("touchmove", (e) => {
+                e.preventDefault();
+                if (touchData.active) {
+                    const dx = e.touches[0].clientX - touchData.startX;
+                    const dy = e.touches[0].clientY - touchData.startY;
+                    
+                    // Apply movement to ship
+                    const moveX = dx / 50;
+                    const moveZ = dy / 50;
+                    
+                    applyMovement(moveX, moveZ);
+                }
+            });
+            
+            touchControls.addEventListener("touchend", () => {
+                touchData.active = false;
+            });
+        }
+        
+        // Double tap for cannon
+        let lastTap = 0;
+        document.addEventListener("touchend", (e) => {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            
+            if (tapLength < 500 && tapLength > 0) {
+                // Double tap detected
+                if (gameStore && gameStore.getState().currentScreen === "game") {
+                    gameStore.getState().firePlayerCannon();
+                }
+                e.preventDefault();
+            }
+            
+            lastTap = currentTime;
+        });
+    }
+}
+
+function processInput() {
+    if (!noa || !gameStore || gameStore.getState().currentScreen !== "game") return;
+    
+    let moveX = 0;
+    let moveZ = 0;
+    
+    // WASD controls
+    if (keys["w"] || keys["ArrowUp"]) moveZ = -CONFIG.player.speed;
+    if (keys["s"] || keys["ArrowDown"]) moveZ = CONFIG.player.speed;
+    if (keys["a"] || keys["ArrowLeft"]) moveX = -CONFIG.player.speed;
+    if (keys["d"] || keys["ArrowRight"]) moveX = CONFIG.player.speed;
+    
+    applyMovement(moveX, moveZ);
+}
+
+function applyMovement(moveX, moveZ) {
+    if (!noa || !player || !player.entity) return;
+    
+    // Get current rotation
+    const mesh = player.mesh;
+    const rotation = mesh.rotation.y;
+    
+    // Apply rotation to movement
+    const rotatedX = moveX * Math.cos(rotation) - moveZ * Math.sin(rotation);
+    const rotatedZ = moveX * Math.sin(rotation) + moveZ * Math.cos(rotation);
+    
+    // Apply movement to noa entity
+    noa.entities.setVelocity(player.entity, [rotatedX, 0, rotatedZ]);
+    
+    // Rotate ship if moving
+    if (moveX !== 0 || moveZ !== 0) {
+        const targetRotation = Math.atan2(moveX, -moveZ);
+        // Smoothly rotate towards target direction
+        const currentRotation = mesh.rotation.y;
+        let rotationDiff = targetRotation - currentRotation;
+        
+        // Normalize to smallest angle
+        if (rotationDiff > Math.PI) rotationDiff -= Math.PI * 2;
+        if (rotationDiff < -Math.PI) rotationDiff += Math.PI * 2;
+        
+        // Apply smooth rotation
+        mesh.rotation.y += rotationDiff * 0.1;
+    }
+}
+
+function firePlayerCannon() {
+    if (!noa || !player || !player.entity || !gameStore) return;
+    
+    const state = gameStore.getState();
+    if (state.currentScreen !== "game") return;
+    
+    // Check cooldown
+    const currentTime = Date.now();
+    if (currentTime - player.cannonCooldown < CONFIG.player.cannonCooldown) return;
+    player.cannonCooldown = currentTime;
+    
+    // Get ship position and rotation
+    const pos = noa.entities.getPosition(player.entity);
+    const rotation = player.mesh.rotation.y;
+    
+    // Create cannonball
+    const cannonballMesh = BABYLON.MeshBuilder.CreateSphere("cannonball", {diameter: 0.5}, scene);
+    cannonballMesh.material = new BABYLON.StandardMaterial("cannonballMat", scene);
+    cannonballMesh.material.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+    
+    // Determine spawn position (from left and right sides of ship)
+    const shipWidth = CONFIG.player.shipSize.width;
+    const spawnX = pos[0] + Math.sin(rotation) * (shipWidth/2 + 0.5);
+    const spawnY = pos[1] + 0.5;
+    const spawnZ = pos[2] - Math.cos(rotation) * (shipWidth/2 + 0.5);
+    
+    // Add cannonball to world
+    const cannonballEntity = noa.entities.add(
+        [spawnX, spawnY, spawnZ],
+        [0.5, 0.5, 0.5],
+        cannonballMesh,
+        [0, 0, 0],
+        false,
+        false,
+        true
+    );
+    
+    // Set velocity
+    const speed = 0.5;
+    const velX = Math.sin(rotation) * speed;
+    const velZ = -Math.cos(rotation) * speed;
+    noa.entities.setVelocity(cannonballEntity, [velX, 0, velZ]);
+    
+    // Add to game state
+    const cannonball = {
+        entity: cannonballEntity,
+        mesh: cannonballMesh,
+        owner: "player",
+        damage: 1,
+        timeCreated: currentTime
+    };
+    
+    const cannonballs = [...gameStore.getState().cannonballs, cannonball];
+    gameStore.setState({ cannonballs });
+    
+    // Play sound
+    if (CONFIG.assets.sounds.cannon) {
+        // Play cannon sound
+    }
+}
+
+function updateCameraPosition() {
+    console.log("Updating camera position...");
+    
+    try {
+        if (!noa) {
+            console.error("NOA engine not initialized");
+            return;
+        }
+        
+        // Check if camera exists
+        if (!noa.camera) {
+            console.warn("NOA camera not available, creating stub");
+            noa.camera = {
+                zoomDistance: 10,
+                cameraTarget: [0, 5, 0]
+            };
+        }
+        
+        if (!gameStore) {
+            console.error("Game store not initialized");
+            return;
+        }
+        
+        const state = gameStore.getState();
+        const cameraMode = state.cameraMode;
+        
+        console.log("Setting camera mode to:", cameraMode);
+        
+        if (cameraMode === "thirdPerson") {
+            noa.camera.zoomDistance = 15;
+            noa.camera.cameraTarget = [0, 5, 0];
+        } else {
+            noa.camera.zoomDistance = 0;
+            noa.camera.cameraTarget = [0, 5, 10];
+        }
+        
+        console.log("Camera position updated successfully");
+    } catch (error) {
+        console.error("Error updating camera position:", error);
+    }
+}
+
+// ------------------------------------------
+// Game Update Loop
+// ------------------------------------------
+function updateGame() {
+    if (!noa || !gameStore || gameStore.getState().currentScreen !== "game") return;
+    
+    // Process player input
+    processInput();
+    
+    // Update player position in store
+    if (player && player.entity) {
+        const pos = noa.entities.getPosition(player.entity);
+        if (pos) {
+            gameStore.setState({
+                playerPosition: {
+                    x: pos[0],
+                    y: pos[1],
+                    z: pos[2]
+                }
+            });
+        }
+    }
+    
+    // Update UI elements
+    updateGameUI();
+    
+    // Update enemies
+    updateEnemies();
+    
+    // Update cannonballs
+    updateCannonballs();
+    
+    // Check for collisions
+    checkCollisions();
+}
+
+function updateGameUI() {
+    if (!gameStore) return;
+    
+    const state = gameStore.getState();
+    
+    // Update health and lives display
+    if (healthText) {
+        healthText.text = "Health: " + state.playerHealth;
+    }
+    
+    if (livesText) {
+        livesText.text = "Lives: " + state.playerLives;
+    }
+    
+    // Update score display
+    if (scoreText) {
+        scoreText.text = "Score: " + state.score;
+    }
+    
+    // Update level display
+    if (levelText) {
+        levelText.text = "Level: " + state.currentLevel;
+    }
+    
+    // Update radar
+    updateRadar();
+}
+
+function updateRadar() {
+    if (!gameStore) return;
+    
+    try {
+        const state = gameStore.getState();
+        
+        // Skip radar update if not visible or texture not available
+        if (!radarPlane || !radarPlane.isVisible) {
+            return;
+        }
+        
+        // Create radar texture if it doesn't exist
+        if (!radarTexture) {
+            console.log("Creating radar texture");
+            radarTexture = new BABYLON.DynamicTexture("radarTexture", { width: 200, height: 200 }, scene);
+        }
+        
+        // Get the context from the dynamic texture
+        const ctx = radarTexture.getContext();
+        
+        // Clear the radar
+        ctx.clearRect(0, 0, 200, 200);
+        
+        // Draw radar sweeping line
+        const time = Date.now() / 1000;
+        const angle = time % (Math.PI * 2);
+        
+        ctx.beginPath();
+        ctx.moveTo(100, 100);
+        ctx.lineTo(
+            100 + Math.cos(angle) * 90,
+            100 + Math.sin(angle) * 90
+        );
+        ctx.strokeStyle = "rgba(0, 255, 0, 0.7)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Draw player at center
+        ctx.beginPath();
+        ctx.arc(100, 100, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "#00ff00";
+        ctx.fill();
+        
+        // Draw enemies
+        if (noa && state.enemies) {
+            state.enemies.forEach(enemy => {
+                if (!enemy.entity) return;
+                
+                const enemyPos = noa.entities.getPosition(enemy.entity);
+                const playerPos = state.playerPosition;
+                
+                if (!enemyPos) return;
+                
+                // Calculate relative position
+                const dx = enemyPos[0] - playerPos.x;
+                const dz = enemyPos[2] - playerPos.z;
+                
+                // Scale to radar size (90 is radar radius, detection range is CONFIG.enemy.spawnDistance)
+                const scaleFactor = 90 / CONFIG.enemy.spawnDistance;
+                const rx = dx * scaleFactor;
+                const ry = dz * scaleFactor;
+                
+                // Draw on radar if within range
+                const distance = Math.sqrt(dx * dx + dz * dz);
+                if (distance <= CONFIG.enemy.spawnDistance) {
+                    ctx.beginPath();
+                    ctx.arc(100 + rx, 100 + ry, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = "#ff0000";
+                    ctx.fill();
+                }
+            });
+        }
+        
+        // Update the texture
+        radarTexture.update();
+        
+        // Safely apply texture to radar plane
+        try {
+            // Directly set background with texture url instead of creating a potentially problematic Image control
+            radarPlane.background = "rgba(0, 30, 60, 0.7)";
+            
+            // Create a circular overlay for radar effect
+            const radarCircle = new BABYLON.GUI.Ellipse("radarCircle");
+            radarCircle.width = "95%";
+            radarCircle.height = "95%";
+            radarCircle.background = "#00FF00";
+            radarCircle.alpha = 0.1;
+            radarCircle.thickness = 0;
+            
+            // Check if radarPlane already has controls
+            const hasContent = radarPlane.children && radarPlane.children.length > 0;
+            
+            if (!hasContent) {
+                // Add circle overlay instead of image
+                radarPlane.addControl(radarCircle);
+            }
+        } catch (imageError) {
+            console.warn("Could not update radar display:", imageError);
+        }
+    } catch (error) {
+        console.error("Error updating radar:", error);
+    }
+}
+
+function updateEnemies() {
+    if (!noa || !gameStore) return;
+    
+    const state = gameStore.getState();
+    const playerPos = state.playerPosition;
+    const currentTime = Date.now();
+    
+    state.enemies.forEach(enemy => {
+        if (!enemy.entity) return;
+        
+        // Get enemy position
+        const pos = noa.entities.getPosition(enemy.entity);
+        if (!pos) return;
+        
+        // Calculate direction to player
+        const dx = playerPos.x - pos[0];
+        const dz = playerPos.z - pos[2];
+        const distance = Math.sqrt(dx * dx + dz * dz);
+        
+        // Move towards player if far, otherwise circle around
+        if (distance > CONFIG.enemy.attackDistance) {
+            // Move directly towards player
+            const direction = [dx / distance, 0, dz / distance];
+            noa.entities.setVelocity(enemy.entity, [
+                direction[0] * CONFIG.enemy.speed,
+                0,
+                direction[2] * CONFIG.enemy.speed
+            ]);
+            
+            // Face player
+            const angle = Math.atan2(dx, dz);
+            enemy.mesh.rotation.y = angle;
+        } else {
+            // Circle around player
+            const circleSpeed = CONFIG.enemy.speed * 0.7;
+            const angle = Math.atan2(dx, dz);
+            const circleAngle = angle + Math.PI / 2;
+            
+            noa.entities.setVelocity(enemy.entity, [
+                Math.cos(circleAngle) * circleSpeed,
+                0,
+                Math.sin(circleAngle) * circleSpeed
+            ]);
+            
+            // Face player
+            enemy.mesh.rotation.y = angle;
+            
+            // Fire at player
+            if (currentTime - enemy.cannonCooldown > CONFIG.enemy.cannonCooldown) {
+                enemy.cannonCooldown = currentTime;
+                fireEnemyCannon(enemy);
+            }
+        }
+    });
+}
+
+function fireEnemyCannon(enemy) {
+    if (!noa || !gameStore) return;
+    
+    // Get enemy position and rotation
+    const pos = noa.entities.getPosition(enemy.entity);
+    const rotation = enemy.mesh.rotation.y;
+    
+    // Create cannonball
+    const cannonballMesh = BABYLON.MeshBuilder.CreateSphere("enemyCannonball", {diameter: 0.5}, scene);
+    cannonballMesh.material = new BABYLON.StandardMaterial("enemyCannonballMat", scene);
+    cannonballMesh.material.diffuseColor = new BABYLON.Color3(0.8, 0.1, 0.1);
+    
+    // Determine spawn position
+    const shipWidth = 2; // Enemy ship width
+    const spawnX = pos[0] + Math.sin(rotation) * (shipWidth/2 + 0.5);
+    const spawnY = pos[1] + 0.5;
+    const spawnZ = pos[2] + Math.cos(rotation) * (shipWidth/2 + 0.5);
+    
+    // Add cannonball to world
+    const cannonballEntity = noa.entities.add(
+        [spawnX, spawnY, spawnZ],
+        [0.5, 0.5, 0.5],
+        cannonballMesh,
+        [0, 0, 0],
+        false,
+        false,
+        true
+    );
+    
+    // Set velocity
+    const speed = 0.4;
+    const velX = Math.sin(rotation) * speed;
+    const velZ = Math.cos(rotation) * speed;
+    noa.entities.setVelocity(cannonballEntity, [velX, 0, velZ]);
+    
+    // Add to game state
+    const cannonball = {
+        entity: cannonballEntity,
+        mesh: cannonballMesh,
+        owner: "enemy",
+        damage: CONFIG.enemy.damage,
+        timeCreated: Date.now()
+    };
+    
+    const cannonballs = [...gameStore.getState().cannonballs, cannonball];
+    gameStore.setState({ cannonballs });
+}
+
+function updateCannonballs() {
+    if (!noa || !gameStore) return;
+    
+    const state = gameStore.getState();
+    const currentTime = Date.now();
+    const lifetime = 3000; // 3 seconds lifetime for cannonballs
+    
+    // Filter out expired cannonballs
+    const updatedCannonballs = state.cannonballs.filter(cannonball => {
+        if (!cannonball.entity) return false;
+        
+        if (currentTime - cannonball.timeCreated > lifetime) {
+            // Remove from world
+            if (cannonball.mesh) cannonball.mesh.dispose();
+            if (cannonball.entity) noa.entities.remove(cannonball.entity);
+            return false;
+        }
+        return true;
+    });
+    
+    if (updatedCannonballs.length !== state.cannonballs.length) {
+        gameStore.setState({ cannonballs: updatedCannonballs });
+    }
+}
+
+function checkCollisions() {
+    if (!noa || !player || !player.entity || !gameStore) return;
+    
+    const state = gameStore.getState();
+    
+    // Check cannonball collisions
+    const updatedCannonballs = [...state.cannonballs];
+    const updatedEnemies = [...state.enemies];
+    let scoreAdded = 0;
+    
+    for (let i = updatedCannonballs.length - 1; i >= 0; i--) {
+        const cannonball = updatedCannonballs[i];
+        if (!cannonball.entity) continue;
+        
+        const cPos = noa.entities.getPosition(cannonball.entity);
+        if (!cPos) continue;
+        
+        if (cannonball.owner === "player") {
+            // Check collision with enemies
+            for (let j = updatedEnemies.length - 1; j >= 0; j--) {
+                const enemy = updatedEnemies[j];
+                if (!enemy.entity) continue;
+                
+                const ePos = noa.entities.getPosition(enemy.entity);
+                if (!ePos) continue;
+                
+                const dx = cPos[0] - ePos[0];
+                const dy = cPos[1] - ePos[1];
+                const dz = cPos[2] - ePos[2];
+                const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                
+                if (distance < 3) { // Hit radius
+                    // Remove cannonball
+                    cannonball.mesh.dispose();
+                    noa.entities.remove(cannonball.entity);
+                    updatedCannonballs.splice(i, 1);
+                    
+                    // Damage enemy
+                    enemy.health -= cannonball.damage;
+                    
+                    if (enemy.health <= 0) {
+                        // Enemy destroyed
+                        enemy.mesh.dispose();
+                        noa.entities.remove(enemy.entity);
+                        updatedEnemies.splice(j, 1);
+                        
+                        // Add score
+                        scoreAdded += CONFIG.game.pointsPerEnemy;
+                        
+                        // Spawn a new enemy
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = CONFIG.enemy.spawnDistance;
+                        const x = state.playerPosition.x + Math.cos(angle) * distance;
+                        const z = state.playerPosition.z + Math.sin(angle) * distance;
+                        createEnemy(x, z);
+                    }
+                    
+                    break;
+                }
+            }
+        } else if (cannonball.owner === "enemy") {
+            // Check collision with player
+            const pPos = noa.entities.getPosition(player.entity);
+            
+            const dx = cPos[0] - pPos[0];
+            const dy = cPos[1] - pPos[1];
+            const dz = cPos[2] - pPos[2];
+            const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            
+            if (distance < 3) { // Hit radius
+                // Remove cannonball
+                cannonball.mesh.dispose();
+                noa.entities.remove(cannonball.entity);
+                updatedCannonballs.splice(i, 1);
+                
+                // Damage player
+                gameStore.getState().takeDamage(cannonball.damage);
+                break;
+            }
+        }
+    }
+    
+    // Update state if needed
+    if (scoreAdded > 0) {
+        gameStore.getState().addScore(scoreAdded);
+    }
+    
+    if (updatedCannonballs.length !== state.cannonballs.length) {
+        gameStore.setState({ cannonballs: updatedCannonballs });
+    }
+    
+    if (updatedEnemies.length !== state.enemies.length) {
+        gameStore.setState({ enemies: updatedEnemies });
+    }
+}
+
+function showErrorMessage(message) {
+    const errorDiv = document.createElement("div");
+    errorDiv.style.position = "absolute";
+    errorDiv.style.top = "50%";
+    errorDiv.style.left = "50%";
+    errorDiv.style.transform = "translate(-50%, -50%)";
+    errorDiv.style.padding = "20px";
+    errorDiv.style.backgroundColor = "rgba(255, 0, 0, 0.8)";
+    errorDiv.style.color = "white";
+    errorDiv.style.borderRadius = "5px";
+    errorDiv.style.fontFamily = CONFIG.ui.fontFamily;
+    errorDiv.style.fontSize = "18px";
+    errorDiv.style.textAlign = "center";
+    errorDiv.style.zIndex = "1000";
+    errorDiv.textContent = message;
+    
+    document.body.appendChild(errorDiv);
+}
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions();
+                    if (engineOptions.audioEngine !== false) {
+                        
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {scene.then(returnedScene => { sceneToRender = returnedScene; });
+        
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>

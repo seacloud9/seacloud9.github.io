@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Brendon Smith - Resume Quest</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    
+    <style>
+        :root {
+            --ui-border: #4caf50;
+            --ui-border-top: #81c784;
+            --ui-bg: rgba(0, 15, 10, 0.95);
+            --ui-text: #4caf50;
+            --ui-highlight: #a5d6a7;
+        }
+
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; touch-action: none; font-family: 'Courier New', Courier, monospace; user-select: none; -webkit-user-select: none; }
+        
+        #uiLayer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.5s; }
+        #gestureZone { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: auto; }
+        .pointer-events-auto { pointer-events: auto; }
+        
+        .retro-ui { background-color: var(--ui-bg); border: 2px solid var(--ui-border); border-top-color: var(--ui-border-top); border-left-color: var(--ui-border-top); color: #fff; text-shadow: 1px 1px 0 #000; backdrop-filter: blur(6px); box-shadow: 0 8px 20px rgba(0,0,0,0.8); transition: all 0.5s; }
+        .retro-btn { background-color: var(--ui-border); border: 2px solid #000; border-top-color: var(--ui-border-top); border-left-color: var(--ui-border-top); color: white; text-transform: uppercase; font-weight: bold; display: flex; align-items: center; justify-content: center; text-shadow: 1px 1px 0 #000; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.5); transition: background-color 0.2s, border-color 0.5s; }
+        .retro-btn:active { transform: translate(1px, 1px); border-top-color: #000; border-left-color: #000; filter: brightness(0.8); }
+
+        .nav-btn { background: var(--ui-bg); backdrop-filter: blur(8px); border: 2px solid var(--ui-border); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.6); transition: all 0.1s; cursor: pointer; pointer-events: auto; }
+        .nav-btn:active { background: var(--ui-border); transform: scale(0.9); box-shadow: 0 0 15px var(--ui-highlight); border-color: var(--ui-highlight); }
+        .nav-btn svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+        #messageLog { background: var(--ui-bg); border-left: 3px solid var(--ui-border); max-height: 100px; overflow-y: auto; pointer-events: auto; scrollbar-width: none; font-weight: bold; text-shadow: 1px 1px 0 #000; font-size: 10px; line-height: 1.2; transition: all 0.5s; }
+        #messageLog::-webkit-scrollbar { display: none; }
+        .msg-turn { color: #d1d5db; } .msg-combat { color: #ff8a65; } .msg-loot { color: #ffd54f; } .msg-sys { color: #4fc3f7; } .msg-warn { color: #ef4444; } .msg-cheat { color: #f43f5e; text-shadow: 0 0 5px #f43f5e; }
+        
+        #minimapCanvas { background: rgba(0,0,0,0.7); border: 2px solid var(--ui-border); border-top-color: var(--ui-border-top); border-left-color: var(--ui-border-top); image-rendering: pixelated; transition: border-color 0.5s; }
+        .inv-scroll::-webkit-scrollbar { width: 4px; } .inv-scroll::-webkit-scrollbar-track { background: #000; } .inv-scroll::-webkit-scrollbar-thumb { background: var(--ui-border); }
+        .a-enter-vr { display: none !important; }
+
+        @keyframes pulse { 0% { opacity: 0.8; transform: scale(1); } 50% { opacity: 1; transform: scale(1.05); } 100% { opacity: 0.8; transform: scale(1); } }
+        .animate-pulse-fast { animation: pulse 1.5s infinite ease-in-out; }
+        .scanlines { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2)); background-size: 100% 4px; pointer-events: none; z-index: 50; }
+        
+        #comicCanvas { border: 4px solid var(--ui-border); border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); background-color: #000; image-rendering: pixelated; width: 100%; max-width: 300px; height: 150px; }
+    </style>
+
+    <script>
+        // =====================================================================
+        // WEBGL HARDWARE POST-PROCESSING PIPELINE
+        // =====================================================================
+        AFRAME.registerComponent('post-processor', {
+            init: function () {
+                this.setup = this.setup.bind(this);
+                this.updateUniforms = this.updateUniforms.bind(this);
+                const sceneEl = this.el;
+                
+                if (sceneEl.hasLoaded) { this.setup(); } else { sceneEl.addEventListener('loaded', this.setup); }
+                sceneEl.addEventListener('theme-changed', (e) => this.updateUniforms(e.detail.pp));
+            },
+            setup: function () {
+                const renderer = this.el.renderer;
+                if (!renderer) return;
+                const THREE = AFRAME.THREE;
+                
+                const pixelRatio = renderer.getPixelRatio();
+                const width = window.innerWidth * pixelRatio;
+                const height = window.innerHeight * pixelRatio;
+
+                // Frame Buffer Object for Post Processing
+                this.target = new THREE.WebGLRenderTarget(width, height, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat });
+                this.target.texture.colorSpace = renderer.outputColorSpace;
+
+                // High-End Shader: Gaussian Bloom + Vignette + Color Grading
+                this.material = new THREE.ShaderMaterial({
+                    uniforms: {
+                        tDiffuse: { value: this.target.texture }, resolution: { value: new THREE.Vector2(width, height) },
+                        bloomIntensity: { value: 1.5 }, bloomThreshold: { value: 0.6 },
+                        tint: { value: new THREE.Color(1, 1, 1) }, contrast: { value: 1.0 }, saturation: { value: 1.0 }, vignette: { value: 0.5 }
+                    },
+                    vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position, 1.0); }`,
+                    fragmentShader: `
+                        uniform sampler2D tDiffuse; uniform vec2 resolution;
+                        uniform float bloomIntensity; uniform float bloomThreshold;
+                        uniform vec3 tint; uniform float contrast; uniform float saturation; uniform float vignette;
+                        varying vec2 vUv;
+
+                        void main() {
+                            vec4 texel = texture2D(tDiffuse, vUv);
+                            vec3 color = texel.rgb;
+
+                            // 9-Tap Bright-Pass Pseudo Bloom
+                            vec3 bloom = vec3(0.0);
+                            vec2 off = (1.0 / resolution) * 4.0; // Bloom spread radius
+
+                            for(float x = -1.0; x <= 1.0; x += 1.0) {
+                                for(float y = -1.0; y <= 1.0; y += 1.0) {
+                                    vec3 sampleCol = texture2D(tDiffuse, vUv + vec2(x, y) * off).rgb;
+                                    float bright = dot(sampleCol, vec3(0.299, 0.587, 0.114));
+                                    float weight = (x == 0.0 && y == 0.0) ? 0.25 : ((x == 0.0 || y == 0.0) ? 0.125 : 0.0625);
+                                    if (bright > bloomThreshold) bloom += sampleCol * weight;
+                                }
+                            }
+                            color += bloom * bloomIntensity;
+
+                            // Contrast & Saturation Grading
+                            color = (color - 0.5) * contrast + 0.5;
+                            float luminance = dot(color, vec3(0.299, 0.587, 0.114));
+                            color = mix(vec3(luminance), color, saturation);
+
+                            // Tint
+                            color *= tint;
+
+                            // Edge Vignette
+                            float dist = distance(vUv, vec2(0.5));
+                            color *= smoothstep(1.0, vignette * 0.3, dist);
+
+                            gl_FragColor = vec4(color, texel.a);
+                        }
+                    `
+                });
+
+                this.fsQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.material);
+                this.fsScene = new THREE.Scene(); this.fsScene.add(this.fsQuad);
+                this.fsCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+                // Hijack the Renderer
+                this.originalRender = renderer.render;
+                this.renderer = renderer;
+                renderer.render = (scene, camera, renderTarget, forceClear) => {
+                    if (scene === this.fsScene || renderTarget === this.target) { this.originalRender.call(renderer, scene, camera, renderTarget, forceClear); return; }
+                    
+                    // Render game to FBO
+                    renderer.setRenderTarget(this.target); renderer.clear();
+                    this.originalRender.call(renderer, scene, camera);
+                    
+                    // Render FBO to Screen with Shaders
+                    renderer.setRenderTarget(null); renderer.clear();
+                    this.originalRender.call(renderer, this.fsScene, this.fsCamera);
+                };
+
+                window.addEventListener('resize', () => {
+                    const pr = renderer.getPixelRatio(); const w = window.innerWidth * pr; const h = window.innerHeight * pr;
+                    this.target.setSize(w, h); this.material.uniforms.resolution.value.set(w, h);
+                });
+
+                if (State.currentThemePP) this.updateUniforms(State.currentThemePP);
+            },
+            updateUniforms: function(pp) {
+                if(!this.material) return;
+                this.material.uniforms.bloomIntensity.value = pp.bloom; this.material.uniforms.bloomThreshold.value = pp.bThresh;
+                this.material.uniforms.contrast.value = pp.contrast; this.material.uniforms.saturation.value = pp.saturation;
+                this.material.uniforms.vignette.value = pp.vignette; this.material.uniforms.tint.value.set(pp.tint);
+            }
+        });
+
+        // =====================================================================
+        // GAME CONFIGURATION FILE (BRENDON SMITH RESUME EDITION)
+        // =====================================================================
+        const GAME_CONFIG = {
+            version: "Resume Quest 1.0 - Brendon Smith",
+
+            // CUSTOM SPRITE SHEET INTEGRATION (Procedural defaults used here)
+            externalAssets: {
+                useExternal: false, 
+                enemies: { url: "", cols: 5, rows: 4 },
+                items: { url: "", cols: 4, rows: 2 },
+                npc: { url: "", cols: 1, rows: 1 }
+            },
+            
+            classes: {
+                react_dev: { name: "React Ranger", hp: 120, mp: 40, atk: 12, def: 6, crit: 0.10, hpg: 15, mpg: 5, atkg: 3, defg: 1 },
+                mern_knight: { name: "MERN Paladin", hp: 160, mp: 20, atk: 15, def: 10, crit: 0.05, hpg: 20, mpg: 2, atkg: 4, defg: 3 },
+                xr_wizard: { name: "XR/3D Artificer", hp: 90, mp: 60, atk: 18, def: 4, crit: 0.20, hpg: 10, mpg: 10, atkg: 5, defg: 1 }
+            },
+
+            items: {
+                coffee: { id: "coffee", name: "Espresso Shot", type: "consumable", effect: "hp", val: 50, desc: "Restores 50 HP. Pure caffeine.", color: "#78350f" },
+                redbull: { id: "redbull", name: "Energy Drink", type: "consumable", effect: "mp", val: 30, desc: "Restores 30 MP. Gives you wings.", color: "#38bdf8" },
+                ts_sword: { id: "ts_sword", name: "TypeScript Blade", type: "weapon", atk: 8, desc: "+8 ATK. Strongly typed edges.", color: "#3178c6" },
+                threejs_staff: { id: "threejs_staff", name: "Three.js Staff", type: "weapon", atk: 16, desc: "+16 ATK. Renders enemies useless.", color: "#fef08a" },
+                docker_armor: { id: "docker_armor", name: "Docker Container", type: "armor", def: 8, desc: "+8 DEF. Isolated protection.", color: "#0ea5e9" },
+                aws_shield: { id: "aws_shield", name: "AWS Cloud Shield", type: "armor", def: 15, desc: "+15 DEF. Highly available.", color: "#f59e0b" }
+            },
+
+            enemies: {
+                bug: { name: "NullPointerException", hp: 25, atk: 8, color: '#ff0055' }, 
+                leak: { name: "Memory Leak", hp: 35, atk: 14, color: '#00ff55' },
+                creep: { name: "Scope Creep", hp: 60, atk: 20, color: '#5555ff' }, 
+                conflict: { name: "Merge Conflict", hp: 50, atk: 18, color: '#ffaa00' },
+                legacy: { name: "Legacy Monolith", hp: 100, atk: 30, color: '#ff0000' }, 
+                jira: { name: "Jira Backlog", hp: 45, atk: 15, color: '#a5f3fc' },
+                fda: { name: "FDA Auditor", hp: 80, atk: 22, color: '#ffffff' }, 
+                spaghetti: { name: "Spaghetti Code", hp: 30, atk: 16, color: '#ef4444' }
+            },
+
+            storyline: [
+                "Welcome, Hiring Manager. You've entered the professional mind-palace of Brendon Smith.\nA Senior Software Engineer with 10+ years of arcane coding experience.",
+                "Level 2: The Studio Art Origins. Before the code, there was the canvas. A B.A. from Creighton University forged a keen eye for UI and UX.",
+                "Level 3: The BaileyLauerman Epoch. Here, Single Page Applications were crafted from raw jQuery and Backbone. Facebook Canvas apps were the weapons of choice.",
+                "Level 4: The Freelance Wastes. A harsh environment where FDA-approved digital therapeutics and robust problem-solving kept the bugs at bay.",
+                "Level 5: UC Davis Laboratories. GraphQL, MongoDB, and React were wielded to build compliance tools and automate testing protocols.",
+                "The Core Sector. Mastery over React, TypeScript, MERN, Unity3D, and ThreeJS has been achieved. The ultimate candidate awaits."
+            ],
+
+            // BRIGHTENED THEMES: Bright skies, no roofs, light colors, vibrant fogs
+            themes: [
+                { id: 'agency', name: 'BaileyLauerman Agency', roof: false, skyType: 'clouds', pp: { tint: '#ffffff', contrast: 1.1, saturation: 1.2, bloom: 1.0, vignette: 0.2, bThresh: 0.7 }, ui: { border: '#16a34a', top: '#4ade80', bg: 'rgba(20,50,20,0.85)' },
+                  sky: '#38bdf8', fog: '#7dd3fc', ambient: '#f8fafc', light: '#fef08a', lightInt: 2.0, weather: 'none', wColor: '#88ccff',
+                  pal: { wallBase: '#4ade80', wallLine: '#22c55e', accent: '#16a34a', floor: '#a3e635', floorLine: '#84cc16', style: 'organic' }, 
+                  props: [{t:'fern', c:'#15803d'}, {t:'bloom', c:'#ec4899'}, {t:'shrub', c:'#16a34a'}, {t:'vine', c:'#166534'}], enemies: ['legacy', 'bug', 'creep'] },
+                
+                { id: 'ucdavis', name: 'UC Davis Lab', roof: false, skyType: 'aurora', pp: { tint: '#f0f9ff', contrast: 1.05, saturation: 1.1, bloom: 1.5, vignette: 0.2, bThresh: 0.8 }, ui: { border: '#0284c7', top: '#7dd3fc', bg: 'rgba(15,30,50,0.85)' },
+                  sky: '#bae6fd', fog: '#e0f2fe', ambient: '#ffffff', light: '#ffffff', lightInt: 2.0, weather: 'snow', wColor: '#ffffff',
+                  pal: { wallBase: '#f1f5f9', wallLine: '#cbd5e1', accent: '#38bdf8', floor: '#e2e8f0', floorLine: '#94a3b8', style: 'ice' }, 
+                  props: [{t:'crystal', c:'#0ea5e9'}, {t:'shards', c:'#7dd3fc'}, {t:'rubble', c:'#f8fafc'}, {t:'pillar', c:'#e0f2fe'}], enemies: ['fda', 'jira', 'conflict'] },
+                
+                { id: 'freelance', name: 'Freelance Wastes', roof: false, skyType: 'clouds', pp: { tint: '#fff7ed', contrast: 1.1, saturation: 1.4, bloom: 1.2, vignette: 0.3, bThresh: 0.6 }, ui: { border: '#ea580c', top: '#fb923c', bg: 'rgba(50,20,10,0.85)' },
+                  sky: '#fb923c', fog: '#fdba74', ambient: '#ffedd5', light: '#fef08a', lightInt: 1.8, weather: 'ash', wColor: '#fef3c7',
+                  pal: { wallBase: '#fcd34d', wallLine: '#f59e0b', accent: '#ea580c', floor: '#fef08a', floorLine: '#fde047', style: 'cracked' }, 
+                  props: [{t:'lava', c:'#f97316'}, {t:'embers', c:'#fef08a'}, {t:'skull', c:'#fca5a5'}, {t:'pillar', c:'#d97706'}], enemies: ['spaghetti', 'creep', 'leak'] },
+                
+                { id: 'cloud', name: 'AWS/GCP Cloud', roof: false, skyType: 'grid', pp: { tint: '#faf5ff', contrast: 1.2, saturation: 1.3, bloom: 1.8, vignette: 0.2, bThresh: 0.6 }, ui: { border: '#a855f7', top: '#c084fc', bg: 'rgba(30,10,40,0.85)' },
+                  sky: '#c084fc', fog: '#e879f9', ambient: '#fae8ff', light: '#fdf4ff', lightInt: 1.9, weather: 'data', wColor: '#fbcfe8',
+                  pal: { wallBase: '#f3e8ff', wallLine: '#d8b4fe', accent: '#c084fc', floor: '#fce7f3', floorLine: '#fbcfe8', style: 'circuit' }, 
+                  props: [{t:'neon', c:'#e879f9'}, {t:'server', c:'#d8b4fe'}, {t:'cable', c:'#c084fc'}, {t:'screen', c:'#f0abfc'}], enemies: ['leak', 'legacy', 'conflict'] }
+            ]
+        };
+        // =====================================================================
+
+        AFRAME.registerComponent('weather-system', {
+            schema: { type: {type: 'string', default: 'none'}, color: {type: 'color', default: '#fff'}, count: {type: 'int', default: 4000}, mapSize: {type: 'number', default: 60} },
+            update: function () {
+                if (this.particleSystem) { this.el.removeObject3D('mesh'); this.particleSystem = null; }
+                if (this.data.type === 'none') return;
+                let geom = new THREE.BufferGeometry(); let vertices = [];
+                for (let i = 0; i < this.data.count; i++) vertices.push(Math.random() * this.data.mapSize, Math.random() * 20, -Math.random() * this.data.mapSize);
+                geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                let size = this.data.type === 'snow' ? 0.15 : (this.data.type === 'ash' ? 0.12 : 0.08);
+                let mat = new THREE.PointsMaterial({ color: this.data.color, size: size, transparent: true, opacity: 0.6 }); 
+                this.particleSystem = new THREE.Points(geom, mat); this.el.setObject3D('mesh', this.particleSystem);
+            },
+            tick: function (time, delta) {
+                if (!this.particleSystem || this.data.type === 'none') return;
+                let positions = this.particleSystem.geometry.attributes.position.array; let dt = delta * 0.001;
+                for (let i = 0; i < positions.length; i += 3) {
+                    if (this.data.type === 'rain' || this.data.type === 'data') { positions[i+1] -= dt * (this.data.type === 'data' ? 8 : 15); if (positions[i+1] < 0) positions[i+1] = 20; }
+                    else if (this.data.type === 'snow') { positions[i+1] -= dt * 3; positions[i] += Math.sin(time*0.001 + i) * dt * 2; if (positions[i+1] < 0) positions[i+1] = 20; }
+                    else if (this.data.type === 'ash') { positions[i+1] += dt * 2; positions[i] += Math.cos(time*0.001 + i) * dt * 3; if (positions[i+1] > 20) positions[i+1] = 0; }
+                }
+                this.particleSystem.geometry.attributes.position.needsUpdate = true;
+            }
+        });
+
+        AFRAME.registerComponent('combat-strike', {
+            init: function() {
+                let slash = document.createElement('a-plane'); slash.setAttribute('width', '3'); slash.setAttribute('height', '0.05'); slash.setAttribute('material', 'color: #ffffff; shader: flat; transparent: true; opacity: 1.0; depthTest: false;'); slash.setAttribute('rotation', `0 0 ${Math.random()*180 - 90}`); slash.setAttribute('animation__scale', 'property: scale; to: 1 10 1; dur: 120; easing: easeOutQuad'); slash.setAttribute('animation__fade', 'property: material.opacity; to: 0; dur: 180; easing: easeOutQuad'); this.el.appendChild(slash);
+                const colors = ['#38bdf8', '#4ade80', '#ffffff', '#facc15'];
+                for(let i=0; i<15; i++) { 
+                    let p = document.createElement('a-plane'); p.setAttribute('width', '0.08'); p.setAttribute('height', '0.08'); p.setAttribute('material', `color: ${colors[Math.floor(Math.random()*colors.length)]}; shader: flat; transparent: true; depthTest: false;`);
+                    let dx = (Math.random() - 0.5) * 4; let dy = (Math.random() - 0.5) * 4; let dz = (Math.random()) * 2; 
+                    p.setAttribute('animation__pos', `property: position; to: ${dx} ${dy} ${dz}; dur: ${250 + Math.random()*200}; easing: easeOutExpo`); p.setAttribute('animation__fade', `property: material.opacity; to: 0; dur: ${250 + Math.random()*200}; easing: easeInQuad`); this.el.appendChild(p);
+                }
+                setTimeout(() => { if(this.el.parentNode) this.el.parentNode.removeChild(this.el); }, 500);
+            }
+        });
+    </script>
+</head>
+<body class="text-white">
+
+    <a-scene id="gameScene" post-processor renderer="colorManagement: true;" fog="type: exponential; color: #fff; density: 0.005" loading-screen="enabled: false">
+        <a-assets id="assetsContainer">
+            <img id="tex-wall-0" src=""> <img id="tex-wall-1" src=""> <img id="tex-wall-2" src=""> <img id="tex-wall-3" src="">
+            <img id="tex-floor" src=""> <img id="tex-door" src=""> <img id="tex-roof" src=""> <img id="tex-sky" src="">
+        </a-assets>
+
+        <a-sky id="skyEl" src="#tex-sky" color="#fff"></a-sky>
+        <a-entity id="weatherEl" weather-system="type: none;"></a-entity>
+        <a-entity id="ambientLight" light="type: ambient; color: #ffffff; intensity: 1.6;"></a-entity>
+        <a-entity id="moonLight" light="type: directional; color: #ffffff; intensity: 1.8;" position="-10 20 -10"></a-entity>
+
+        <a-entity id="playerRig" position="0 0 0" rotation="0 0 0">
+            <a-camera id="mainCamera" position="0 0.8 0" wasd-controls="enabled: false" look-controls="enabled: false">
+                <!-- Torch disabled/dimmed to let global lighting take over in bright themes -->
+                <a-entity id="torchLight" light="type: point; color: #ffffff; intensity: 0.5; distance: 10; decay: 2.0; castShadow: false;"></a-entity>
+            </a-camera>
+        </a-entity>
+
+        <a-entity id="worldContainer"></a-entity>
+    </a-scene>
+
+    <div id="gestureZone"></div>
+
+    <div id="startScreen" class="absolute inset-0 bg-black flex flex-col items-center justify-center z-50 pointer-events-auto">
+        <div class="scanlines"></div>
+        <div class="z-10 flex flex-col items-center text-center p-4">
+            <h1 class="text-5xl sm:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-blue-300 to-blue-700 drop-shadow-[0_0_15px_rgba(56,189,248,0.8)] tracking-tighter mb-2" style="-webkit-text-stroke: 1px #000;">BRENDON SMITH</h1>
+            <h2 class="text-3xl sm:text-5xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] tracking-widest mb-10">RESUME QUEST</h2>
+            <p class="text-blue-400 text-xs sm:text-sm font-bold tracking-widest mb-12">A SENIOR SOFTWARE ENGINEER CRAWLER</p>
+            <button onclick="Game.startGame()" class="animate-pulse-fast retro-btn px-8 py-4 text-xl sm:text-2xl rounded-xl shadow-[0_0_30px_rgba(56,189,248,0.5)] border-blue-400 text-blue-100 hover:bg-blue-700">REVIEW CANDIDATE</button>
+        </div>
+    </div>
+
+    <!-- COMIC INTERSTITIAL STORY SCREEN -->
+    <div id="interstitialModal" class="hidden absolute inset-0 bg-black bg-opacity-95 flex flex-col items-center justify-center z-50 pointer-events-auto p-4 sm:p-6 backdrop-blur-xl transition-opacity duration-500">
+        <div class="scanlines"></div>
+        <div class="z-10 flex flex-col items-center w-full max-w-lg">
+            <h2 id="interstitialTitle" class="text-3xl sm:text-4xl text-blue-400 font-bold mb-4 tracking-widest drop-shadow-[0_0_15px_rgba(56,189,248,0.5)] text-center w-full">EPOCH SHIFT</h2>
+            
+            <canvas id="comicCanvas" width="300" height="150" class="mb-6"></canvas>
+            
+            <div class="w-full border-l-4 border-blue-500 pl-4 py-2 mb-8 bg-blue-900 bg-opacity-20 rounded-r shadow-inner">
+                <p id="interstitialText" class="text-white text-xs sm:text-sm leading-relaxed font-bold tracking-wide"></p>
+            </div>
+            <button onclick="Game.executeDescend()" class="retro-btn px-8 py-3 text-lg rounded shadow-[0_0_20px_rgba(56,189,248,0.4)] hover:bg-blue-800 transition-colors w-full sm:w-auto">CONTINUE SCREENING</button>
+        </div>
+    </div>
+
+    <!-- UI LAYER -->
+    <div id="uiLayer" class="hidden p-1 sm:p-2">
+        <div class="flex justify-between items-start pointer-events-auto w-full">
+            <div class="retro-ui p-1.5 w-48 rounded shadow-lg">
+                <div class="flex justify-between items-center border-b border-blue-800 pb-0.5 mb-1" style="border-color: var(--ui-border-top);">
+                    <span class="text-[9px] uppercase font-bold tracking-wider" style="color: var(--ui-highlight)">Epoch <span id="floorUI">1</span></span>
+                    <span class="text-[9px] font-bold truncate max-w-[80px] text-right" style="color: var(--ui-border-top)" id="themeUI">Theme</span>
+                </div>
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-[10px] text-yellow-200 font-bold truncate" id="classNameUI">Class</span>
+                    <span class="text-[9px] text-gray-300 font-bold">Lvl <span id="lvlUI">1</span></span>
+                </div>
+                <div class="flex justify-between items-center mb-0.5">
+                    <span class="text-red-400 font-bold text-[9px]">HP</span>
+                    <span id="hpUI" class="font-bold text-[9px]">100/100</span>
+                </div>
+                <div class="w-full bg-black h-1.5 rounded overflow-hidden border" style="border-color: var(--ui-border-top)">
+                    <div id="hpBar" class="bg-red-500 h-full transition-all duration-300" style="width: 100%;"></div>
+                </div>
+                <div class="flex justify-between items-center mt-1 mb-0.5">
+                    <span class="text-blue-400 font-bold text-[9px]">MP</span>
+                    <span id="mpUI" class="font-bold text-[9px]">20/20</span>
+                </div>
+                <div class="w-full bg-black h-1.5 rounded overflow-hidden border" style="border-color: var(--ui-border-top)">
+                    <div id="mpBar" class="bg-blue-500 h-full transition-all duration-300" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-end gap-1">
+                <div class="flex gap-1 pointer-events-auto items-end">
+                    <button id="btnSettings" onclick="Game.toggleSettings()" class="retro-btn px-2 py-1 text-[10px] text-gray-300 rounded shadow-lg hover:text-white">⚙️</button>
+                    <button id="btnToggleInv" onclick="Game.toggleInventory()" class="retro-btn px-2 py-1 text-[9px] text-white rounded shadow-lg">TECH STACK</button>
+                </div>
+                <div class="flex gap-0.5 shadow-lg pointer-events-auto">
+                    <button id="btnToggleLog" onclick="Game.toggleLog()" class="retro-btn px-1.5 py-0.5 text-[8px] rounded">LOG: ON</button>
+                    <button id="btnToggleExplore" onclick="Game.toggleExplore()" class="retro-btn px-1.5 py-0.5 text-[8px] text-gray-400 rounded">EXP: OFF</button>
+                    <button id="btnToggleFight" onclick="Game.toggleFight()" class="retro-btn px-1.5 py-0.5 text-[8px] text-gray-400 rounded">FGT: OFF</button>
+                </div>
+                <div class="hidden sm:block mt-0.5">
+                    <canvas id="minimapCanvas" width="90" height="90" class="rounded shadow"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="tutorialText" class="absolute top-1/4 w-full text-center text-white pointer-events-none transition-opacity duration-1000 text-xs italic font-bold tracking-wider drop-shadow-md">
+            Swipe to Move/Turn<br>Bump into Objects to Interact
+        </div>
+
+        <div id="messageLogContainer" class="absolute bottom-36 sm:bottom-40 left-1/2 transform -translate-x-1/2 w-full max-w-[280px] px-1 z-20 pointer-events-none transition-opacity duration-300">
+            <div id="messageLog" class="w-full p-1.5 rounded pointer-events-auto flex flex-col gap-0.5 backdrop-blur-md shadow-2xl"></div>
+        </div>
+
+        <div class="flex justify-between items-end pointer-events-none pb-2 sm:pb-4">
+            <div id="dialogueUI" class="hidden pointer-events-auto w-full max-w-[280px] mx-auto retro-ui p-2 rounded relative z-30 shadow-lg">
+                <div class="flex items-start gap-2">
+                    <div class="w-8 h-8 bg-black border rounded overflow-hidden flex items-center justify-center shadow-inner shrink-0" style="border-color: var(--ui-highlight)">
+                        <canvas id="npcPortrait" width="32" height="32" class="w-full h-full object-cover" style="image-rendering: pixelated;"></canvas>
+                    </div>
+                    <div class="flex-grow">
+                        <span class="text-xs font-black mb-1 block" style="color: var(--ui-highlight)">Scrum Master Ghost <span class="text-gray-400 font-normal text-[9px]">(Sprint Data)</span></span>
+                        <p id="dialogueText" class="text-[10px] text-white leading-tight mb-2 italic"></p>
+                    </div>
+                </div>
+                <button onclick="Game.finishDialogue()" class="retro-btn py-1.5 mt-2 w-full text-white rounded text-[10px]">ACKNOWLEDGE</button>
+            </div>
+
+            <div id="combatUI" class="hidden pointer-events-auto w-full max-w-[200px] mx-auto retro-ui p-1.5 rounded relative z-30 shadow-lg">
+                <div class="text-center mb-1.5">
+                    <span id="enemyName" class="text-xs font-black text-white drop-shadow-md">Bug</span>
+                    <div class="w-full bg-red-950 h-1.5 rounded mt-0.5 border border-red-800">
+                        <div id="enemyHpBar" class="bg-red-500 h-full transition-all" style="width: 100%;"></div>
+                    </div>
+                </div>
+                <div id="combatActions" class="grid grid-cols-2 gap-1">
+                    <button onclick="Game.combatAction('attack')" class="retro-btn py-1 text-red-100 font-bold text-[10px] bg-red-900 border-red-700">DEBUG</button>
+                    <button onclick="Game.combatAction('heal')" class="retro-btn py-1 text-blue-200 font-bold text-[10px] bg-blue-900 border-blue-700">REFACTOR</button>
+                    <button onclick="Game.combatAction('guard')" class="retro-btn py-1 text-green-200 font-bold text-[10px] bg-green-900 border-green-700">TEST</button>
+                    <button onclick="Game.combatAction('flee')" class="retro-btn py-1 text-gray-300 font-bold text-[10px]">IGNORE</button>
+                </div>
+                <div id="combatVictory" class="hidden text-center py-0.5">
+                    <p id="victoryText" class="text-green-400 font-bold mb-1.5 text-[10px] whitespace-pre-line drop-shadow-lg"></p>
+                    <button onclick="Game.finishCombat()" class="retro-btn py-1 px-3 w-full text-white rounded text-[10px]">CONTINUE</button>
+                </div>
+            </div>
+
+            <div id="exploreUI" class="hidden pointer-events-none w-full flex justify-between items-end px-2 sm:px-8 pb-1">
+                <div class="grid grid-cols-3 gap-1.5 w-32 h-32">
+                    <div></div>
+                    <button class="nav-btn !w-10 !h-10 mx-auto" id="btnFwd"><svg viewBox="0 0 24 24"><path d="M5 15l7-7 7 7"/></svg></button>
+                    <div></div>
+                    <button class="nav-btn !w-10 !h-10 mx-auto" id="btnTurnL"><svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg></button>
+                    <button class="nav-btn !w-10 !h-10 mx-auto" id="btnBwd"><svg viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg></button>
+                    <button class="nav-btn !w-10 !h-10 mx-auto" id="btnTurnR"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+                </div>
+                <button class="nav-btn !w-14 !h-14 bg-black/40" id="btnAction" style="border-width: 2px; border-color: var(--ui-highlight); color: var(--ui-highlight);">
+                    <svg viewBox="0 0 24 24" class="!w-6 !h-6"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                </button>
+            </div>
+        </div>
+        
+        <div id="classModal" class="hidden absolute inset-0 bg-black bg-opacity-95 flex flex-col items-center justify-center z-50 pointer-events-auto p-4 backdrop-blur-md">
+            <div class="retro-ui max-w-xs w-full p-4 text-center rounded shadow-[0_0_20px_rgba(56,189,248,0.2)]">
+                <h1 class="text-xl text-blue-400 font-bold mb-3 border-b border-blue-600 pb-1 drop-shadow-lg">SELECT DEV SPECIALTY</h1>
+                <div class="flex flex-col gap-2" id="classListContainer"></div>
+            </div>
+        </div>
+
+        <div id="settingsModal" class="hidden absolute inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-40 pointer-events-auto p-2 backdrop-blur-md">
+            <div class="retro-ui w-full max-w-sm flex flex-col p-4 rounded gap-3 shadow-2xl">
+                <div class="flex justify-between items-center border-b pb-2" style="border-color: var(--ui-border-top)">
+                    <h2 class="text-lg font-bold drop-shadow-md tracking-wider text-white">HR SETTINGS</h2>
+                    <button onclick="Game.toggleSettings()" class="retro-btn px-2 py-0.5 text-sm text-red-400 rounded hover:bg-red-900 bg-black border-red-800">X</button>
+                </div>
+                <p class="text-[10px] text-gray-300 italic mb-2">Configure options or enable recruiter tools.</p>
+                <button id="btnCheatToggle" onclick="Game.toggleCheatMode()" class="retro-btn py-2 text-gray-400 bg-black border-gray-600 font-bold transition-all">SUDO MODE: OFF</button>
+                <div id="debugControls" class="hidden grid grid-cols-2 gap-2 mt-2 border-t pt-3" style="border-color: var(--ui-border-top)">
+                    <button onclick="Game.debugLevelUp()" class="retro-btn py-1.5 text-[10px] text-green-300 bg-black border-green-700">Force Promotion</button>
+                    <button onclick="Game.debugNextFloor()" class="retro-btn py-1.5 text-[10px] text-blue-300 bg-black border-blue-700">Skip Epoch</button>
+                    <button onclick="Game.debugGiveLoot()" class="retro-btn py-1.5 text-[10px] text-yellow-300 bg-black border-yellow-700">Grant Tech Stack</button>
+                    <button onclick="Game.debugHeal()" class="retro-btn py-1.5 text-[10px] text-pink-300 bg-black border-pink-700">PTO (Full Heal)</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="inventoryModal" class="hidden absolute inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-40 pointer-events-auto p-2 backdrop-blur-md">
+            <div class="retro-ui w-full max-w-sm h-[75vh] flex flex-col p-3 rounded shadow-2xl">
+                <div class="flex justify-between items-center border-b pb-1.5 mb-2" style="border-color: var(--ui-border-top)">
+                    <h2 class="text-lg text-white font-bold drop-shadow-md">TECH STACK</h2>
+                    <button onclick="Game.toggleInventory()" class="retro-btn px-2 py-0.5 text-sm text-red-400 rounded bg-black border-red-800">X</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <div class="bg-black bg-opacity-60 p-1.5 rounded border shadow-inner" style="border-color: var(--ui-border-top)">
+                        <div class="text-[10px] text-gray-300 mb-0.5 font-bold border-b pb-0.5" style="border-color: var(--ui-border)">KPI STATS</div>
+                        <div class="text-[10px] flex justify-between mt-1"><span>ATK (Output):</span> <span id="statAtk" class="text-yellow-300 font-bold">10</span></div>
+                        <div class="text-[10px] flex justify-between"><span>DEF (Robustness):</span> <span id="statDef" class="text-blue-300 font-bold">5</span></div>
+                        <div class="text-[10px] flex justify-between"><span>CRIT (Innovation):</span> <span id="statCrit" class="text-red-300 font-bold">5%</span></div>
+                        <div class="text-[10px] flex justify-between mt-0.5 pt-0.5 border-t" style="border-color: var(--ui-border)"><span>XP:</span> <span id="statXp" class="text-green-300 font-bold">0/100</span></div>
+                    </div>
+                    <div class="bg-black bg-opacity-60 p-1.5 rounded border shadow-inner" style="border-color: var(--ui-border-top)">
+                        <div class="text-[10px] text-gray-300 mb-0.5 font-bold border-b pb-0.5" style="border-color: var(--ui-border)">ACTIVE TOOLS</div>
+                        <div class="text-[10px] mb-0.5"><span class="text-gray-400">WPN:</span> <span id="equipWpn" class="text-yellow-200 cursor-pointer hover:underline font-bold block truncate" onclick="Game.unequip('weapon')">None</span></div>
+                        <div class="text-[10px]"><span class="text-gray-400">ENV:</span> <span id="equipAmr" class="text-blue-200 cursor-pointer hover:underline font-bold block truncate" onclick="Game.unequip('armor')">None</span></div>
+                    </div>
+                </div>
+                <div class="text-xs text-white mb-1 font-bold border-b pb-0.5" style="border-color: var(--ui-border)">RESOURCES</div>
+                <div id="inventoryList" class="flex-grow overflow-y-auto inv-scroll flex flex-col gap-1.5 p-0.5"></div>
+            </div>
+        </div>
+
+        <div id="gameOverModal" class="hidden absolute inset-0 bg-red-950 bg-opacity-95 flex flex-col items-center justify-center z-50 pointer-events-auto backdrop-blur-lg">
+            <h1 class="text-4xl text-red-500 font-bold mb-2 drop-shadow-md tracking-widest" style="text-shadow: 0 4px 10px rgba(255,0,0,0.5);">BURNOUT</h1>
+            <p class="text-blue-300 mb-6 font-bold text-sm" id="gameOverStats">Epoch 1 - Reached</p>
+            <button onclick="location.reload()" class="retro-btn px-6 py-3 text-lg rounded shadow-[0_0_15px_rgba(255,0,0,0.5)] bg-red-900 border-red-500">Restart Sprint</button>
+        </div>
+    </div>
+
+    <script>
+        const RNG = {
+            seed: function(str) {
+                let h = 0; for(let i=0;i<str.length;i++) h = Math.imul(31, h) + str.charCodeAt(i) | 0;
+                return function() { h = Math.imul(1525, h) + 1013904223 | 0; return (h>>>0)/4294967296; };
+            }
+        };
+
+        const ProceduralArt = {
+            drawMonster: function(ctx, seed, px, py, scale, color) {
+                const rng = RNG.seed(seed); const grid = Array(12).fill(0).map(() => Array(6).fill(0));
+                for(let y=0; y<12; y++) for(let x=0; x<6; x++) { let prob = 0.45 + (x * 0.1) - Math.abs(y - 6) * 0.05; if(rng() < prob) grid[y][x] = 1; }
+                const s = scale / 16;
+                for(let y=0; y<12; y++) for(let x=0; x<12; x++) {
+                    let rx = x < 6 ? x : 11 - x;
+                    if(grid[y][rx]) {
+                        ctx.fillStyle = color; ctx.fillRect(px + (x+2)*s, py + (y+2)*s, s, s); ctx.fillStyle = '#000000';
+                        if(rx===0 || !grid[y][rx-1]) ctx.fillRect(px + (x+1)*s, py + (y+2)*s, s, s); 
+                        if(rx===5 || !grid[y][rx+1]) ctx.fillRect(px + (x+3)*s, py + (y+2)*s, s, s); 
+                        if(y===0 || !grid[y-1][rx]) ctx.fillRect(px + (x+2)*s, py + (y+1)*s, s, s); 
+                        if(y===11 || !grid[y+1][rx]) ctx.fillRect(px + (x+2)*s, py + (y+3)*s, s, s); 
+                    }
+                }
+                ctx.fillStyle = '#ffffff'; let eyeY = 2 + Math.floor(rng() * 4); let eyeX = 2 + Math.floor(rng() * 3);
+                ctx.fillRect(px + (eyeX+2)*s, py + (eyeY+2)*s, s, s); ctx.fillRect(px + (11-eyeX+2)*s, py + (eyeY+2)*s, s, s);
+            },
+            drawItem: function(ctx, type, px, py, scale, color) {
+                ctx.fillStyle = color; const s = scale / 16;
+                if (type === 'consumable') { ctx.beginPath(); ctx.arc(px + scale/2, py + scale/2 + 2*s, 5*s, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(px + scale/2 - s, py + 2*s, 2*s, 4*s); } 
+                else if (type === 'weapon') { ctx.save(); ctx.translate(px + scale/2, py + scale/2); ctx.rotate(Math.PI/4); ctx.fillRect(-1*s, -6*s, 2*s, 10*s); ctx.fillStyle = '#fff'; ctx.fillRect(-3*s, 1*s, 6*s, 2*s); ctx.restore(); } 
+                else { ctx.fillRect(px + 4*s, py + 4*s, 8*s, 8*s); ctx.fillStyle = '#fff'; ctx.fillRect(px + 6*s, py + 6*s, 4*s, 4*s); }
+            },
+            generateEnemySheet: function(outSize=256) {
+                const keys = Object.keys(GAME_CONFIG.enemies); const cvs = document.createElement('canvas'); cvs.width = outSize * keys.length; cvs.height = outSize; const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false;
+                keys.forEach((k, i) => { ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(i*outSize + outSize/2, outSize - 20, outSize/3, 10, 0, 0, Math.PI*2); ctx.fill(); this.drawMonster(ctx, k, i*outSize, 0, outSize, GAME_CONFIG.enemies[k].color); }); return cvs.toDataURL('image/png');
+            },
+            generateItemSheet: function(outSize=256) {
+                const keys = Object.keys(GAME_CONFIG.items); const cvs = document.createElement('canvas'); cvs.width = outSize * keys.length; cvs.height = outSize; const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false;
+                keys.forEach((k, i) => { let item = GAME_CONFIG.items[k]; this.drawItem(ctx, item.type, i*outSize, 0, outSize, item.color); }); return cvs.toDataURL('image/png');
+            },
+            generateNPCSheet: function(outSize=256) {
+                const cvs = document.createElement('canvas'); cvs.width = outSize; cvs.height = outSize; const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false; this.drawMonster(ctx, "HoloGuide", 0, 0, outSize, "#38bdf8");
+                return cvs.toDataURL('image/png');
+            },
+            generateComicPanel: function(cvs, floor, theme) {
+                const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false;
+                const w = cvs.width; const h = cvs.height;
+                ctx.fillStyle = theme.sky; ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = theme.pal.wallLine; ctx.beginPath(); ctx.moveTo(0, h);
+                let terrainH = h * 0.6; ctx.lineTo(0, terrainH);
+                for(let i=0; i<=w; i+=20) { ctx.lineTo(i, terrainH + (Math.sin(i*0.1 + floor)*15) + (Math.random()*10)); }
+                ctx.lineTo(w, h); ctx.fill();
+                ctx.fillStyle = theme.pal.wallBase;
+                for(let i=0; i<5; i++) {
+                    let pw = 20 + Math.random()*30; let ph = 40 + Math.random()*60; let px = Math.random()*w;
+                    ctx.fillRect(px, h - ph - 10, pw, ph); ctx.fillStyle = theme.pal.accent; ctx.fillRect(px+5, h - ph, pw-10, 5); ctx.fillStyle = theme.pal.wallBase;
+                }
+                
+                let enemyKey = theme.enemies[floor % theme.enemies.length]; 
+                let enemyTemplate = GAME_CONFIG.enemies[enemyKey];
+                
+                // Draw either the custom external sprite or the procedural generated one
+                if (GAME_CONFIG.externalAssets.useExternal) {
+                    const img = document.getElementById('sprite-enemies');
+                    if (img && img.complete) {
+                        const cols = GAME_CONFIG.externalAssets.enemies.cols;
+                        const rows = GAME_CONFIG.externalAssets.enemies.rows;
+                        const sW = img.naturalWidth / cols; const sH = img.naturalHeight / rows;
+                        const sx = (enemyTemplate.spriteIndex % cols) * sW;
+                        const sy = Math.floor(enemyTemplate.spriteIndex / cols) * sH;
+                        ctx.drawImage(img, sx, sy, sW, sH, w*0.55, h*0.2, 90, 90);
+                    }
+                } else {
+                    this.drawMonster(ctx, enemyKey, w*0.6, h*0.2, 90, enemyTemplate.color);
+                }
+                
+                ctx.fillStyle = 'rgba(0,0,0,0.2)'; for(let y=0; y<h; y+=4) { ctx.fillRect(0, y, w, 2); }
+            }
+        };
+
+        const AssetGen = {
+            createThemeTextures: function(theme) {
+                const p = theme.pal;
+                for(let i=0; i<4; i++) { this.generateCanvas(`tex-wall-${i}`, p.wallBase, p.wallLine, p.accent, p.style); }
+                this.generateCanvas('tex-floor', p.floor, p.floorLine, p.accent, 'noise');
+                this.generateCanvas('tex-door', p.wallBase, p.wallLine, p.accent, 'door');
+                this.generateCanvas('tex-roof', p.wallLine, p.wallBase, p.accent, 'roof-tiles');
+                this.generateCanvas('tex-sky', theme.sky, p.accent, '#ffffff', theme.skyType);
+            },
+
+            generateCanvas: function(id, baseCol, lineCol, accentCol, style) {
+                const cvs = document.createElement('canvas'); cvs.width = 256; cvs.height = 256; const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false;
+                ctx.fillStyle = baseCol; ctx.fillRect(0,0,256,256); 
+                
+                if (style === 'brick') {
+                    ctx.strokeStyle = lineCol; ctx.lineWidth = 6;
+                    for(let y=0; y<256; y+=32) { let offset = (y/32)%2===0 ? 0 : 32; for(let x=-32; x<256; x+=64) if(Math.random()>0.1) ctx.strokeRect(x+offset, y, 64, 32); }
+                    ctx.fillStyle = accentCol; for(let i=0;i<10;i++) ctx.fillRect(Math.random()*256, Math.random()*256, 8, 8);
+                } else if (style === 'circuit') {
+                    ctx.strokeStyle = lineCol; ctx.lineWidth = 3;
+                    for(let i=0; i<50; i++) { ctx.beginPath(); let sx = Math.random()*256, sy = Math.random()*256; ctx.moveTo(sx, sy); ctx.lineTo(sx+20, sy); ctx.lineTo(sx+20, sy+40); ctx.stroke(); ctx.fillStyle = accentCol; if(Math.random()>0.5) ctx.fillRect(sx+18, sy+38, 6, 6); }
+                } else if (style === 'hex') {
+                    ctx.strokeStyle = lineCol; ctx.lineWidth = 2;
+                    for(let y=0; y<256; y+=20) { for(let x=0; x<256; x+=20) { if(Math.random()>0.05) ctx.strokeRect(x,y,18,18); } }
+                    ctx.fillStyle = accentCol; for(let i=0;i<15;i++) ctx.fillRect(Math.random()*256, Math.random()*256, 18, 18);
+                } else if (style === 'wood') {
+                    ctx.fillStyle = lineCol; for(let x=0; x<256; x+=32) ctx.fillRect(x, 0, 4, 256);
+                    for(let i=0; i<600; i++) { ctx.fillStyle = Math.random()>0.5 ? lineCol : accentCol; ctx.fillRect(Math.random()*256, Math.random()*256, 10, 2); }
+                } else if (style === 'cracked') {
+                    ctx.strokeStyle = lineCol; ctx.lineWidth = 4;
+                    for(let i=0; i<20; i++) { ctx.beginPath(); let sx = Math.random()*256, sy = Math.random()*256; ctx.moveTo(sx, sy); ctx.lineTo(sx + (Math.random()-0.5)*100, sy + (Math.random()-0.5)*100); ctx.stroke(); }
+                } else if (style === 'ice') {
+                    ctx.strokeStyle = lineCol; ctx.lineWidth = 2;
+                    for(let i=0; i<40; i++) { ctx.beginPath(); let sx = Math.random()*256, sy = Math.random()*256; ctx.moveTo(sx, sy); ctx.lineTo(sx+40, sy+20); ctx.lineTo(sx+10, sy+60); ctx.closePath(); ctx.stroke(); }
+                } else if (style === 'noise' || style === 'organic') {
+                    ctx.fillStyle = lineCol; for(let i=0; i<256; i+=8) for(let j=0; j<256; j+=8) if(Math.random()>0.5) ctx.fillRect(i,j,8,8);
+                    ctx.fillStyle = accentCol; for(let i=0; i<25; i++) ctx.fillRect(Math.random()*256, Math.random()*256, 16, 16);
+                } else if (style === 'door') {
+                    ctx.fillStyle = lineCol; ctx.fillRect(16, 16, 224, 224); ctx.fillStyle = baseCol; ctx.fillRect(32, 32, 192, 192); ctx.fillStyle = accentCol; ctx.fillRect(112, 112, 32, 32);
+                } else if (style === 'roof-tiles') {
+                    ctx.strokeStyle = lineCol; ctx.lineWidth = 4;
+                    for(let y=0; y<256; y+=32) { for(let x=0; x<256; x+=32) { ctx.strokeRect(x,y,32,32); ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+32,y+32); ctx.stroke(); } }
+                } else if (style === 'stars' || style === 'void' || style === 'aurora') {
+                    ctx.fillStyle = accentCol; let count = style==='stars'?200:(style==='aurora'?100:20);
+                    for(let i=0; i<count; i++) { ctx.globalAlpha = Math.random(); let s = Math.random()*3; ctx.fillRect(Math.random()*256, Math.random()*256, s, s); } ctx.globalAlpha = 1.0;
+                } else if (style === 'clouds') {
+                    ctx.fillStyle = lineCol; ctx.globalAlpha = 0.3;
+                    for(let i=0; i<30; i++) { ctx.beginPath(); ctx.arc(Math.random()*256, Math.random()*256, 20+Math.random()*40, 0, Math.PI*2); ctx.fill(); } ctx.globalAlpha = 1.0;
+                } else if (style === 'grid') {
+                    ctx.strokeStyle = lineCol; ctx.lineWidth = 1;
+                    for(let i=0; i<256; i+=16) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,256); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(256,i); ctx.stroke(); }
+                }
+                let img = document.getElementById(id); if (img) img.src = cvs.toDataURL('image/png');
+            }
+        };
+
+        const TILE_SIZE = 2; const MAP_SIZE = 30; 
+        const TILE = { WALL: 1, FLOOR: 0, DOOR: 2, STAIRS_DOWN: 3, NPC: 4 };
+        const DIRS = [ { dx: 0, dy: -1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 } ];
+
+        const State = {
+            mode: "START", floor: 1, currentTheme: null, currentThemePP: null, cheatMode: false, tutorialHidden: false,
+            player: { x: 0, y: 0, dir: 0, targetX: 0, targetY: 0, targetDir: 0, hp: 100, maxHp: 100, mp: 20, maxMp: 20, baseAtk: 10, baseDef: 5, crit: 0.05, xp: 0, level: 1, classInfo: null, inventory: [], equip: { weapon: null, armor: null } },
+            autoExplore: false, autoFight: false, lastAutoTime: 0, logVisible: true, map: [], items: [], activeEnemy: null
+        };
+
+        class MapGen {
+            static generate(width, height) {
+                let map = Array(height).fill(0).map(() => Array(width).fill(TILE.WALL));
+                let rooms = []; let startPos = { x: 0, y: 0 };
+                const numRooms = 8 + Math.floor(Math.random() * 4);
+                for(let i=0; i<numRooms; i++) {
+                    let w = 3 + Math.floor(Math.random() * 4); let h = 3 + Math.floor(Math.random() * 4); let x = 1 + Math.floor(Math.random() * (width - w - 2)); let y = 1 + Math.floor(Math.random() * (height - h - 2));
+                    let overlap = false; for(let r of rooms) if (x <= r.x + r.w && x + w >= r.x && y <= r.y + r.h && y + h >= r.y) { overlap = true; break; }
+                    if (!overlap) { let room = {x, y, w, h, center: {x: Math.floor(x + w/2), y: Math.floor(y + h/2)}}; rooms.push(room); for(let ry = y; ry < y + h; ry++) for(let rx = x; rx < x + w; rx++) map[ry][rx] = TILE.FLOOR; }
+                }
+                for(let i=1; i<rooms.length; i++) {
+                    let prev = rooms[i-1].center; let curr = rooms[i].center; let cx = prev.x, cy = prev.y;
+                    while(cx !== curr.x) { map[cy][cx] = TILE.FLOOR; cx += (curr.x > cx) ? 1 : -1; }
+                    while(cy !== curr.y) { map[cy][cx] = TILE.FLOOR; cy += (curr.y > cy) ? 1 : -1; }
+                    map[curr.y][curr.x] = TILE.FLOOR;
+                }
+                startPos = rooms[0].center; map[rooms[rooms.length-1].center.y][rooms[rooms.length-1].center.x] = TILE.STAIRS_DOWN;
+                if(rooms.length > 1 && Math.random() > 0.3) { map[rooms[1].center.y][rooms[1].center.x] = TILE.NPC; }
+                for(let y=1; y<height-1; y++) for(let x=1; x<width-1; x++) if (map[y][x] === TILE.FLOOR) { if (map[y-1][x] === TILE.WALL && map[y+1][x] === TILE.WALL && map[y][x-1] === TILE.FLOOR && map[y][x+1] === TILE.FLOOR) { if(Math.random() > 0.6) map[y][x] = TILE.DOOR; } else if (map[y][x-1] === TILE.WALL && map[y][x+1] === TILE.WALL && map[y-1][x] === TILE.FLOOR && map[y+1][x] === TILE.FLOOR) { if(Math.random() > 0.6) map[y][x] = TILE.DOOR; } }
+                let items = [];
+                for(let i=1; i<rooms.length; i++) if (Math.random() > 0.4) {
+                    let rx = rooms[i].x + 1 + Math.floor(Math.random() * (rooms[i].w - 2)); let ry = rooms[i].y + 1 + Math.floor(Math.random() * (rooms[i].h - 2));
+                    if(map[ry][rx] === TILE.FLOOR && (rx !== startPos.x || ry !== startPos.y)) { let itemKeys = Object.keys(GAME_CONFIG.items); items.push({ id: 'env_item_'+i, x: rx, y: ry, type: itemKeys[Math.floor(Math.random()*itemKeys.length)], active: true }); }
+                }
+                return { map, startPos, items };
+            }
+        }
+
+        const Game = {
+            init: function() {
+                // Initialize Sprite Index Map
+                let eIdx = 0; Object.keys(GAME_CONFIG.enemies).forEach(k => { GAME_CONFIG.enemies[k].spriteIndex = eIdx++; });
+                let iIdx = 0; Object.keys(GAME_CONFIG.items).forEach(k => { GAME_CONFIG.items[k].spriteIndex = iIdx++; });
+
+                const assets = document.getElementById('assetsContainer');
+                
+                // Load Procedural Generated Defaults
+                const enemyImg = document.createElement('img'); enemyImg.id = "sprite-enemies"; enemyImg.src = ProceduralArt.generateEnemySheet(256); assets.appendChild(enemyImg);
+                const itemImg = document.createElement('img'); itemImg.id = "sprite-items"; itemImg.src = ProceduralArt.generateItemSheet(256); assets.appendChild(itemImg);
+                const npcImg = document.createElement('img'); npcImg.id = "sprite-npc"; npcImg.src = ProceduralArt.generateNPCSheet(256); assets.appendChild(npcImg);
+                
+                const portCvs = document.getElementById('npcPortrait'); 
+                if(portCvs) { const portCtx = portCvs.getContext('2d'); portCtx.imageSmoothingEnabled = false; portCtx.clearRect(0,0,32,32); ProceduralArt.drawMonster(portCtx, "HoloGuide", 0, 0, 32, "#38bdf8"); }
+                
+                const classCont = document.getElementById('classListContainer');
+                Object.keys(GAME_CONFIG.classes).forEach(k => {
+                    let c = GAME_CONFIG.classes[k];
+                    classCont.innerHTML += `<button onclick="Game.selectClass('${k}')" class="retro-btn py-2 flex flex-col items-center rounded hover:bg-blue-800"><span class="text-lg text-yellow-300 mb-0.5">${c.name}</span><span class="text-[10px] text-blue-100 font-normal">HP:${c.hp} MP:${c.mp} ATK:${c.atk}</span></button>`;
+                });
+
+                AFRAME.registerComponent('game-loop', {
+                    tick: function (time, timeDelta) {
+                        if (State.mode === "EXPLORE" || State.mode === "COMBAT" || State.mode === "VICTORY") {
+                            if (time - State.lastAutoTime > 600) { if (Game.doAutoAction()) State.lastAutoTime = time; }
+                        }
+                        if (State.mode === "EXPLORE") { Game.updateMinimap(); }
+                        const torch = document.getElementById('torchLight');
+                        if(torch) torch.setAttribute('light', 'intensity', 0.5 + Math.sin(time/150)*0.1);
+                    }
+                });
+                document.getElementById('gameScene').setAttribute('game-loop', '');
+                this.setupInput(); this.setupUIHandlers(); this.log("> Repo cloned successfully.", "msg-sys");
+            },
+
+            startGame: function() { document.getElementById('startScreen').classList.add('hidden'); document.getElementById('classModal').classList.remove('hidden'); },
+
+            selectClass: function(classKey) {
+                const c = GAME_CONFIG.classes[classKey]; const p = State.player;
+                p.classInfo = c; p.maxHp = c.hp; p.hp = c.hp; p.maxMp = c.mp; p.mp = c.mp; p.baseAtk = c.atk; p.baseDef = c.def; p.crit = c.crit;
+                const classUiEl = document.getElementById('classNameUI'); if(classUiEl) classUiEl.innerText = c.name;
+                document.getElementById('classModal').classList.add('hidden'); document.getElementById('uiLayer').classList.remove('hidden');
+                
+                // Starting items
+                p.inventory.push("coffee"); p.inventory.push("ts_sword");
+                
+                this.log(`> Specialized as ${c.name}.`, "msg-sys"); 
+                State.currentTheme = GAME_CONFIG.themes[Math.floor(Math.random() * GAME_CONFIG.themes.length)];
+                this.showInterstitial(true); 
+            },
+
+            showInterstitial: function(isFirst=false) {
+                State.mode = "INTERSTITIAL";
+                const modal = document.getElementById('interstitialModal');
+                const title = document.getElementById('interstitialTitle');
+                const text = document.getElementById('interstitialText');
+                const cvs = document.getElementById('comicCanvas');
+                document.getElementById('exploreUI').classList.add('hidden');
+                
+                if (isFirst) { title.innerText = "INITIALIZING CAREER"; } 
+                else { title.innerText = `EPOCH ${State.floor} CLEARED`; }
+
+                let lore = GAME_CONFIG.storyline[Math.min(State.floor - 1, GAME_CONFIG.storyline.length - 1)];
+                text.innerText = lore;
+                ProceduralArt.generateComicPanel(cvs, State.floor, State.currentTheme);
+                modal.classList.remove('hidden'); setTimeout(() => { modal.style.opacity = 1; }, 50);
+            },
+
+            executeDescend: function() {
+                const modal = document.getElementById('interstitialModal'); modal.style.opacity = 0;
+                if(State.floor > 1) { this.log(`Entering new job market...`, 'msg-sys'); State.player.hp = Math.min(State.player.maxHp, State.player.hp + 30); }
+                setTimeout(() => { modal.classList.add('hidden'); this.setTheme(); this.generateFloor(); document.getElementById('exploreUI').classList.remove('hidden'); }, 500);
+            },
+
+            generateFloor: function() {
+                const world = document.getElementById('worldContainer'); world.innerHTML = ''; 
+                const gen = MapGen.generate(MAP_SIZE, MAP_SIZE); State.map = gen.map; State.items = gen.items;
+                State.player.x = gen.startPos.x; State.player.y = gen.startPos.y; State.player.dir = 0; State.player.targetX = State.player.x; State.player.targetY = State.player.y; State.player.targetDir = 0;
+                this.updateCameraInstant(); this.build3DWorld(); this.log(`> Entered ${State.currentTheme.name}.`, 'msg-sys'); this.updateUI(); State.mode = "EXPLORE";
+            },
+
+            setTheme: function() {
+                const th = State.currentTheme; document.getElementById('themeUI').innerText = th.name;
+                const root = document.documentElement; root.style.setProperty('--ui-border', th.ui.border); root.style.setProperty('--ui-border-top', th.ui.top); root.style.setProperty('--ui-bg', th.ui.bg); root.style.setProperty('--ui-highlight', th.pal.accent);
+                
+                State.currentThemePP = th.pp;
+                document.getElementById('gameScene').emit('theme-changed', { pp: th.pp });
+                
+                // Fog density significantly reduced because we want bright skyboxes to show
+                document.getElementById('gameScene').setAttribute('fog', `type: exponential; color: ${th.fog}; density: ${th.roof ? 0.015 : 0.005}`);
+                document.getElementById('skyEl').setAttribute('color', th.sky);
+                document.getElementById('ambientLight').setAttribute('light', `intensity: ${th.lightInt}; color: ${th.ambient}`);
+                document.getElementById('moonLight').setAttribute('light', `intensity: ${th.lightInt}; color: ${th.light}`);
+                const weather = document.getElementById('weatherEl'); weather.setAttribute('weather-system', `type: ${th.weather}; color: ${th.wColor}`);
+                AssetGen.createThemeTextures(th);
+            },
+
+            buildProp: function(pDef, posX, posZ) {
+                let prop = document.createElement('a-entity'); let t = pDef.t; let c = pDef.c;
+                if(t === 'fern') { let p1 = document.createElement('a-plane'); p1.setAttribute('color', c); p1.setAttribute('width', '1.5'); p1.setAttribute('height', '1.5'); p1.setAttribute('position', `0 0.75 0`); prop.appendChild(p1); let p2 = p1.cloneNode(); p2.setAttribute('rotation', '0 90 0'); prop.appendChild(p2); }
+                else if(t === 'bloom') { let cy = document.createElement('a-cylinder'); cy.setAttribute('radius', '0.05'); cy.setAttribute('height', '0.8'); cy.setAttribute('color', '#166534'); cy.setAttribute('position', '0 0.4 0'); prop.appendChild(cy); let sp = document.createElement('a-sphere'); sp.setAttribute('radius', '0.3'); sp.setAttribute('color', c); sp.setAttribute('material', `emissive: ${c}`); sp.setAttribute('position', '0 0.8 0'); prop.appendChild(sp); }
+                else if(t === 'shrub') { let s1 = document.createElement('a-sphere'); s1.setAttribute('radius', '0.4'); s1.setAttribute('color', c); s1.setAttribute('position', '0 0.4 0'); prop.appendChild(s1); let s2 = document.createElement('a-sphere'); s2.setAttribute('radius', '0.3'); s2.setAttribute('color', c); s2.setAttribute('position', '0.3 0.3 0.2'); prop.appendChild(s2); let s3 = document.createElement('a-sphere'); s3.setAttribute('radius', '0.25'); s3.setAttribute('color', c); s3.setAttribute('position', '-0.2 0.25 -0.2'); prop.appendChild(s3); }
+                else if(t === 'vine') { let bx = document.createElement('a-box'); bx.setAttribute('width', '0.1'); bx.setAttribute('depth', '0.1'); bx.setAttribute('height', '1.5'); bx.setAttribute('color', c); bx.setAttribute('position', '0 1.25 0'); prop.appendChild(bx); }
+                else if(t === 'crystal') { let co = document.createElement('a-cone'); co.setAttribute('radius-bottom', '0.3'); co.setAttribute('height', '1.2'); co.setAttribute('color', c); co.setAttribute('material', `opacity: 0.8; transparent: true; emissive: ${c}; emissiveIntensity: 0.5`); co.setAttribute('position', `0 0.6 0`); prop.appendChild(co); }
+                else if(t === 'shards') { let c1 = document.createElement('a-cone'); c1.setAttribute('radius-bottom', '0.2'); c1.setAttribute('height', '0.6'); c1.setAttribute('color', c); c1.setAttribute('position', '0 0.3 0'); prop.appendChild(c1); let c2 = document.createElement('a-cone'); c2.setAttribute('radius-bottom', '0.15'); c2.setAttribute('height', '0.5'); c2.setAttribute('color', c); c2.setAttribute('position', '0.2 0.25 0.1'); c2.setAttribute('rotation', '0 0 20'); prop.appendChild(c2); }
+                else if(t === 'pillar' || t === 'neon' || t === 'barrel') { let cy = document.createElement('a-cylinder'); cy.setAttribute('radius', '0.4'); cy.setAttribute('height', t==='barrel'?0.8:2.0); cy.setAttribute('color', c); cy.setAttribute('position', `0 ${t==='barrel'?0.4:1.0} 0`); if(t==='neon') cy.setAttribute('material', `emissive: ${c}; shader: flat;`); prop.appendChild(cy); }
+                else if(t === 'rubble' || t === 'gold') { for(let i=0;i<3;i++) { let sp = document.createElement(t==='gold'?'a-sphere':'a-box'); sp.setAttribute('color', c); sp.setAttribute('width', '0.3'); sp.setAttribute('height', '0.3'); sp.setAttribute('depth', '0.3'); sp.setAttribute('radius', '0.15'); sp.setAttribute('position', `${(Math.random()-0.5)*0.5} 0.15 ${(Math.random()-0.5)*0.5}`); prop.appendChild(sp); } }
+                else if(t === 'lava') { let cy = document.createElement('a-cylinder'); cy.setAttribute('radius', '0.8'); cy.setAttribute('height', '0.05'); cy.setAttribute('color', c); cy.setAttribute('material', `emissive: ${c}; shader: flat;`); cy.setAttribute('position', `0 0.05 0`); prop.appendChild(cy); }
+                else if(t === 'embers') { for(let i=0;i<4;i++) { let sp = document.createElement('a-sphere'); sp.setAttribute('radius', '0.08'); sp.setAttribute('color', c); sp.setAttribute('material', `emissive: ${c}; shader: flat`); sp.setAttribute('position', `${(Math.random()-0.5)} ${0.5 + Math.random()} ${(Math.random()-0.5)}`); prop.appendChild(sp); } }
+                else if(t === 'skull' || t === 'crate' || t === 'server') { let bx = document.createElement('a-box'); bx.setAttribute('width', t==='skull'?'0.3':'0.6'); bx.setAttribute('height', t==='skull'?'0.3':(t==='server'?'1.5':'0.6')); bx.setAttribute('depth', t==='skull'?'0.3':'0.6'); bx.setAttribute('color', c); bx.setAttribute('position', `0 ${t==='skull'?0.15:(t==='server'?0.75:0.3)} 0`); prop.appendChild(bx); }
+                else if(t === 'chains' || t === 'cable') { let ring = document.createElement('a-torus'); ring.setAttribute('radius', '0.3'); ring.setAttribute('tube', '0.03'); ring.setAttribute('color', c); ring.setAttribute('rotation', t==='cable'?'90 0 0':'0 90 0'); ring.setAttribute('position', `0 ${t==='cable'?0.05:1.0} 0`); prop.appendChild(ring); }
+                else if(t === 'cage') { let bx = document.createElement('a-box'); bx.setAttribute('width', '0.8'); bx.setAttribute('height', '0.8'); bx.setAttribute('depth', '0.8'); bx.setAttribute('color', c); bx.setAttribute('material', 'wireframe: true'); bx.setAttribute('position', '0 0.4 0'); prop.appendChild(bx); }
+                else if(t === 'screen' || t === 'panel' || t === 'flags') { let pl = document.createElement('a-plane'); pl.setAttribute('width', '0.8'); pl.setAttribute('height', '0.8'); pl.setAttribute('color', c); pl.setAttribute('position', '0 1.0 0'); if(t==='screen') pl.setAttribute('material', `emissive: ${c}`); prop.appendChild(pl); }
+                else if(t === 'cannon') { let cy = document.createElement('a-cylinder'); cy.setAttribute('radius', '0.2'); cy.setAttribute('height', '1.0'); cy.setAttribute('color', c); cy.setAttribute('rotation', '90 0 0'); cy.setAttribute('position', '0 0.4 0'); prop.appendChild(cy); }
+                prop.setAttribute('position', `${posX} 0 ${posZ}`); return prop;
+            },
+
+            build3DWorld: function() {
+                const world = document.getElementById('worldContainer'); const matBase = "shader: standard; roughness: 0.8; metalness: 0.1; emissive: #222222; emissiveIntensity: 0.2;"; const th = State.currentTheme;
+
+                if (th.roof) {
+                    const ceiling = document.createElement('a-plane');
+                    ceiling.setAttribute('position', `${(MAP_SIZE*TILE_SIZE)/2} ${TILE_SIZE} ${-(MAP_SIZE*TILE_SIZE)/2}`); 
+                    ceiling.setAttribute('rotation', '90 0 0'); ceiling.setAttribute('width', MAP_SIZE * TILE_SIZE + 20); ceiling.setAttribute('height', MAP_SIZE * TILE_SIZE + 20);
+                    ceiling.setAttribute('material', `${matBase} src: #tex-roof; repeat: ${MAP_SIZE/2} ${MAP_SIZE/2}; color: #aaaaaa`); 
+                    world.appendChild(ceiling);
+                }
+
+                for (let y = 0; y < MAP_SIZE; y++) {
+                    for (let x = 0; x < MAP_SIZE; x++) {
+                        const posX = x * TILE_SIZE; const posZ = -y * TILE_SIZE; const tile = State.map[y][x];
+                        const floor = document.createElement('a-plane'); floor.setAttribute('position', `${posX} 0 ${posZ}`); floor.setAttribute('rotation', '-90 0 0'); floor.setAttribute('width', TILE_SIZE); floor.setAttribute('height', TILE_SIZE); floor.setAttribute('material', `${matBase} src: #tex-floor;`); world.appendChild(floor);
+
+                        if (tile === TILE.WALL) {
+                            let texVariant = Math.floor(Math.random() * 4);
+                            const wall = document.createElement('a-box'); wall.setAttribute('position', `${posX} ${TILE_SIZE/2} ${posZ}`); wall.setAttribute('width', TILE_SIZE); wall.setAttribute('height', TILE_SIZE); wall.setAttribute('depth', TILE_SIZE); wall.setAttribute('material', `${matBase} src: #tex-wall-${texVariant};`); world.appendChild(wall);
+                        } else if (tile === TILE.DOOR) {
+                            const door = document.createElement('a-box'); door.setAttribute('id', `door_${x}_${y}`); door.setAttribute('position', `${posX} ${TILE_SIZE/2} ${posZ}`); door.setAttribute('width', TILE_SIZE); door.setAttribute('height', TILE_SIZE); door.setAttribute('depth', TILE_SIZE*0.2); door.setAttribute('material', `${matBase} src: #tex-door;`);
+                            if (!(x > 0 && State.map[y][x-1] === TILE.WALL) && !(x < MAP_SIZE-1 && State.map[y][x+1] === TILE.WALL)) door.setAttribute('rotation', '0 90 0'); world.appendChild(door);
+                        } else if (tile === TILE.STAIRS_DOWN) {
+                            const portalGrp = document.createElement('a-entity'); portalGrp.setAttribute('position', `${posX} 1.0 ${posZ}`);
+                            const ring1 = document.createElement('a-torus'); ring1.setAttribute('radius', '0.6'); ring1.setAttribute('tube', '0.05'); ring1.setAttribute('color', th.pal.accent); ring1.setAttribute('material', `emissive: ${th.pal.accent}; metalness: 0.9; roughness: 0.1`); ring1.setAttribute('animation', 'property: rotation; to: 360 360 0; dur: 5000; loop: true; easing: linear'); portalGrp.appendChild(ring1);
+                            const ring2 = document.createElement('a-torus'); ring2.setAttribute('radius', '0.45'); ring2.setAttribute('tube', '0.03'); ring2.setAttribute('color', th.pal.wallLine); ring2.setAttribute('material', `emissive: ${th.pal.wallLine}; metalness: 0.9; roughness: 0.1`); ring2.setAttribute('animation', 'property: rotation; to: -360 180 360; dur: 3500; loop: true; easing: linear'); portalGrp.appendChild(ring2);
+                            const core = document.createElement('a-octahedron'); core.setAttribute('radius', '0.25'); core.setAttribute('color', '#ffffff'); core.setAttribute('material', 'shader: flat; transparent: true; opacity: 0.9'); core.setAttribute('animation__scale', 'property: scale; dir: alternate; to: 1.3 1.3 1.3; dur: 800; loop: true; easing: easeInOutSine'); core.setAttribute('animation__rot', 'property: rotation; to: 0 360 0; dur: 2000; loop: true; easing: linear'); portalGrp.appendChild(core);
+                            const pBase = document.createElement('a-cylinder'); pBase.setAttribute('radius', '0.8'); pBase.setAttribute('height', '0.1'); pBase.setAttribute('color', th.pal.wallLine); pBase.setAttribute('position', '0 -0.95 0'); portalGrp.appendChild(pBase);
+                            world.appendChild(portalGrp);
+                        } else if (tile === TILE.NPC) {
+                            const isExt = GAME_CONFIG.externalAssets.useExternal;
+                            const nCols = isExt ? Math.max(1, GAME_CONFIG.externalAssets.npc.cols) : 1;
+                            const nRows = isExt ? Math.max(1, GAME_CONFIG.externalAssets.npc.rows) : 1;
+                            const rU = 1/nCols, rV = 1/nRows; const oU = 0, oV = isExt ? 1.0 - rV : 0;
+                            
+                            const npc = document.createElement('a-plane'); npc.setAttribute('class', 'npc-sprite'); npc.setAttribute('position', `${posX} 1.0 ${posZ}`); npc.setAttribute('width', 1.8); npc.setAttribute('height', 1.8); 
+                            npc.setAttribute('material', `src: #sprite-npc; transparent: true; alphaTest: 0.1; shader: flat; repeat: ${rU} ${rV}; offset: ${oU} ${oV}`); 
+                            npc.setAttribute('billboard', ''); npc.setAttribute('animation', `property: position; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true; to: ${posX} 1.1 ${posZ}`);
+                            const aura = document.createElement('a-entity'); aura.setAttribute('light', `type: point; color: #38bdf8; intensity: 1.0; distance: 5;`); npc.appendChild(aura); world.appendChild(npc);
+                        } else if (tile === TILE.FLOOR && (posX !== State.player.x * TILE_SIZE || posZ !== -State.player.y * TILE_SIZE)) {
+                            if (Math.random() < 0.15 && th.props && th.props.length > 0) {
+                                let pDef = th.props[Math.floor(Math.random() * th.props.length)]; world.appendChild(this.buildProp(pDef, posX, posZ));
+                            }
+                        }
+                    }
+                }
+
+                const isExt = GAME_CONFIG.externalAssets.useExternal;
+                const iCols = isExt ? Math.max(1, GAME_CONFIG.externalAssets.items.cols) : Object.keys(GAME_CONFIG.items).length;
+                const iRows = isExt ? Math.max(1, GAME_CONFIG.externalAssets.items.rows) : 1;
+                const repeatU = 1 / iCols; const repeatV = 1 / iRows;
+
+                State.items.forEach((item) => {
+                    const itemEl = document.createElement('a-plane'); itemEl.setAttribute('id', item.id); itemEl.setAttribute('position', `${item.x * TILE_SIZE} 0.4 ${-item.y * TILE_SIZE}`); itemEl.setAttribute('width', 0.8); itemEl.setAttribute('height', 0.8);
+                    let conf = GAME_CONFIG.items[item.type]; 
+                    let offsetU = (conf.spriteIndex % iCols) * repeatU;
+                    let offsetV = isExt ? 1.0 - (Math.floor(conf.spriteIndex / iCols) + 1) * repeatV : 0;
+                    
+                    itemEl.setAttribute('material', `src: #sprite-items; transparent: true; alphaTest: 0.1; shader: flat; repeat: ${repeatU} ${repeatV}; offset: ${offsetU} ${offsetV}`);
+                    itemEl.setAttribute('billboard', ''); itemEl.setAttribute('animation', `property: position; dir: alternate; dur: 1500; easing: easeInOutSine; loop: true; to: ${item.x*TILE_SIZE} 0.6 ${-item.y*TILE_SIZE}`); world.appendChild(itemEl);
+                });
+            },
+
+            setupInput: function() {
+                let startX = 0, startY = 0, startT = 0; const swipeMinPx = 30; const swipeMaxMs = 600; const zone = document.getElementById('gestureZone');
+                zone.addEventListener('pointerdown', (ev) => { if (State.mode !== "EXPLORE") return; startX = ev.clientX; startY = ev.clientY; startT = performance.now(); });
+                zone.addEventListener('pointerup', (ev) => {
+                    if (State.mode !== "EXPLORE") return; const dt = performance.now() - startT; const dx = ev.clientX - startX; const dy = ev.clientY - startY;
+                    if (Math.hypot(dx, dy) < swipeMinPx && dt < swipeMaxMs) this.actionInteract();
+                    else if (dt <= swipeMaxMs) { if (Math.abs(dx) > Math.abs(dy)) { if (dx > 0) this.actionTurn(1); else this.actionTurn(-1); } else { if (dy < 0) this.actionMove(1); else this.actionMove(-1); } }
+                });
+                window.addEventListener("keydown", (e) => {
+                    if (State.mode !== "EXPLORE") return;
+                    switch(e.key) { case "w": case "ArrowUp": this.actionMove(1); break; case "s": case "ArrowDown": this.actionMove(-1); break; case "a": case "ArrowLeft": this.actionTurn(-1); break; case "d": case "ArrowRight": this.actionTurn(1); break; case "e": case " ": this.actionInteract(); break; case "i": this.toggleInventory(); break; }
+                });
+            },
+
+            setupUIHandlers: function() {
+                document.getElementById("btnFwd").onclick = (e) => { e.preventDefault(); this.actionMove(1); };
+                document.getElementById("btnBwd").onclick = (e) => { e.preventDefault(); this.actionMove(-1); };
+                document.getElementById("btnTurnL").onclick = (e) => { e.preventDefault(); this.actionTurn(-1); };
+                document.getElementById("btnTurnR").onclick = (e) => { e.preventDefault(); this.actionTurn(1); };
+                document.getElementById("btnAction").onclick = (e) => { e.preventDefault(); this.actionInteract(); };
+            },
+
+            toggleSettings: function() { const modal = document.getElementById('settingsModal'); if (State.mode === "EXPLORE") { State.mode = "SETTINGS"; modal.classList.remove('hidden'); } else if (State.mode === "SETTINGS") { State.mode = "EXPLORE"; modal.classList.add('hidden'); } },
+            toggleCheatMode: function() {
+                State.cheatMode = !State.cheatMode; const btn = document.getElementById('btnCheatToggle'); const debugMenu = document.getElementById('debugControls');
+                if (State.cheatMode) { btn.innerText = "SUDO MODE: ON"; btn.classList.replace('text-gray-400', 'text-red-400'); btn.classList.replace('border-gray-600', 'border-red-600'); debugMenu.classList.remove('hidden'); this.log("SUDO GRANTED.", "msg-cheat"); } 
+                else { btn.innerText = "SUDO MODE: OFF"; btn.classList.replace('text-red-400', 'text-gray-400'); btn.classList.replace('border-red-600', 'border-gray-600'); debugMenu.classList.add('hidden'); this.log("Sudo mode revoked.", "msg-sys"); }
+            },
+            debugLevelUp: function() { const p = State.player; p.xp += p.level * 100; this.log(`[HR] Granted Promotion XP...`, "msg-cheat"); this.levelUpPlayer(); this.updateUI(); this.toggleSettings(); },
+            debugNextFloor: function() { this.log(`[HR] Fast-tracking to next Epoch...`, "msg-cheat"); this.toggleSettings(); State.floor++; State.currentTheme = GAME_CONFIG.themes[Math.floor(Math.random() * GAME_CONFIG.themes.length)]; this.showInterstitial(false); },
+            debugGiveLoot: function() { State.player.inventory.push("threejs_staff", "aws_shield", "coffee", "redbull"); this.log(`[HR] Deployed Premium Tech Stack!`, "msg-cheat"); this.toggleSettings(); },
+            debugHeal: function() { State.player.hp = State.player.maxHp; State.player.mp = State.player.maxMp; this.log(`[HR] PTO Granted. Health & Mana restored.`, "msg-cheat"); this.updateUI(); this.toggleSettings(); },
+
+            toggleLog: function() { State.logVisible = !State.logVisible; const logCont = document.getElementById('messageLogContainer'); const btn = document.getElementById('btnToggleLog'); if (State.logVisible) { logCont.classList.remove('hidden'); btn.innerText = "LOG: ON"; btn.classList.replace('text-gray-400', 'text-white'); } else { logCont.classList.add('hidden'); btn.innerText = "LOG: OFF"; btn.classList.replace('text-white', 'text-gray-400'); } },
+            toggleExplore: function() { State.autoExplore = !State.autoExplore; const btn = document.getElementById('btnToggleExplore'); if (State.autoExplore) { btn.innerText = "EXP: ON"; btn.classList.replace('text-gray-400', 'text-green-400'); } else { btn.innerText = "EXP: OFF"; btn.classList.replace('text-green-400', 'text-gray-400'); } },
+            toggleFight: function() { State.autoFight = !State.autoFight; const btn = document.getElementById('btnToggleFight'); if (State.autoFight) { btn.innerText = "FGT: ON"; btn.classList.replace('text-gray-400', 'text-red-400'); } else { btn.innerText = "FGT: OFF"; btn.classList.replace('text-red-400', 'text-gray-400'); } },
+
+            getTotalAtk: function() { return State.cheatMode ? 9999 : State.player.baseAtk + (State.player.equip.weapon ? State.player.equip.weapon.atk : 0); },
+            getTotalDef: function() { return State.cheatMode ? 9999 : State.player.baseDef + (State.player.equip.armor ? State.player.equip.armor.def : 0); },
+            
+            toggleInventory: function() { const modal = document.getElementById('inventoryModal'); if (State.mode === "EXPLORE") { State.mode = "INVENTORY"; this.renderInventory(); modal.classList.remove('hidden'); } else if (State.mode === "INVENTORY") { State.mode = "EXPLORE"; modal.classList.add('hidden'); this.updateUI(); } },
+            
+            renderInventory: function() {
+                const p = State.player;
+                document.getElementById("statAtk").innerText = this.getTotalAtk(); document.getElementById("statDef").innerText = this.getTotalDef();
+                document.getElementById("statCrit").innerText = Math.floor(p.crit * 100) + "%"; document.getElementById("statXp").innerText = `${p.xp}/${p.level*100}`;
+                document.getElementById("equipWpn").innerText = p.equip.weapon ? p.equip.weapon.name : "None"; document.getElementById("equipAmr").innerText = p.equip.armor ? p.equip.armor.name : "None";
+
+                const list = document.getElementById("inventoryList"); list.innerHTML = "";
+                if (p.inventory.length === 0) { list.innerHTML = "<div class='text-gray-400 text-center mt-4 font-bold text-xs'>No resources available.</div>"; return; }
+
+                let counts = {}; p.inventory.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+                
+                Object.keys(counts).forEach(id => {
+                    const item = GAME_CONFIG.items[id]; const div = document.createElement("div"); div.className = "flex justify-between items-center bg-black bg-opacity-60 p-1.5 border rounded shadow-sm"; div.style.borderColor = "var(--ui-border-top)";
+                    let actionBtn = ""; if (item.type === "consumable") actionBtn = `<button onclick="Game.useItem('${id}')" class="bg-blue-800 hover:bg-blue-700 text-white px-2 py-1 rounded text-[10px] font-bold border border-blue-600">USE</button>`; else if (item.type === "weapon" || item.type === "armor") actionBtn = `<button onclick="Game.equipItem('${id}')" class="bg-yellow-800 hover:bg-yellow-700 text-white px-2 py-1 rounded text-[10px] font-bold border border-yellow-600">EQUIP</button>`;
+                    
+                    let bgStyle = "";
+                    if (GAME_CONFIG.externalAssets.useExternal) {
+                        const cols = Math.max(1, GAME_CONFIG.externalAssets.items.cols); const rows = Math.max(1, GAME_CONFIG.externalAssets.items.rows);
+                        bgStyle = `background-size:${cols * 100}% ${rows * 100}%;background-position:${-(item.spriteIndex % cols) * 24}px ${-Math.floor(item.spriteIndex / cols) * 24}px;`;
+                    } else {
+                        const cols = Object.keys(GAME_CONFIG.items).length;
+                        bgStyle = `background-size:${cols * 100}% 100%;background-position:${(item.spriteIndex / Math.max(1, cols - 1)) * 100}% 0;`;
+                    }
+                    
+                    div.innerHTML = `<div class="flex items-center gap-1.5"><div style="width:24px;height:24px;background-image:url('${document.getElementById('sprite-items').src}');${bgStyle}image-rendering:pixelated"></div><div class="flex flex-col"><span class="text-white font-bold text-xs">${item.name} <span class="text-gray-400 text-[10px]">x${counts[id]}</span></span><span class="text-gray-300 text-[10px]">${item.desc}</span></div></div>${actionBtn}`; list.appendChild(div);
+                });
+            },
+
+            useItem: function(id) { const p = State.player; const item = GAME_CONFIG.items[id]; const idx = p.inventory.indexOf(id); if (idx > -1) { p.inventory.splice(idx, 1); if (item.effect === "hp") { p.hp = Math.min(p.maxHp, p.hp + item.val); this.log(`Consumed ${item.name}. Restored ${item.val} HP.`, "msg-sys"); } else if (item.effect === "mp") { p.mp = Math.min(p.maxMp, p.mp + item.val); this.log(`Consumed ${item.name}. Restored ${item.val} MP.`, "msg-sys"); } this.renderInventory(); } },
+            equipItem: function(id) { const p = State.player; const item = GAME_CONFIG.items[id]; const idx = p.inventory.indexOf(id); if (idx > -1) { p.inventory.splice(idx, 1); if (item.type === "weapon") { if (p.equip.weapon) p.inventory.push(p.equip.weapon.id); p.equip.weapon = item; } else if (item.type === "armor") { if (p.equip.armor) p.inventory.push(p.equip.armor.id); p.equip.armor = item; } this.log(`Equipped ${item.name}.`, "msg-sys"); this.renderInventory(); } },
+            unequip: function(slot) { const p = State.player; if (p.equip[slot]) { p.inventory.push(p.equip[slot].id); this.log(`Unequipped ${p.equip[slot].name}.`, "msg-sys"); p.equip[slot] = null; this.renderInventory(); } },
+
+            hideTutorial: function() {
+                if (!State.tutorialHidden) {
+                    State.tutorialHidden = true;
+                    const tut = document.getElementById('tutorialText');
+                    if (tut) tut.style.opacity = '0';
+                }
+            },
+
+            doAutoAction: function() {
+                if (State.mode === "GAMEOVER" || State.mode === "INVENTORY" || State.mode === "DIALOGUE" || State.mode === "START" || State.mode === "SETTINGS" || State.mode === "INTERSTITIAL") return false;
+                if (State.mode === "COMBAT" && State.autoFight) { const p = State.player; if (p.hp < p.maxHp * 0.4 && p.mp >= 10) this.combatAction('heal'); else this.combatAction('attack'); return true; }
+                if (State.mode === "VICTORY" && (State.autoFight || State.autoExplore)) { this.finishCombat(); return true; }
+                
+                if (State.mode === "EXPLORE" && State.autoExplore) {
+                    const p = State.player;
+                    if (State.map[p.y][p.x] === TILE.STAIRS_DOWN || State.map[p.y][p.x] === TILE.NPC) { this.actionInteract(); return true; }
+
+                    const checkDir = (rDir) => {
+                        const absD = (p.dir + rDir + 4) % 4; const d = DIRS[absD]; const nx = p.x + d.dx, ny = p.y + d.dy;
+                        if (nx >= 0 && nx < MAP_SIZE && ny >= 0 && ny < MAP_SIZE) return State.map[ny][nx]; return TILE.WALL;
+                    };
+
+                    const fwd = checkDir(0);
+                    if (fwd === TILE.DOOR || fwd === TILE.STAIRS_DOWN || fwd === TILE.NPC) { this.actionInteract(); return true; }
+                    if (fwd === TILE.FLOOR) { this.actionMove(1); return true; }
+
+                    const right = checkDir(1); const left = checkDir(-1);
+                    const canGoRight = (right === TILE.FLOOR || right === TILE.DOOR || right === TILE.STAIRS_DOWN || right === TILE.NPC);
+                    const canGoLeft = (left === TILE.FLOOR || left === TILE.DOOR || left === TILE.STAIRS_DOWN || left === TILE.NPC);
+
+                    if (canGoRight && canGoLeft) this.actionTurn(Math.random() > 0.5 ? 1 : -1);
+                    else if (canGoRight) this.actionTurn(1); else if (canGoLeft) this.actionTurn(-1); else this.actionTurn(1);
+                    return true;
+                }
+                return false;
+            },
+
+            actionMove: function(forward) {
+                if (State.mode !== "EXPLORE") return; this.hideTutorial();
+                const p = State.player; const d = DIRS[p.dir]; let nx = p.x + (forward > 0 ? d.dx : -d.dx); let ny = p.y + (forward > 0 ? d.dy : -d.dy);
+                if (nx < 0 || nx >= MAP_SIZE || ny < 0 || ny >= MAP_SIZE) return;
+                const targetTile = State.map[ny][nx]; if (targetTile === TILE.WALL) return;
+                
+                if (targetTile === TILE.DOOR) { this.openDoor(nx, ny); return; }
+                if (targetTile === TILE.STAIRS_DOWN) { State.floor++; State.currentTheme = GAME_CONFIG.themes[Math.floor(Math.random() * GAME_CONFIG.themes.length)]; this.showInterstitial(false); return; }
+                if (targetTile === TILE.NPC) { this.triggerDialogue(); return; }
+                
+                p.targetX = nx; p.targetY = ny; p.x = nx; p.y = ny; this.animateCameraMove();
+            },
+
+            actionTurn: function(dirModifier) {
+                if (State.mode !== "EXPLORE") return; this.hideTutorial();
+                const p = State.player; p.dir = (p.dir + dirModifier + 4) % 4; p.targetDir += dirModifier * 90; this.animateCameraTurn();
+            },
+
+            actionInteract: function() {
+                if (State.mode !== "EXPLORE") return; this.hideTutorial();
+                const p = State.player; const d = DIRS[p.dir]; let nx = p.x + d.dx, ny = p.y + d.dy;
+                if (nx >= 0 && nx < MAP_SIZE && ny >= 0 && ny < MAP_SIZE) {
+                    if (State.map[ny][nx] === TILE.DOOR) { this.openDoor(nx, ny); return; }
+                    if (State.map[ny][nx] === TILE.STAIRS_DOWN) { State.floor++; State.currentTheme = GAME_CONFIG.themes[Math.floor(Math.random() * GAME_CONFIG.themes.length)]; this.showInterstitial(false); return; }
+                    if (State.map[ny][nx] === TILE.NPC) { this.triggerDialogue(); return; }
+                }
+                if (State.map[p.y][p.x] === TILE.STAIRS_DOWN) { State.floor++; State.currentTheme = GAME_CONFIG.themes[Math.floor(Math.random() * GAME_CONFIG.themes.length)]; this.showInterstitial(false); return; }
+                if (State.map[p.y][p.x] === TILE.NPC) { this.triggerDialogue(); return; }
+                this.log("Nothing to refactor here.", "msg-turn");
+            },
+
+            triggerDialogue: function() {
+                State.mode = "DIALOGUE"; document.getElementById('exploreUI').classList.add('hidden'); document.getElementById('dialogueUI').classList.remove('hidden');
+                let biome = State.currentTheme.name; let enemiesInArea = State.currentTheme.enemies.map(e => GAME_CONFIG.enemies[e].name).join(" and ");
+                document.getElementById('dialogueText').innerText = `Agile sprint data confirms we are in the ${biome} epoch.\n\nWarning: Legacy systems detected. High probability of encountering ${enemiesInArea}. Stay sharp, Senior Engineer.`;
+            },
+
+            finishDialogue: function() {
+                State.mode = "EXPLORE"; State.storyIndex++; document.getElementById('dialogueUI').classList.add('hidden'); document.getElementById('exploreUI').classList.remove('hidden');
+                const p = State.player; const d = DIRS[p.dir]; let nx = p.x + d.dx, ny = p.y + d.dy;
+                if (State.map[ny][nx] === TILE.NPC) State.map[ny][nx] = TILE.FLOOR; else if (State.map[p.y][p.x] === TILE.NPC) State.map[p.y][p.x] = TILE.FLOOR;
+                const npcEls = document.querySelectorAll('.npc-sprite'); npcEls.forEach(el => { el.setAttribute('animation__fade', 'property: material.opacity; to: 0; dur: 500'); setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 500); });
+            },
+
+            resolveTile: function() {
+                const p = State.player; let item = State.items.find(i => i.x === p.x && i.y === p.y && i.active);
+                if (item) { let itemId = item.type; p.inventory.push(itemId); this.log(`Acquired ${GAME_CONFIG.items[itemId].name}!`, "msg-loot"); item.active = false; const itemEl = document.getElementById(item.id); if(itemEl && itemEl.parentNode) itemEl.parentNode.removeChild(itemEl); }
+                if (p.mp < p.maxMp && Math.random() > 0.6) { p.mp++; this.updateUI(); }
+                if (Math.random() < 0.15) this.triggerRandomEncounter();
+            },
+
+            triggerRandomEncounter: function() {
+                const themeEnemies = State.currentTheme.enemies; const enemyKey = themeEnemies[Math.floor(Math.random() * themeEnemies.length)]; let enemyTemplate = GAME_CONFIG.enemies[enemyKey];
+                let mult = 1 + (State.floor * 0.25); let enemy = { type: enemyKey, name: enemyTemplate.name, color: enemyTemplate.color, hp: Math.floor(enemyTemplate.hp * mult), maxHp: Math.floor(enemyTemplate.hp * mult), atk: Math.floor(enemyTemplate.atk * mult) };
+                const cam = document.getElementById('mainCamera'); const enemyEl = document.createElement('a-plane'); enemyEl.setAttribute('id', 'activeEnemySprite');
+                enemyEl.setAttribute('position', `0 -1.0 -1.2`); enemyEl.setAttribute('width', `1.6`); enemyEl.setAttribute('height', `1.6`);
+                
+                const isExt = GAME_CONFIG.externalAssets.useExternal;
+                const eCols = isExt ? Math.max(1, GAME_CONFIG.externalAssets.enemies.cols) : Object.keys(GAME_CONFIG.enemies).length;
+                const eRows = isExt ? Math.max(1, GAME_CONFIG.externalAssets.enemies.rows) : 1;
+                const repeatU = 1 / eCols; const repeatV = 1 / eRows;
+                const offsetU = (enemyTemplate.spriteIndex % eCols) * repeatU;
+                const offsetV = isExt ? 1.0 - (Math.floor(enemyTemplate.spriteIndex / eCols) + 1) * repeatV : 0;
+                
+                enemyEl.setAttribute('material', `src: #sprite-enemies; transparent: true; alphaTest: 0.1; shader: flat; repeat: ${repeatU} ${repeatV}; offset: ${offsetU} ${offsetV};`);
+                enemyEl.setAttribute('animation__spawn', `property: position; to: 0 0.1 -1.2; dur: 400; easing: easeOutBack`); enemyEl.setAttribute('animation__float', `property: position; dir: alternate; dur: 1000; easing: easeInOutSine; loop: true; to: 0 0.15 -1.2; delay: 400`);
+                const aura = document.createElement('a-entity'); aura.setAttribute('light', `type: point; color: ${enemy.color}; intensity: 1.5; distance: 10; castShadow: false;`); aura.setAttribute('position', '0 0 0.5'); enemyEl.appendChild(aura); cam.appendChild(enemyEl); State.activeEnemySprite = enemyEl;
+                this.initiateCombat(enemy);
+            },
+
+            openDoor: function(x, y) { State.map[y][x] = TILE.FLOOR; this.log("Bypassed firewall door.", "msg-sys"); const doorEl = document.getElementById(`door_${x}_${y}`); if (doorEl) { doorEl.setAttribute('animation', `property: position; to: ${x*TILE_SIZE} ${-TILE_SIZE} ${-y*TILE_SIZE}; dur: 400; easing: easeInQuad`); setTimeout(() => { if(doorEl.parentNode) doorEl.parentNode.removeChild(doorEl); }, 450); } },
+
+            animateCameraMove: function() {
+                State.mode = "ANIMATING"; const p = State.player; const rig = document.getElementById('playerRig');
+                rig.removeAttribute('animation__move'); rig.setAttribute('animation__move', { property: 'position', to: `${p.targetX * TILE_SIZE} 0 ${-p.targetY * TILE_SIZE}`, dur: 300, easing: 'easeInOutSine' });
+                const cam = document.getElementById('mainCamera'); cam.removeAttribute('animation__bob'); cam.setAttribute('animation__bob', { property: 'position', to: '0 0.65 0', dir: 'alternate', dur: 150, loop: 1, easing: 'easeInOutSine' }); setTimeout(() => { cam.setAttribute('position', '0 0.8 0'); }, 300);
+                setTimeout(() => { State.mode = "EXPLORE"; this.resolveTile(); }, 300);
+            },
+
+            animateCameraTurn: function() { State.mode = "ANIMATING"; const p = State.player; const rig = document.getElementById('playerRig'); rig.removeAttribute('animation__turn'); rig.setAttribute('animation__turn', { property: 'rotation', to: `0 ${p.targetDir} 0`, dur: 250, easing: 'easeInOutQuad' }); setTimeout(() => { State.mode = "EXPLORE"; }, 250); },
+            updateCameraInstant: function() { const p = State.player; const rig = document.getElementById('playerRig'); rig.setAttribute('position', `${p.x * TILE_SIZE} 0 ${-p.y * TILE_SIZE}`); let rotY = 180; if (p.dir === 1) rotY = 270; if (p.dir === 2) rotY = 0; if (p.dir === 3) rotY = 90; p.targetDir = rotY; rig.setAttribute('rotation', `0 ${rotY} 0`); },
+
+            initiateCombat: function(enemy) { State.mode = "COMBAT"; State.activeEnemy = enemy; this.log(`Wild ${enemy.name} appeared!`, 'msg-warn'); document.getElementById('exploreUI').classList.add('hidden'); document.getElementById('combatUI').classList.remove('hidden'); this.updateCombatUI(); },
+
+            combatAction: function(action) {
+                if(State.mode !== "COMBAT") return; const p = State.player; const e = State.activeEnemy; const cam = document.getElementById('mainCamera');
+                if (action === 'attack') {
+                    let dmg = Math.max(1, Math.floor(this.getTotalAtk() * (0.8 + Math.random() * 0.4))); let isCrit = Math.random() < p.crit;
+                    if(isCrit || State.cheatMode) { dmg = Math.floor(dmg * 2.0); this.log("ELEGANT SOLUTION! (CRIT)", "msg-combat"); }
+                    e.hp -= dmg; this.log(`You debug ${e.name} for ${dmg}.`, "msg-turn");
+                    cam.setAttribute('animation__atk', { property: 'position', dir: 'alternate', dur: 120, loop: 1, to: `0 0.8 -0.4`, easing: 'easeOutQuad' }); setTimeout(() => { cam.setAttribute('position', '0 0.8 0'); }, 240);
+                    const hitFX = document.createElement('a-entity'); hitFX.setAttribute('combat-strike', ''); if (isCrit || State.cheatMode) hitFX.setAttribute('scale', '1.5 1.5 1.5'); hitFX.setAttribute('position', `0 0 -1.0`); cam.appendChild(hitFX);
+                } else if (action === 'heal') { if (p.mp >= 10 || State.cheatMode) { if (!State.cheatMode) p.mp -= 10; let heal = 40 + Math.floor(p.classInfo.mpg * 2); p.hp = Math.min(p.maxHp, p.hp + heal); this.log(`Refactored code. Restored ${heal} HP.`, "msg-sys"); } else { this.log("Not enough MP to refactor!", "msg-warn"); return; }
+                } else if (action === 'guard') { this.log("Wrote unit tests.", "msg-sys"); p.isGuarding = true;
+                } else if (action === 'flee') { if (Math.random() > 0.4 || State.cheatMode) { this.log("Closed Jira ticket!", "msg-sys"); this.endCombat(false); return; } else { this.log("Ticket reopened! Cannot escape.", "msg-warn"); } }
+
+                this.updateUI(); this.updateCombatUI(); if (e.hp <= 0) { this.endCombat(true); return; }
+
+                setTimeout(() => {
+                    if(State.mode !== "COMBAT") return;
+                    let rawDmg = Math.max(1, Math.floor(e.atk * (0.8 + Math.random() * 0.4))); let defMitigation = Math.floor(this.getTotalDef() * 0.5); 
+                    let eDmg = Math.max(1, rawDmg - defMitigation); if (p.isGuarding) { eDmg = Math.floor(eDmg / 2); p.isGuarding = false; }
+                    if(State.cheatMode) { eDmg = 0; this.log(`${e.name} breaks production! Sudo mode deflected it.`, "msg-cheat"); } else { p.hp -= eDmg; this.log(`${e.name} causes an error! Took ${eDmg} dmg.`, "msg-warn"); this.shakeCamera(); }
+                    this.updateUI(); if (p.hp <= 0) this.gameOver();
+                }, 800);
+            },
+
+            levelUpPlayer: function() { const p = State.player; let leveled = false; while (p.xp >= p.level * 100) { p.level++; p.xp -= (p.level-1) * 100; p.maxHp += p.classInfo.hpg; p.hp = p.maxHp; p.maxMp += p.classInfo.mpg; p.mp = p.maxMp; p.baseAtk += p.classInfo.atkg; p.baseDef += p.classInfo.defg; leveled = true; } if(leveled) this.log(`PROMOTION! Reached Level ${p.level}!`, 'msg-loot'); return leveled; },
+
+            endCombat: function(victory) {
+                if (victory) {
+                    if (State.activeEnemySprite) { State.activeEnemySprite.setAttribute('animation__death', 'property: scale; to: 0 0 0; dur: 350; easing: easeInBack'); setTimeout(() => { if(State.activeEnemySprite && State.activeEnemySprite.parentNode) State.activeEnemySprite.parentNode.removeChild(State.activeEnemySprite); State.activeEnemySprite = null; }, 400); }
+                    const p = State.player; let xpGain = State.floor * 15 + Math.floor(Math.random() * 10); p.xp += xpGain; let leveled = this.levelUpPlayer(); let lootMsg = "";
+                    if (Math.random() < 0.4) { let table = State.floor < 3 ? ["ts_sword", "docker_armor"] : ["threejs_staff", "aws_shield"]; let dropId = table[Math.floor(Math.random() * table.length)]; p.inventory.push(dropId); lootMsg = `\nFound: ${GAME_CONFIG.items[dropId].name}`; this.log(`Gained Stack: ${GAME_CONFIG.items[dropId].name}!`, 'msg-loot'); } else if (Math.random() < 0.3) { p.inventory.push("coffee"); lootMsg = `\nFound: Espresso Shot`; }
+                    this.log(`Resolved ${State.activeEnemy.name}! Earned ${xpGain} XP.`, 'msg-loot'); State.mode = "VICTORY"; document.getElementById('combatActions').classList.add('hidden'); document.getElementById('combatVictory').classList.remove('hidden'); document.getElementById('victoryText').innerText = `Ticket Closed!\nEarned ${xpGain} XP.${leveled ? '\nPROMOTED!' : ''}${lootMsg}`; this.updateUI();
+                } else {
+                    if(State.activeEnemySprite && State.activeEnemySprite.parentNode) State.activeEnemySprite.parentNode.removeChild(State.activeEnemySprite); State.activeEnemySprite = null;
+                    this.actionMove(-1); State.activeEnemy = null; State.mode = "EXPLORE"; document.getElementById('combatUI').classList.add('hidden'); document.getElementById('exploreUI').classList.remove('hidden'); this.updateUI();
+                }
+            },
+
+            finishCombat: function() { State.activeEnemy = null; State.mode = "EXPLORE"; document.getElementById('combatVictory').classList.add('hidden'); document.getElementById('combatActions').classList.remove('hidden'); document.getElementById('combatUI').classList.add('hidden'); document.getElementById('exploreUI').classList.remove('hidden'); this.updateUI(); },
+            shakeCamera: function() { const cam = document.getElementById('mainCamera'); cam.removeAttribute('animation__shake'); cam.setAttribute('animation__shake', { property: 'position', to: '0.15 0.9 0.15', dir: 'alternate', dur: 50, loop: 5, easing: 'easeInOutSine' }); setTimeout(() => { cam.setAttribute('position', '0 0.8 0'); }, 250); },
+            gameOver: function() { State.mode = "GAMEOVER"; document.getElementById('gameOverModal').classList.remove('hidden'); document.getElementById('gameOverStats').innerText = `${State.player.classInfo.name} Lvl ${State.player.level} | Epoch: ${State.floor}`; },
+            log: function(msg, className="msg-turn") { const logBox = document.getElementById("messageLog"); const div = document.createElement("div"); div.className = className; div.innerText = msg; logBox.appendChild(div); logBox.scrollTop = logBox.scrollHeight; if (logBox.children.length > 25) logBox.removeChild(logBox.firstChild); },
+
+            updateUI: function() {
+                const p = State.player; if (!p.classInfo) return; 
+                document.getElementById("hpUI").innerText = `${p.hp}/${p.maxHp}`; document.getElementById("mpUI").innerText = `${p.mp}/${p.maxMp}`; document.getElementById("floorUI").innerText = State.floor; document.getElementById("lvlUI").innerText = p.level;
+                const hpPct = Math.max(0, (p.hp / p.maxHp) * 100); const mpPct = Math.max(0, (p.mp / p.maxMp) * 100); document.getElementById("hpBar").style.width = hpPct + "%"; document.getElementById("mpBar").style.width = mpPct + "%";
+            },
+
+            updateCombatUI: function() { if (State.activeEnemy) { const e = State.activeEnemy; document.getElementById("enemyName").innerText = e.name; document.getElementById("enemyName").style.color = e.color; const hpPct = Math.max(0, (e.hp / e.maxHp) * 100); document.getElementById("enemyHpBar").style.width = hpPct + "%"; } },
+            updateMinimap: function() {
+                const canvas = document.getElementById('minimapCanvas'); if (!canvas || State.mode === "GAMEOVER" || State.mode === "START" || State.mode === "INTERSTITIAL") return;
+                const ctx = canvas.getContext('2d'); const size = 90; const tileSize = size / MAP_SIZE; ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0, 0, size, size);
+                for (let y = 0; y < MAP_SIZE; y++) { for (let x = 0; x < MAP_SIZE; x++) { if (State.map[y][x] === TILE.WALL) continue; if (State.map[y][x] === TILE.FLOOR) ctx.fillStyle = "rgba(255,255,255,0.2)"; else if (State.map[y][x] === TILE.DOOR) ctx.fillStyle = "rgba(56,189,248,0.5)"; else if (State.map[y][x] === TILE.STAIRS_DOWN || State.map[y][x] === TILE.NPC) ctx.fillStyle = "var(--ui-highlight)"; ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize); } }
+                ctx.fillStyle = "#ffd54f"; State.items.forEach(i => { if (i.active) ctx.fillRect(i.x * tileSize + tileSize*0.3, i.y * tileSize + tileSize*0.3, tileSize*0.4, tileSize*0.4); });
+                const p = State.player; ctx.fillStyle = "var(--ui-border-top)"; ctx.save(); ctx.translate(p.x * tileSize + tileSize/2, p.y * tileSize + tileSize/2); let canvasRot = 0; if(p.dir===1) canvasRot = Math.PI/2; else if(p.dir===2) canvasRot = Math.PI; else if(p.dir===3) canvasRot = -Math.PI/2; ctx.rotate(canvasRot); ctx.beginPath(); ctx.moveTo(0, -tileSize/2); ctx.lineTo(-tileSize/2.5, tileSize/2); ctx.lineTo(tileSize/2.5, tileSize/2); ctx.closePath(); ctx.fill(); ctx.restore();
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => { Game.init(); });
+    </script>
+</body>
+</html>

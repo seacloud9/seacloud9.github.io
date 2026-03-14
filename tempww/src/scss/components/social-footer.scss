@@ -1,0 +1,108 @@
+@use '../imports/index' as *;
+
+.social-footer {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10001; // Higher than game/explore overlays to ensure clickability
+
+  display: flex;
+  gap: 12px;
+  align-items: center;
+
+  padding: 12px;
+  background: rgba(5, 5, 7, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 50px;
+
+  transition: transform 0.3s ease, opacity 0.3s ease;
+
+  @include respond-to(smartphone) {
+    bottom: 10px;
+    right: 10px;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  @include respond-to(mobile-landscape) {
+    bottom: 10px;
+    right: 10px;
+  }
+
+  &.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  // Individual link
+  &__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 44px;
+    height: 44px;
+
+    background: rgba(0, 255, 213, 0.08);
+    border: 1px solid rgba(0, 255, 213, 0.2);
+    border-radius: 50%;
+
+    color: rgba(0, 255, 213, 0.7);
+
+    cursor: pointer;
+    transition: all 0.3s ease;
+    will-change: transform, background-color;
+
+    @include respond-to(smartphone) {
+      width: 40px;
+      height: 40px;
+    }
+
+    &:hover {
+      background: rgba(0, 255, 213, 0.15);
+      border-color: #00ffd5;
+      color: #00ffd5;
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 255, 213, 0.3);
+
+      .social-footer__icon {
+        transform: scale(1.1);
+      }
+    }
+
+    &:active {
+      transform: translateY(-2px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid #00ffd5;
+      outline-offset: 2px;
+    }
+  }
+
+  // Icon
+  &__icon {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+
+    @include respond-to(smartphone) {
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+// Hide on touch devices when in game mode or when scrolling
+.touch-hidden {
+  @media (hover: none) and (pointer: coarse) {
+    opacity: 0.6;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}

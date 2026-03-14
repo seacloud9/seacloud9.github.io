@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(for file in src/scss/components/*.scss)",
+      "Bash(do)",
+      "Bash(if grep -q \"@include\" \"$file\")",
+      "Bash(then)",
+      "Bash(if grep -q \"@use\" \"$file\")",
+      "Bash(echo:*)",
+      "Bash(else)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(for file in src/scss/components/about.scss src/scss/components/controls.scss src/scss/components/cookie.scss src/scss/components/detail-modal.scss src/scss/components/explore.scss src/scss/components/footer.scss src/scss/components/game.scss src/scss/components/hud.scss src/scss/components/joystick.scss src/scss/components/jump-button.scss src/scss/components/menu.scss src/scss/components/mode.scss src/scss/components/put-away-button.scss src/scss/components/resume-nav.scss src/scss/components/screenshot.scss src/scss/components/separator.scss src/scss/components/settings.scss src/scss/components/social-footer.scss src/scss/components/treasure.scss)",
+      "Bash(perl -i -pe 'print \"\"@use ''''../imports/index'''' as *;\\\\n\\\\n\"\" if $. == 1' \"$file\")",
+      "Bash(for file in src/scss/includes/*.scss)",
+      "Bash(npm run dev:*)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(nvm use:*)",
+      "Bash(export NVM_DIR=\"$HOME/.nvm\")",
+      "Bash([ -s \"$NVM_DIR/nvm.sh\" ])",
+      "Bash(. \"$NVM_DIR/nvm.sh\")",
+      "Bash(node --version:*)",
+      "Bash(bash -c:*)",
+      "Bash(npm install:*)",
+      "Bash(npm --version:*)",
+      "Bash(pnpm --version:*)",
+      "Bash(pnpm run dev)",
+      "Bash(cat:*)",
+      "Bash(lsof:*)",
+      "Bash(git clone:*)"
+    ]
+  }
+}

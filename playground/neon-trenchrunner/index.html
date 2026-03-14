@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Trench: Starfighter v1.7.0</title>
+    
+    <!-- Latest A-Frame (1.7.0) -->
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    
+    <!-- Modern ES Module Mapping for Post-Processing (r170) -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <style>
+        :root {
+            --cyan: #00f2ff;
+            --magenta: #ff00ff;
+            --red: #ff3131;
+        }
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #000; 
+            font-family: 'Courier New', Courier, monospace;
+            color: var(--cyan);
+            user-select: none;
+            touch-action: none;
+        }
+
+        /* --- HUD --- */
+        #hud {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom) 20px;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-top: 20px;
+        }
+
+        .stats-group {
+            background: rgba(0, 0, 0, 0.6);
+            border-left: 4px solid var(--cyan);
+            padding: 10px 15px;
+            backdrop-filter: blur(5px);
+        }
+
+        .bar-frame {
+            width: 140px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 4px 0 10px 0;
+            border: 1px solid rgba(0, 242, 255, 0.3);
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.2s;
+        }
+
+        #shield-fill { background: var(--magenta); box-shadow: 0 0 10px var(--magenta); }
+        #energy-fill { background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+
+        .btn {
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 10px 15px;
+            pointer-events: auto;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 10px; 
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+        }
+
+        .btn:active {
+            background: var(--cyan);
+            color: #000;
+        }
+
+        /* --- MENUS --- */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none; 
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        .overlay.active {
+            display: flex !important;
+        }
+
+        .dialog {
+            border: 2px solid var(--cyan);
+            padding: 30px;
+            text-align: center;
+            width: 80%;
+            max-width: 400px;
+            background: rgba(0, 10, 20, 0.9);
+            box-shadow: 0 0 40px rgba(0, 242, 255, 0.2);
+        }
+
+        h2 { font-size: 1.8em; margin-top: 0; margin-bottom: 20px; text-shadow: 0 0 10px var(--cyan); }
+
+        .reboot-trigger {
+            background: var(--magenta);
+            color: white;
+            border: 1px solid white;
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 14px;
+            box-shadow: 0 0 15px var(--magenta);
+            cursor: pointer;
+        }
+
+        /* --- SLIDERS --- */
+        .setting-row {
+            text-align: left;
+            margin-bottom: 15px;
+        }
+
+        .setting-row label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: rgba(0, 242, 255, 0.2);
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--cyan);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--cyan);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div class="hud-top">
+            <div class="stats-group">
+                <div style="font-size: 14px; margin-bottom: 5px;">STRAT-COM INTERFACE</div>
+                <div style="font-size: 10px;">SHIELDS</div>
+                <div class="bar-frame"><div id="shield-fill" class="bar-fill"></div></div>
+                <div style="font-size: 10px;">LASER CHARGE</div>
+                <div class="bar-frame"><div id="energy-fill" class="bar-fill"></div></div>
+                <div id="dist-ui" style="font-weight: bold;">DISTANCE: 0000m</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-direction: column;">
+                <div class="btn" id="pause-trigger">PAUSE</div>
+                <div class="btn" id="settings-trigger">SETTINGS</div>
+            </div>
+        </div>
+        <div style="text-align: center; color: var(--cyan); font-weight: bold; text-shadow: 0 0 5px var(--cyan);">
+            HOLD SCREEN TO FIRE
+        </div>
+    </div>
+
+    <!-- UI Overlays -->
+    <div id="start-overlay" class="overlay active">
+        <div class="dialog">
+            <h2 style="font-size: 2.2em; text-shadow: 0 0 20px var(--cyan);">NEON TRENCH</h2>
+            <p style="color: white; font-size: 14px; margin-bottom: 25px; line-height: 1.6;">
+                <span style="color: var(--cyan); font-weight: bold;">DRAG</span> TO STEER<br>
+                <span style="color: var(--cyan); font-weight: bold;">HOLD SCREEN</span> TO FIRE<br>
+                <span style="color: var(--cyan); font-weight: bold;">DODGE</span> GEOMETRIC ANOMALIES
+            </p>
+            <button class="btn" id="start-btn" style="width: 100%; padding: 15px; font-size: 16px;">START MISSION</button>
+        </div>
+    </div>
+
+    <div id="crash-overlay" class="overlay">
+        <div class="dialog" style="border-color: var(--magenta);">
+            <h2 style="color: var(--magenta);">SYSTEM CRITICAL</h2>
+            <p id="crash-report">DISTANCE TRAVELED: 0m</p>
+            <button class="reboot-trigger" style="pointer-events: auto;">INITIATE REBOOT</button>
+        </div>
+    </div>
+
+    <div id="pause-overlay" class="overlay">
+        <div class="dialog">
+            <h2>SYSTEM PAUSED</h2>
+            <button class="btn" style="width: 100%; margin-bottom: 15px;" id="resume-btn">RESUME MISSION</button>
+            <button class="reboot-trigger" style="pointer-events: auto;">REBOOT SYSTEM</button>
+        </div>
+    </div>
+
+    <div id="settings-overlay" class="overlay">
+        <div class="dialog">
+            <h2>VISUAL & FLIGHT SETTINGS</h2>
+            <div class="setting-row">
+                <label>BLOOM INTENSITY <span id="val-bloom-int">0.8</span></label>
+                <input type="range" id="slider-bloom-int" min="0" max="3" step="0.1" value="0.8">
+            </div>
+            <div class="setting-row">
+                <label>BLOOM THRESHOLD <span id="val-bloom-thresh">0.7</span></label>
+                <input type="range" id="slider-bloom-thresh" min="0" max="1" step="0.05" value="0.7">
+            </div>
+            <div class="setting-row">
+                <label>FLIGHT SPEED <span id="val-speed">45</span></label>
+                <input type="range" id="slider-speed" min="20" max="100" step="5" value="45">
+            </div>
+            <button class="btn" style="width: 100%; margin-top: 20px;" id="close-settings-btn">APPLY & CLOSE</button>
+        </div>
+    </div>
+
+    <a-scene 
+        renderer="antialias: true; colorManagement: true; toneMapping: ACESFilmic;"
+        fog="type: expo2; color: #000; density: 0.025"
+        background="color: #000">
+        
+        <a-assets>
+            <a-mixin id="trench-wall" geometry="primitive: box; width: 0.5; height: 14; depth: 20" material="color: #0a0a0a; metalness: 0.9; roughness: 0.2"></a-mixin>
+            <a-mixin id="greeble" geometry="primitive: box" material="color: #080808; metalness: 1; roughness: 0.1"></a-mixin>
+            <a-mixin id="neon-core" geometry="primitive: box; width: 0.05; height: 0.05; depth: 20" material="color: #fff; emissiveIntensity: 2"></a-mixin>
+            <a-mixin id="laser-bolt" geometry="primitive: cylinder; radius: 0.08; height: 4" rotation="90 0 0" material="color: #fff; emissive: #ff3131; emissiveIntensity: 6"></a-mixin>
+        </a-assets>
+
+        <script>
+            // --- CORE STATE & GAME LOGIC ---
+            const state = {
+                hasStarted: false,
+                paused: true, // Start game paused until user hits "START"
+                gameOver: false,
+                isFiring: false, 
+                speed: 45,
+                distance: 0,
+                shields: 100,
+                energy: 100,
+                segments: []
+            };
+
+            function performReboot() {
+                state.gameOver = true; 
+                window.location.href = window.location.href.split('#')[0];
+            }
+
+            window.onload = () => {
+                // Start Menu Interaction
+                document.getElementById('start-btn').addEventListener('click', () => {
+                    document.getElementById('start-overlay').classList.remove('active');
+                    state.hasStarted = true;
+                    state.paused = false;
+                });
+
+                document.querySelectorAll('.reboot-trigger').forEach(el => {
+                    el.addEventListener('click', performReboot);
+                    el.addEventListener('touchstart', (e) => { e.preventDefault(); performReboot(); });
+                });
+
+                document.getElementById('pause-trigger').addEventListener('click', () => togglePause(true));
+                document.getElementById('resume-btn').addEventListener('click', () => togglePause(false));
+
+                // Settings Interactivity
+                const settingsOverlay = document.getElementById('settings-overlay');
+                document.getElementById('settings-trigger').addEventListener('click', () => {
+                    if(!state.hasStarted || state.gameOver) return;
+                    state.paused = true;
+                    settingsOverlay.classList.add('active');
+                });
+                document.getElementById('close-settings-btn').addEventListener('click', () => {
+                    state.paused = false;
+                    settingsOverlay.classList.remove('active');
+                });
+
+                // Sliders Logic
+                document.getElementById('slider-bloom-int').addEventListener('input', (e) => {
+                    document.getElementById('val-bloom-int').innerText = e.target.value;
+                    if(window.updateBloomSettings) window.updateBloomSettings(e.target.value, null);
+                });
+                document.getElementById('slider-bloom-thresh').addEventListener('input', (e) => {
+                    document.getElementById('val-bloom-thresh').innerText = e.target.value;
+                    if(window.updateBloomSettings) window.updateBloomSettings(null, e.target.value);
+                });
+                document.getElementById('slider-speed').addEventListener('input', (e) => {
+                    state.speed = parseInt(e.target.value);
+                    document.getElementById('val-speed').innerText = state.speed;
+                });
+
+                // Hold-to-Fire Implementation
+                const startFiring = (e) => { 
+                    if(!state.hasStarted || state.paused || state.gameOver) return;
+                    if(e.target.closest('.btn') || e.target.closest('.overlay')) return;
+                    state.isFiring = true; 
+                };
+                const stopFiring = () => { state.isFiring = false; };
+
+                window.addEventListener('mousedown', startFiring);
+                window.addEventListener('touchstart', startFiring, {passive: false});
+                window.addEventListener('mouseup', stopFiring);
+                window.addEventListener('touchend', stopFiring);
+                window.addEventListener('touchcancel', stopFiring);
+            };
+
+            function togglePause(val) {
+                if (!state.hasStarted || state.gameOver) return;
+                state.paused = val;
+                const overlay = document.getElementById('pause-overlay');
+                if (val) overlay.classList.add('active');
+                else overlay.classList.remove('active');
+            }
+
+            // --- ABSTRACT ENEMY GENERATOR ---
+            AFRAME.registerComponent('abstract-enemy', {
+                init: function() {
+                    this.el.classList.add('obstacle');
+                    this.respawn();
+                },
+                respawn: function() {
+                    const types = ['bruiser', 'diamond', 'quantum', 'pillar'];
+                    this.type = types[Math.floor(Math.random() * types.length)];
+                    this.el.setAttribute('visible', true);
+
+                    let geo, mat, col;
+                    this.baseX = (Math.random() - 0.5) * 10;
+                    this.baseY = (Math.random() - 0.5) * 10;
+
+                    switch(this.type) {
+                        case 'bruiser': // The classic blockade
+                            geo = 'primitive: box; width: 3.5; height: 3.5; depth: 1.5';
+                            col = '#ff3131'; // Red
+                            break;
+                        case 'diamond': // The plasma spinner
+                            geo = 'primitive: octahedron; radius: 2.5';
+                            col = '#ffaa00'; // Neon Orange
+                            break;
+                        case 'quantum': // The weird core
+                            geo = 'primitive: torusKnot; radius: 1.5; radiusTubular: 0.3; p: 2; q: 3';
+                            col = '#b026ff'; // Purple
+                            break;
+                        case 'pillar': // The moving vertical barrier
+                            geo = 'primitive: cylinder; radius: 1.5; height: 8';
+                            col = '#00ff00'; // Toxic Green
+                            this.baseY = (Math.random() - 0.5) * 4; 
+                            break;
+                    }
+
+                    mat = `color: #111; emissive: ${col}; emissiveIntensity: 4.5; metalness: 1; roughness: 0.1`;
+                    this.color = col;
+
+                    this.el.setAttribute('geometry', geo);
+                    this.el.setAttribute('material', mat);
+                    this.el.setAttribute('position', `${this.baseX} ${this.baseY} 0`);
+                },
+                tick: function(t, dt) {
+                    if (state.paused || state.gameOver || !this.el.getAttribute('visible')) return;
+
+                    const obj = this.el.object3D;
+                    if (this.type === 'diamond') {
+                        obj.rotation.x += 0.02;
+                        obj.rotation.y += 0.03;
+                    } else if (this.type === 'quantum') {
+                        obj.rotation.x -= 0.01;
+                        obj.rotation.z -= 0.02;
+                        obj.position.y = this.baseY + Math.sin(t / 300) * 2; // Bobbing
+                    } else if (this.type === 'pillar') {
+                        obj.position.x = this.baseX + Math.sin(t / 600) * 4; // Strafing
+                    }
+                }
+            });
+
+            // --- DEBRIS FX ---
+            AFRAME.registerComponent('explosion-fx', {
+                schema: { color: {type: 'color', default: '#ff3131'} },
+                init: function() {
+                    this.particles = [];
+                    for(let i=0; i<15; i++) {
+                        const p = document.createElement('a-box');
+                        p.setAttribute('width', 0.4); p.setAttribute('height', 0.4); p.setAttribute('depth', 0.4);
+                        // Make debris color match the enemy color
+                        p.setAttribute('material', `color: ${this.data.color}; emissive: ${this.data.color}; emissiveIntensity: 5`); 
+                        const vel = new THREE.Vector3((Math.random()-0.5)*25, (Math.random()-0.5)*25, (Math.random()-0.5)*25);
+                        this.particles.push({el: p, vel: vel, life: 1.0});
+                        this.el.appendChild(p);
+                    }
+                },
+                tick: function(t, dt) {
+                    if(state.paused) return;
+                    const delta = dt / 1000;
+                    let active = false;
+                    this.particles.forEach(p => {
+                        if(p.life <= 0) { if(p.el.parentNode) p.el.parentNode.removeChild(p.el); return; }
+                        active = true;
+                        p.life -= delta * 2.0; 
+                        const pos = p.el.getAttribute('position');
+                        pos.x += p.vel.x * delta; pos.y += p.vel.y * delta; pos.z += p.vel.z * delta;
+                        p.el.setAttribute('position', pos);
+                        const scale = Math.max(0, p.life);
+                        p.el.object3D.scale.set(scale, scale, scale);
+                    });
+                    if(!active && this.el.parentNode) this.el.parentNode.removeChild(this.el);
+                }
+            });
+
+            function createExplosion(pos, color) {
+                const fx = document.createElement('a-entity');
+                fx.setAttribute('position', pos);
+                fx.setAttribute('explosion-fx', `color: ${color}`);
+                document.querySelector('a-scene').appendChild(fx);
+            }
+
+            // --- WEAPONS ---
+            function fireLaser() {
+                if(state.paused || state.gameOver || state.energy < 15) return;
+                state.energy -= 15;
+                document.getElementById('energy-fill').style.width = state.energy + '%';
+
+                const player = document.querySelector('#player');
+                const pPos = player.getAttribute('position');
+
+                [-1.5, 1.5].forEach(offsetX => {
+                    const bolt = document.createElement('a-entity');
+                    bolt.setAttribute('mixin', 'laser-bolt');
+                    bolt.setAttribute('position', `${pPos.x + offsetX} ${pPos.y} -1`);
+                    document.querySelector('a-scene').appendChild(bolt);
+
+                    let bZ = -1;
+                    const loop = setInterval(() => {
+                        if(state.paused) return;
+                        bZ -= 3;
+                        bolt.setAttribute('position', `${pPos.x + offsetX} ${pPos.y} ${bZ}`);
+                        
+                        const obs = document.querySelectorAll('.obstacle');
+                        obs.forEach(o => {
+                            if(!o.getAttribute('visible')) return;
+                            const oPos = new THREE.Vector3();
+                            o.object3D.getWorldPosition(oPos);
+                            const bPos = new THREE.Vector3(pPos.x + offsetX, pPos.y, bZ);
+                            
+                            if(bPos.distanceTo(oPos) < 2.5) {
+                                o.setAttribute('visible', false);
+                                // Pull enemy color for the explosion
+                                const color = o.components['abstract-enemy'] ? o.components['abstract-enemy'].color : '#ff3131';
+                                createExplosion(oPos, color);
+                                bolt.remove();
+                                clearInterval(loop);
+                            }
+                        });
+
+                        if(bZ < -100) { bolt.remove(); clearInterval(loop); }
+                    }, 16);
+                });
+            }
+
+            // --- INFINITE WORLD GEN ---
+            AFRAME.registerComponent('trench-world', {
+                init: function() {
+                    this.poolSize = 10;
+                    this.segDepth = 20;
+                    for(let i=0; i<this.poolSize; i++) this.createSegment(i * -this.segDepth);
+                },
+                createSegment: function(z) {
+                    const seg = document.createElement('a-entity');
+                    seg.setAttribute('position', `0 0 ${z}`);
+                    
+                    const left = document.createElement('a-entity');
+                    left.setAttribute('mixin', 'trench-wall'); left.setAttribute('position', '-7 0 0');
+                    this.addGreebles(left, true); seg.appendChild(left);
+
+                    const right = document.createElement('a-entity');
+                    right.setAttribute('mixin', 'trench-wall'); right.setAttribute('position', '7 0 0');
+                    this.addGreebles(right, false); seg.appendChild(right);
+
+                    const floor = document.createElement('a-plane');
+                    floor.setAttribute('rotation', '-90 0 0'); floor.setAttribute('width', 14); floor.setAttribute('height', 20);
+                    floor.setAttribute('material', 'color: #030303; metalness: 1; roughness: 0.1; src: url(https://i.imgur.com/8AD9YAn.png); repeat: 4 4');
+                    floor.setAttribute('position', '0 -7 0'); seg.appendChild(floor);
+
+                    const colors = ['#00f2ff', '#ff00ff'];
+                    [-6.8, 6.8].forEach(x => {
+                        [-4, 4].forEach(y => {
+                            const strip = document.createElement('a-entity');
+                            strip.setAttribute('position', `${x} ${y} 0`);
+                            strip.setAttribute('mixin', 'neon-core');
+                            const color = colors[Math.floor(Math.random()*2)];
+                            strip.setAttribute('material', `emissive: ${color}; color: ${color}`);
+                            seg.appendChild(strip);
+                        });
+                    });
+
+                    if (z < -40) {
+                        // Spawning the new abstract enemies instead of plain boxes
+                        const obs = document.createElement('a-entity');
+                        obs.setAttribute('abstract-enemy', '');
+                        seg.appendChild(obs);
+                    }
+
+                    this.el.appendChild(seg);
+                    state.segments.push(seg);
+                },
+                addGreebles: function(parent, isLeft) {
+                    for(let i=0; i<15; i++) {
+                        const g = document.createElement('a-entity');
+                        g.setAttribute('mixin', 'greeble');
+                        const w = Math.random() * 2 + 0.5; const h = Math.random() * 2 + 0.5; const d = Math.random() * 2 + 0.5;
+                        g.setAttribute('geometry', `width: ${w}; height: ${h}; depth: ${d}`);
+                        g.setAttribute('position', `${isLeft ? 0.4 : -0.4} ${(Math.random()-0.5)*10} ${(Math.random()-0.5)*15}`);
+                        parent.appendChild(g);
+                    }
+                },
+                tick: function(t, dt) {
+                    if (state.paused || state.gameOver) return;
+                    const move = (state.speed * dt) / 1000;
+                    state.distance += move;
+                    document.getElementById('dist-ui').innerText = `DISTANCE: ${Math.floor(state.distance).toString().padStart(4, '0')}m`;
+
+                    state.segments.forEach(seg => {
+                        let p = seg.getAttribute('position');
+                        p.z += move;
+                        if (p.z > 20) {
+                            p.z -= this.poolSize * this.segDepth;
+                            const obs = seg.querySelector('[abstract-enemy]');
+                            // Recycles the enemy by picking a random shape/color again
+                            if(obs && obs.components['abstract-enemy']) {
+                                obs.components['abstract-enemy'].respawn();
+                            }
+                        }
+                        seg.setAttribute('position', p);
+                    });
+                }
+            });
+
+            // --- STARFIGHTER CONTROLLER ---
+            AFRAME.registerComponent('player-flight', {
+                init: function() {
+                    this.currPos = {x: 0, y: 0};
+                    this.targetPos = {x: 0, y: 0};
+                    this.lastFireTime = 0; 
+                    
+                    window.addEventListener('mousemove', (e) => this.onMove(e.clientX, e.clientY));
+                    window.addEventListener('touchmove', (e) => { this.onMove(e.touches[0].clientX, e.touches[0].clientY); });
+                },
+                onMove: function(x, y) {
+                    if(state.paused || state.gameOver) return;
+                    this.targetPos.x = ((x / window.innerWidth) * 2 - 1) * 6;
+                    this.targetPos.y = (-(y / window.innerHeight) * 2 + 1) * 6;
+                },
+                tick: function(t, dt) {
+                    if(state.paused || state.gameOver) return;
+                    
+                    this.currPos.x += (this.targetPos.x - this.currPos.x) * 0.15;
+                    this.currPos.y += (this.targetPos.y - this.currPos.y) * 0.15;
+                    this.el.setAttribute('position', `${this.currPos.x} ${this.currPos.y} 0`);
+                    
+                    const bank = (this.targetPos.x - this.currPos.x) * -15;
+                    this.el.setAttribute('rotation', `0 0 ${bank}`);
+
+                    if(state.energy < 100) {
+                        state.energy += 0.8;
+                        document.getElementById('energy-fill').style.width = Math.min(100, state.energy) + '%';
+                    }
+
+                    if(state.isFiring && t - this.lastFireTime > 180) {
+                        fireLaser();
+                        this.lastFireTime = t;
+                    }
+
+                    const obstacles = document.querySelectorAll('.obstacle');
+                    obstacles.forEach(obs => {
+                        if(!obs.getAttribute('visible')) return;
+                        const worldPos = new THREE.Vector3();
+                        obs.object3D.getWorldPosition(worldPos);
+                        if(worldPos.distanceTo(this.el.object3D.position) < 2.5) {
+                            this.takeDamage();
+                            // Pull enemy color for crash explosion
+                            const color = obs.components['abstract-enemy'] ? obs.components['abstract-enemy'].color : '#ff3131';
+                            createExplosion(worldPos, color);
+                            obs.setAttribute('visible', false);
+                        }
+                    });
+                },
+                takeDamage: function() {
+                    state.shields -= 35;
+                    document.getElementById('shield-fill').style.width = Math.max(0, state.shields) + '%';
+                    if(state.shields <= 0) {
+                        state.gameOver = true;
+                        document.getElementById('crash-report').innerText = `FINAL DISTANCE: ${Math.floor(state.distance)}m`;
+                        document.getElementById('crash-overlay').classList.add('active');
+                    }
+                }
+            });
+        </script>
+
+        <!-- Dynamic Lighting setup -->
+        <a-entity light="type: ambient; color: #111; intensity: 0.5"></a-entity>
+        
+        <a-entity id="player" player-flight position="0 0 0">
+            <a-entity light="type: point; color: #0ff; intensity: 1.5; distance: 20" position="0 0 -2"></a-entity>
+            <a-box width="0.8" height="0.6" depth="3.5" material="color: #1a1a1a; metalness: 1; roughness: 0.2"></a-box>
+            
+            <a-entity rotation="0 0 20">
+                <a-box width="4" height="0.1" depth="1.5" position="-2 0.3 0" material="color: #111; metalness: 1"></a-box>
+                <a-sphere radius="0.3" position="-3.8 0.3 0.5" material="emissive: #0ff; emissiveIntensity: 5; color: #fff"></a-sphere>
+            </a-entity>
+            <a-entity rotation="0 0 -20">
+                <a-box width="4" height="0.1" depth="1.5" position="2 0.3 0" material="color: #111; metalness: 1"></a-box>
+                <a-sphere radius="0.3" position="3.8 0.3 0.5" material="emissive: #0ff; emissiveIntensity: 5; color: #fff"></a-sphere>
+            </a-entity>
+            <a-entity rotation="0 0 -20">
+                <a-box width="4" height="0.1" depth="1.5" position="-2 -0.3 0" material="color: #111; metalness: 1"></a-box>
+            </a-entity>
+            <a-entity rotation="0 0 20">
+                <a-box width="4" height="0.1" depth="1.5" position="2 -0.3 0" material="color: #111; metalness: 1"></a-box>
+            </a-entity>
+        </a-entity>
+
+        <a-entity trench-world></a-entity>
+        <a-camera position="0 0 8" look-controls-enabled="false" wasd-controls-enabled="false"></a-camera>
+    </a-scene>
+
+    <!-- REAL-TIME BLOOM SCRIPT (Non-blocking injection) -->
+    <script type="module">
+        import * as THREE_MOD from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+        window.globalBloomPass = null;
+
+        AFRAME.registerComponent('post-processor', {
+            init: function () {
+                this.setupComposer = this.setupComposer.bind(this);
+                // Guarantee camera is built before starting post-processing
+                if (this.el.camera) {
+                    this.setupComposer();
+                } else {
+                    this.el.addEventListener('camera-set-active', this.setupComposer);
+                }
+
+                // UI bindings
+                window.updateBloomSettings = (intensity, threshold) => {
+                    if (this.bloomPass) {
+                        if (intensity !== null) this.bloomPass.strength = parseFloat(intensity);
+                        if (threshold !== null) this.bloomPass.threshold = parseFloat(threshold);
+                    }
+                };
+            },
+            
+            setupComposer: function () {
+                if (this.composer) return;
+
+                const scene = this.el.object3D;
+                const camera = this.el.camera;
+                const renderer = this.el.renderer;
+                
+                const composer = new EffectComposer(renderer);
+                composer.addPass(new RenderPass(scene, camera));
+                
+                this.bloomPass = new UnrealBloomPass(
+                    new THREE_MOD.Vector2(window.innerWidth, window.innerHeight),
+                    0.8, 0.4, 0.7 
+                );
+                composer.addPass(this.bloomPass);
+                composer.addPass(new OutputPass());
+
+                this.composer = composer;
+
+                // Safely intercept WebGL draw call WITHOUT breaking A-Frame's animation loop
+                let isRendering = false;
+                const originalRender = renderer.render;
+                
+                renderer.render = (s, c) => {
+                    if (isRendering) {
+                        originalRender.call(renderer, s, c);
+                        return;
+                    }
+                    isRendering = true;
+                    this.composer.render();
+                    isRendering = false;
+                };
+                
+                window.addEventListener('resize', () => {
+                    this.composer.setSize(window.innerWidth, window.innerHeight);
+                });
+            }
+        });
+
+        // Ensure the component attaches safely
+        const sceneEl = document.querySelector('a-scene');
+        if (sceneEl.hasLoaded) {
+            sceneEl.setAttribute('post-processor', '');
+        } else {
+            sceneEl.addEventListener('loaded', () => {
+                sceneEl.setAttribute('post-processor', '');
+            });
+        }
+    </script>
+</body>
+</html>

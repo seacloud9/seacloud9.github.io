@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Vaporwave Overdrive: Official 1.7.0 Pipeline</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  
+  <script type="importmap">
+    {
+      "imports": {
+        "aframe": "https://cdn.jsdelivr.net/npm/aframe@1.7.0/dist/aframe-master.module.min.js",
+        "three": "https://cdn.jsdelivr.net/npm/super-three@0.173.5/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/super-three@0.173.5/examples/jsm/"
+      }
+    }
+  </script>
+
+  <style>
+    :root { --cyan: #00ffff; --magenta: #ff00ff; --yellow: #ffff00; --bg: #030008; --glass: rgba(5, 0, 16, 0.85); }
+    body {
+      margin: 0; padding: 0; overflow: hidden; background-color: var(--bg);
+      font-family: 'Courier New', Courier, monospace;
+      user-select: none; -webkit-user-select: none; touch-action: none;
+    }
+    
+    /* UI Overlays */
+    .screen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 200; backdrop-filter: blur(10px); background: var(--glass);
+      transition: opacity 0.5s ease;
+    }
+    
+    h1.title {
+      font-size: clamp(40px, 8vw, 80px); color: transparent;
+      -webkit-text-stroke: 2px var(--cyan); text-shadow: 0 0 20px var(--cyan);
+      margin-bottom: 10px; text-transform: uppercase; font-style: italic; letter-spacing: 5px; text-align: center;
+    }
+    h2.subtitle {
+      color: var(--magenta); font-size: 20px; letter-spacing: 10px;
+      text-shadow: 0 0 10px var(--magenta); margin-bottom: 50px; text-align: center;
+    }
+    
+    .btn {
+      background: linear-gradient(90deg, #3a0066, #ff00ff); border: 2px solid var(--cyan);
+      color: #fff; padding: 20px 60px; font-size: 24px; font-weight: bold; margin-bottom: 15px;
+      border-radius: 5px; cursor: pointer; text-transform: uppercase; letter-spacing: 4px;
+      box-shadow: 0 0 20px rgba(0,255,255,0.4); transition: all 0.2s ease;
+      font-family: 'Courier New', Courier, monospace; text-align: center; width: 250px;
+    }
+    .btn:active { transform: scale(0.95); box-shadow: 0 0 40px var(--cyan); background: var(--cyan); color: #000; }
+    .btn.disabled { opacity: 0.5; pointer-events: none; cursor: wait; }
+    .btn.secondary { background: transparent; padding: 10px 40px; font-size: 18px; box-shadow: none; border-color: var(--magenta); }
+
+    /* Settings Menu Specifics */
+    .slider-container { margin: 15px 0; width: 85%; max-width: 400px; text-align: left; }
+    .slider-container label { display: block; color: var(--cyan); font-weight: bold; margin-bottom: 10px; text-shadow: 0 0 5px var(--cyan); }
+    input[type=range] { width: 100%; accent-color: var(--magenta); height: 8px; border-radius: 5px; cursor: pointer; }
+
+    #story-text {
+      color: var(--cyan); font-size: 20px; max-width: 600px; text-align: center;
+      text-shadow: 0 0 10px var(--cyan); line-height: 1.6; min-height: 200px; padding: 20px;
+    }
+
+    /* HUD Elements */
+    #hud {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 100; display: none;
+    }
+    .hud-top { display: flex; justify-content: space-between; padding: 30px 5%; }
+    .score-display {
+      color: #fff; font-size: 32px; font-weight: bold; font-style: italic;
+      text-shadow: 0 0 10px var(--cyan), 0 0 20px var(--cyan); letter-spacing: 3px;
+    }
+    .shields { color: var(--magenta); font-size: 32px; text-shadow: 0 0 15px var(--magenta); letter-spacing: 5px; }
+
+    .hud-bottom { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); width: 300px; text-align: center; }
+    .power-label { color: var(--cyan); font-weight: bold; letter-spacing: 3px; margin-bottom: 5px; text-shadow: 0 0 10px var(--cyan); font-size: 18px;}
+    .power-bar-bg { width: 100%; height: 15px; border: 2px solid var(--cyan); border-radius: 4px; box-shadow: 0 0 10px rgba(0,255,255,0.4); overflow: hidden; background: rgba(0,0,0,0.5); }
+    .power-fill { width: 100%; height: 100%; background: var(--cyan); box-shadow: 0 0 15px var(--cyan); transition: width 0.1s linear, background 0.3s; }
+    .power-empty { background: red !important; box-shadow: 0 0 15px red !important; }
+
+    #msg-overlay {
+      position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 36px; font-weight: bold; font-style: italic; text-align: center;
+      opacity: 0; transition: opacity 0.3s ease-out; letter-spacing: 4px; z-index: 150;
+    }
+
+    /* Game Over */
+    .game-over-text { color: red; text-shadow: 0 0 20px red; -webkit-text-stroke: 1px red; }
+    .final-score { color: var(--yellow); font-size: 40px; margin: 30px 0; text-shadow: 0 0 20px var(--yellow); }
+
+    .hidden { display: none !important; }
+  </style>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import 'aframe';
+    
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+    // ==========================================
+    // A. POST-PROCESSING ENGINE
+    // ==========================================
+    AFRAME.registerComponent('vaporwave-post-processing', {
+      init: function () {
+        this.composer = null;
+        this.renderPass = null;
+        if (this.el.sceneEl.hasLoaded) this.setupPipeline();
+        else this.el.sceneEl.addEventListener('loaded', this.setupPipeline.bind(this));
+      },
+      setupPipeline: function () {
+        const sceneEl = this.el.sceneEl;
+        const renderer = sceneEl.renderer;
+        
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.toneMappingExposure = 1.6;
+
+        const camera = sceneEl.camera;
+        const scene = sceneEl.object3D;
+
+        this.composer = new EffectComposer(renderer);
+        this.renderPass = new RenderPass(scene, camera);
+        
+        const bStrength = parseFloat(document.getElementById('set-strength').value);
+        const bRadius = parseFloat(document.getElementById('set-radius').value);
+        const bThreshold = parseFloat(document.getElementById('set-threshold').value);
+
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), bStrength, bRadius, bThreshold);
+        this.composer.addPass(this.renderPass);
+        this.composer.addPass(bloomPass);
+        this.composer.addPass(new OutputPass());
+
+        window.game.bloomPass = bloomPass;
+
+        window.addEventListener('resize', () => this.composer.setSize(window.innerWidth, window.innerHeight));
+
+        const originalRender = renderer.render;
+        let isRendering = false;
+
+        renderer.render = function(sceneObj, cameraObj) {
+          if (isRendering) { originalRender.call(renderer, sceneObj, cameraObj); return; }
+          isRendering = true;
+          if (this.composer) {
+            this.renderPass.camera = cameraObj || sceneEl.camera;
+            this.composer.render();
+          } else {
+            originalRender.call(renderer, sceneObj, cameraObj);
+          }
+          isRendering = false;
+        }.bind(this);
+
+        const startBtn = document.getElementById('start-btn');
+        if (startBtn) {
+          startBtn.innerText = "INSERT COIN";
+          startBtn.classList.remove('disabled');
+        }
+      }
+    });
+
+    // ==========================================
+    // B. GLOBAL GAME STATE & FLOW
+    // ==========================================
+    const STATE = { START: 0, STORY: 1, PLAYING: 2, GAMEOVER: 3 };
+    window.game = { state: STATE.START, score: 0, shields: 3, sens: 1.5, weapon: 'normal', fireRate: 150, level: 1, bloomPass: null, speedMult: 1.0 };
+
+    window.startGame = function() {
+      document.getElementById('screen-start').classList.add('hidden');
+      document.getElementById('screen-story').classList.remove('hidden');
+      window.game.state = STATE.STORY;
+
+      // Enhanced story sequence with retro vector graphics
+      const storyHtml = `
+        <svg width="250" height="150" viewBox="0 0 250 150" style="margin: 0 auto 20px auto; display:block;">
+          <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff00ff"/><stop offset="100%" stop-color="#00ffff"/></linearGradient></defs>
+          <polygon points="125,20 180,100 70,100" fill="none" stroke="url(#g)" stroke-width="4"/>
+          <path d="M0,100 L250,100 M0,115 L250,115 M0,135 L250,135" stroke="#00ffff" stroke-width="2"/>
+          <polygon points="125,70 140,110 110,110" fill="#000" stroke="#ffff00" stroke-width="2"/>
+        </svg>
+        YEAR 2084...<br><br>THE SYNTH-CORE HAS FALLEN.<br>CLEAR THE OUTRUN SECTOR TO BREACH THE ENEMY COMMAND TRENCH.<br><br>COLLECT POWER CORES TO UPGRADE WEAPONS.<br><br>YOU ARE THE LAST VIPER.
+      `;
+      const el = document.getElementById('story-text');
+      el.innerHTML = storyHtml;
+      
+      setTimeout(window.enterPlayState, 4500); 
+    };
+
+    window.enterPlayState = function() {
+      document.getElementById('screen-story').classList.add('hidden');
+      document.getElementById('screen-gameover').classList.add('hidden');
+      document.getElementById('hud').style.display = 'block';
+      
+      window.game.state = STATE.PLAYING;
+      window.game.score = 0;
+      window.game.shields = 3;
+      window.game.weapon = 'normal';
+      window.game.fireRate = 150;
+      window.game.level = 1;
+      
+      // Reset Level State
+      document.getElementById('level-1').setAttribute('visible', 'true');
+      document.getElementById('level-2').setAttribute('visible', 'false');
+      const l3 = document.getElementById('level-3'); if(l3) l3.setAttribute('visible', 'false');
+      const l4 = document.getElementById('level-4'); if(l4) l4.setAttribute('visible', 'false');
+      document.querySelector('a-sky').setAttribute('color', '#070014');
+      document.querySelector('a-scene').setAttribute('fog', 'color: #070014; density: 0.0035');
+
+      window.updateHUD();
+
+      document.getElementById('enemies').innerHTML = '';
+      document.getElementById('projectiles').innerHTML = '';
+      const ship = document.getElementById('ship');
+      if (ship) {
+        ship.setAttribute('visible', 'true');
+        ship.object3D.position.set(0, 10, -20);
+      }
+    };
+
+    window.openSettings = function() {
+      document.getElementById('screen-start').classList.add('hidden');
+      document.getElementById('screen-settings').classList.remove('hidden');
+    };
+    
+    window.closeSettings = function() {
+      document.getElementById('screen-settings').classList.add('hidden');
+      document.getElementById('screen-start').classList.remove('hidden');
+    };
+
+    window.updateSettings = function() {
+      if (window.game.bloomPass) {
+        window.game.bloomPass.strength = parseFloat(document.getElementById('set-strength').value);
+        window.game.bloomPass.radius = parseFloat(document.getElementById('set-radius').value);
+        window.game.bloomPass.threshold = parseFloat(document.getElementById('set-threshold').value);
+      }
+      window.game.sens = parseFloat(document.getElementById('set-sens').value);
+      window.game.speedMult = parseFloat(document.getElementById('set-speed').value);
+    };
+
+    window.takeDamage = function() {
+      if (window.game.state !== STATE.PLAYING) return;
+      window.game.shields--;
+      window.game.weapon = 'normal'; // Lose powerups on hit
+      window.game.fireRate = 150;
+      window.updateHUD();
+      
+      const sky = document.querySelector('a-sky');
+      if(sky) {
+        sky.setAttribute('color', '#ff0000');
+        const skyColors = {1: '#070014', 2: '#010101', 3: '#1a0000', 4: '#000000'};
+        setTimeout(() => sky.setAttribute('color', skyColors[window.game.level] || '#070014'), 150);
+      }
+
+      if (window.game.shields <= 0) window.triggerGameOver();
+    };
+
+    window.triggerGameOver = function() {
+      window.game.state = STATE.GAMEOVER;
+      document.getElementById('hud').style.display = 'none';
+      document.getElementById('ship').setAttribute('visible', 'false');
+      
+      const shipPos = document.getElementById('ship').object3D.position.clone();
+      document.querySelector('[game-manager]').components['game-manager'].explode(shipPos, '#00ffff', 40);
+
+      setTimeout(() => {
+        document.getElementById('screen-gameover').classList.remove('hidden');
+        document.getElementById('final-score-val').innerText = Math.max(0, window.game.score).toString().padStart(6, '0');
+      }, 1500);
+    };
+
+    window.updateHUD = function() {
+      document.getElementById('score-val').innerText = Math.max(0, window.game.score).toString().padStart(6, '0');
+      document.getElementById('shields-val').innerText = '▲'.repeat(window.game.shields);
+    };
+
+    window.showMsg = function(text, color) {
+       const m = document.getElementById('msg-overlay');
+       m.innerText = text;
+       m.style.color = color;
+       m.style.textShadow = `0 0 20px ${color}`;
+       m.style.opacity = 1;
+       setTimeout(() => m.style.opacity = 0, 2500);
+    };
+
+    // ==========================================
+    // C. LEVEL 1 ASSETS (OUTRUN)
+    // ==========================================
+    AFRAME.registerComponent('vaporwave-grid', {
+      init: function() {
+        const gCanvas = document.createElement('canvas');
+        gCanvas.width = 1024; gCanvas.height = 1024;
+        const gCtx = gCanvas.getContext('2d');
+        gCtx.fillStyle = '#030008'; gCtx.fillRect(0,0,1024,1024);
+        gCtx.strokeStyle = '#ff00ff'; gCtx.lineWidth = 6; 
+        gCtx.shadowColor = '#ff00ff'; gCtx.shadowBlur = 15;
+        gCtx.beginPath();
+        for(let i=0; i<=1024; i+=128) { gCtx.moveTo(i, 0); gCtx.lineTo(i, 1024); gCtx.moveTo(0, i); gCtx.lineTo(1024, i); }
+        gCtx.stroke();
+        
+        this.tex = new THREE.CanvasTexture(gCanvas);
+        this.tex.wrapS = THREE.RepeatWrapping; this.tex.wrapT = THREE.RepeatWrapping;
+        this.tex.repeat.set(120, 240);
+        this.tex.colorSpace = THREE.SRGBColorSpace; 
+
+        const mat = new THREE.MeshStandardMaterial({
+          map: this.tex, emissiveMap: this.tex, emissive: new THREE.Color('#ff00ff'),
+          emissiveIntensity: 2.0, roughness: 0.8, metalness: 0.2
+        });
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(6000, 12000), mat);
+        mesh.rotation.x = -Math.PI / 2; mesh.position.y = -15; mesh.position.z = -2000;
+        this.el.object3D.add(mesh);
+      },
+      tick: function(t, dt) { if (window.game.state === STATE.PLAYING && window.game.level === 1 && this.tex) this.tex.offset.y -= dt * 0.002; }
+    });
+
+    AFRAME.registerComponent('vaporwave-sun', {
+      init: function() {
+        const sCanvas = document.createElement('canvas');
+        sCanvas.width = 1024; sCanvas.height = 1024;
+        const sCtx = sCanvas.getContext('2d');
+        const grad = sCtx.createLinearGradient(0,0,0,1024);
+        grad.addColorStop(0, '#ffff00'); grad.addColorStop(0.5, '#ff007f'); grad.addColorStop(1, '#7a00ff');
+        sCtx.fillStyle = grad;
+        sCtx.arc(512, 512, 500, 0, Math.PI * 2); sCtx.fill();
+        sCtx.globalCompositeOperation = 'destination-out';
+        for(let i=0; i<20; i++) { sCtx.fillRect(0, 500 + i*25, 1024, 6 + i*1.2); }
+        
+        const tex = new THREE.CanvasTexture(sCanvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, fog: false, side: THREE.DoubleSide });
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), mat);
+        mesh.position.set(0, 300, -4500); 
+        this.el.object3D.add(mesh);
+      }
+    });
+
+    AFRAME.registerComponent('vaporwave-mountains', {
+      init: function() {
+        this.meshes = [];
+        for (let i = 0; i < 2; i++) {
+          const geo = new THREE.PlaneGeometry(3000, 4000, 64, 128);
+          const pos = geo.attributes.position;
+          for (let j = 0; j < pos.count; j++) {
+            const x = pos.getX(j); const y = pos.getY(j);
+            let z = Math.abs(Math.sin(x * 0.005) * Math.cos(y * 0.005)) * 250 + Math.abs(Math.sin(x * 0.015 + y * 0.01)) * 100;
+            const dist = Math.abs(x);
+            if (dist < 300) z = z * Math.max(0, (dist - 150) / 150);
+            let edgeFade = 1.0;
+            if (y > 1500) edgeFade = (2000 - y) / 500;
+            if (y < -1500) edgeFade = (y + 2000) / 500;
+            pos.setZ(j, z * Math.max(0, edgeFade));
+          }
+          geo.computeVertexNormals();
+          const mat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xff00ff, emissiveIntensity: 1.5, wireframe: true });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.rotation.x = -Math.PI / 2; mesh.position.y = -12; mesh.position.z = i * -4000;
+          this.el.object3D.add(mesh); this.meshes.push(mesh);
+        }
+      },
+      tick: function(t, dt) {
+        if (window.game.state === STATE.PLAYING && window.game.level === 1) {
+          const speed = (dt / 16.6) * 12.0; 
+          this.meshes.forEach(mesh => {
+            mesh.position.z += speed;
+            if (mesh.position.z >= 4000) mesh.position.z -= 8000; 
+          });
+        }
+      }
+    });
+
+    // ==========================================
+    // D. LEVEL 2 ASSETS (DEATH TRENCH)
+    // ==========================================
+    AFRAME.registerComponent('trench-grid', {
+      init: function() {
+        const gCanvas = document.createElement('canvas');
+        gCanvas.width = 512; gCanvas.height = 512;
+        const gCtx = gCanvas.getContext('2d');
+        gCtx.fillStyle = '#010101'; gCtx.fillRect(0,0,512,512);
+        gCtx.strokeStyle = '#0088ff'; gCtx.lineWidth = 4;
+        gCtx.beginPath();
+        for(let i=0; i<=512; i+=64) { gCtx.moveTo(i, 0); gCtx.lineTo(i, 512); gCtx.moveTo(0, i); gCtx.lineTo(512, i); }
+        gCtx.stroke();
+        
+        this.tex = new THREE.CanvasTexture(gCanvas);
+        this.tex.wrapS = THREE.RepeatWrapping; this.tex.wrapT = THREE.RepeatWrapping;
+        this.tex.repeat.set(60, 120);
+        this.tex.colorSpace = THREE.SRGBColorSpace; 
+
+        const mat = new THREE.MeshStandardMaterial({
+          map: this.tex, emissiveMap: this.tex, emissive: new THREE.Color('#0088ff'),
+          emissiveIntensity: 3.0, roughness: 0.5, metalness: 0.8
+        });
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3000, 6000), mat);
+        mesh.rotation.x = -Math.PI / 2; mesh.position.y = -15; mesh.position.z = -1000;
+        this.el.object3D.add(mesh);
+      },
+      tick: function(t, dt) { if (window.game.state === STATE.PLAYING && window.game.level === 2 && this.tex) this.tex.offset.y -= dt * 0.003; }
+    });
+
+    AFRAME.registerComponent('trench-walls', {
+      init: function() {
+        this.meshes = [];
+        for (let i = 0; i < 2; i++) {
+          const group = new THREE.Group();
+          const mat = new THREE.MeshStandardMaterial({
+             color: 0x111122, metalness: 0.9, roughness: 0.4, 
+             emissive: 0x0088ff, emissiveIntensity: 1.2, wireframe: true
+          });
+          for(let j=0; j<20; j++) {
+             let boxGeo = new THREE.BoxGeometry(250, Math.random()*200 + 100, 200);
+             let box = new THREE.Mesh(boxGeo, mat);
+             box.position.set(-250, 50, j*200 - 2000);
+             group.add(box);
+             
+             boxGeo = new THREE.BoxGeometry(250, Math.random()*200 + 100, 200);
+             box = new THREE.Mesh(boxGeo, mat);
+             box.position.set(250, 50, j*200 - 2000);
+             group.add(box);
+          }
+          group.position.z = i * -4000;
+          this.el.object3D.add(group);
+          this.meshes.push(group);
+        }
+      },
+      tick: function(t, dt) {
+        if (window.game.state === STATE.PLAYING && window.game.level === 2) {
+           const speed = (dt / 16.6) * 18.0; // Trench is much faster!
+           this.meshes.forEach(m => {
+              m.position.z += speed;
+              if (m.position.z >= 4000) m.position.z -= 8000;
+           });
+        }
+      }
+    });
+
+    // ==========================================
+    // E. LEVEL 3 & 4 ASSETS (CYBER & HYPERSPACE)
+    // ==========================================
+    AFRAME.registerComponent('cyber-grid', {
+      init: function() {
+        const gCanvas = document.createElement('canvas');
+        gCanvas.width = 512; gCanvas.height = 512;
+        const gCtx = gCanvas.getContext('2d');
+        gCtx.fillStyle = '#1a0000'; gCtx.fillRect(0,0,512,512);
+        gCtx.strokeStyle = '#ff4400'; gCtx.lineWidth = 4;
+        gCtx.beginPath();
+        for(let i=0; i<=512; i+=64) { gCtx.moveTo(i, 0); gCtx.lineTo(i, 512); gCtx.moveTo(0, i); gCtx.lineTo(512, i); }
+        gCtx.stroke();
+        
+        this.tex = new THREE.CanvasTexture(gCanvas);
+        this.tex.wrapS = THREE.RepeatWrapping; this.tex.wrapT = THREE.RepeatWrapping;
+        this.tex.repeat.set(60, 120);
+        this.tex.colorSpace = THREE.SRGBColorSpace; 
+
+        const mat = new THREE.MeshStandardMaterial({
+          map: this.tex, emissiveMap: this.tex, emissive: new THREE.Color('#ff4400'),
+          emissiveIntensity: 3.5, roughness: 0.5, metalness: 0.8
+        });
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3000, 6000), mat);
+        mesh.rotation.x = -Math.PI / 2; mesh.position.y = -15; mesh.position.z = -1000;
+        this.el.object3D.add(mesh);
+      },
+      tick: function(t, dt) { if (window.game.state === STATE.PLAYING && window.game.level === 3 && this.tex) this.tex.offset.y -= dt * 0.004; }
+    });
+
+    AFRAME.registerComponent('cyber-structures', {
+      init: function() {
+        this.meshes = [];
+        for (let i = 0; i < 2; i++) {
+          const group = new THREE.Group();
+          const mat = new THREE.MeshStandardMaterial({
+             color: 0x220000, metalness: 0.8, roughness: 0.2, 
+             emissive: 0xff4400, emissiveIntensity: 2.0, wireframe: true
+          });
+          for(let j=0; j<30; j++) {
+             let geo = new THREE.OctahedronGeometry(Math.random()*60 + 30, 0);
+             let mesh = new THREE.Mesh(geo, mat);
+             mesh.position.set((Math.random()-0.5)*1200, Math.random()*300 - 50, j*130 - 2000);
+             mesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+             
+             // Keep the center flight path clear
+             if (Math.abs(mesh.position.x) < 150) mesh.position.x += (mesh.position.x > 0 ? 150 : -150);
+             group.add(mesh);
+          }
+          group.position.z = i * -4000;
+          this.el.object3D.add(group);
+          this.meshes.push(group);
+        }
+      },
+      tick: function(t, dt) {
+        if (window.game.state === STATE.PLAYING && window.game.level === 3) {
+           const speed = (dt / 16.6) * 22.0; 
+           this.meshes.forEach(m => {
+              m.position.z += speed;
+              m.children.forEach(c => c.rotation.y += 0.01);
+              if (m.position.z >= 4000) m.position.z -= 8000;
+           });
+        }
+      }
+    });
+
+    AFRAME.registerComponent('hyper-lines', {
+      init: function() {
+        this.lines = [];
+        const mat = new THREE.MeshBasicMaterial({color: 0xffffff});
+        for(let i=0; i<300; i++) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, Math.random()*200 + 100), mat);
+            mesh.position.set((Math.random()-0.5)*2000, (Math.random()-0.5)*1500, -Math.random()*6000);
+            if (Math.abs(mesh.position.x) < 50 && Math.abs(mesh.position.y) < 50) mesh.position.x += 100;
+            this.el.object3D.add(mesh);
+            this.lines.push(mesh);
+        }
+      },
+      tick: function(t, dt) {
+        if (window.game.state === STATE.PLAYING && window.game.level === 4) {
+            const speed = (dt / 16.6) * 80.0;
+            this.lines.forEach(l => {
+                l.position.z += speed;
+                if(l.position.z > 200) {
+                    l.position.z -= 6200;
+                    l.position.x = (Math.random()-0.5)*2000;
+                    l.position.y = (Math.random()-0.5)*1500;
+                    if (Math.abs(l.position.x) < 50 && Math.abs(l.position.y) < 50) l.position.x += 100;
+                }
+            });
+        }
+      }
+    });
+
+    // ==========================================
+    // F. GAME MANAGER (ENEMIES, POWERUPS, LEVEL LOGIC)
+    // ==========================================
+    AFRAME.registerComponent('game-manager', {
+      init: function () {
+        this.enemies = document.getElementById('enemies');
+        this.spawnTimer = 0;
+      },
+      tick: function (time, dt) {
+        if (window.game.state !== STATE.PLAYING || !dt) return;
+        dt = Math.min(dt, 50); 
+        
+        // Dynamic Multi-Level Transitions!
+        if (window.game.score >= 2000 && window.game.level === 1) {
+           window.game.level = 2;
+           window.showMsg("WARNING: ENTERING DEATH TRENCH", "#ff0000");
+           setTimeout(() => {
+             document.getElementById('level-1').setAttribute('visible', 'false');
+             document.getElementById('level-2').setAttribute('visible', 'true');
+             document.querySelector('a-sky').setAttribute('color', '#010101');
+             document.querySelector('a-scene').setAttribute('fog', 'color: #010101; density: 0.005');
+           }, 1500);
+        } else if (window.game.score >= 5000 && window.game.level === 2) {
+           window.game.level = 3;
+           window.showMsg("WARNING: CYBER CORE BREACHED", "#ff4400");
+           setTimeout(() => {
+             document.getElementById('level-2').setAttribute('visible', 'false');
+             document.getElementById('level-3').setAttribute('visible', 'true');
+             document.querySelector('a-sky').setAttribute('color', '#1a0000');
+             document.querySelector('a-scene').setAttribute('fog', 'color: #1a0000; density: 0.004');
+           }, 1500);
+        } else if (window.game.score >= 10000 && window.game.level === 3) {
+           window.game.level = 4;
+           window.showMsg("INITIATING HYPERSPACE JUMP", "#ffffff");
+           setTimeout(() => {
+             document.getElementById('level-3').setAttribute('visible', 'false');
+             document.getElementById('level-4').setAttribute('visible', 'true');
+             document.querySelector('a-sky').setAttribute('color', '#000000');
+             document.querySelector('a-scene').setAttribute('fog', 'color: #000000; density: 0.001');
+           }, 1500);
+        }
+
+        const baseRates = {1: 1000, 2: 800, 3: 600, 4: 350};
+        const spawnRate = baseRates[window.game.level] / window.game.speedMult;
+        this.spawnTimer += dt;
+        if (this.spawnTimer > Math.max(200, spawnRate - (window.game.score/50))) {
+          this.spawnEntity(); this.spawnTimer = 0;
+        }
+        this.updateWorld(dt, time);
+      },
+      updateWorld: function(dt, time) {
+        const factor = dt / 16.6; 
+        const baseSpeeds = {1: 2.8, 2: 3.5, 3: 4.8, 4: 7.5};
+        const speed = baseSpeeds[window.game.level] * factor * window.game.speedMult;
+
+        document.querySelectorAll('.laser').forEach(l => {
+          l.object3D.position.z -= 15.0 * factor;
+          if (l.object3D.position.z < -400) l.parentNode.removeChild(l);
+        });
+
+        document.querySelectorAll('.enemy, .powerup').forEach(e => {
+          e.object3D.position.z += speed;
+          if (e.getAttribute('data-type') === 'wyrm') {
+            e.object3D.position.x += Math.sin(time * 0.005 + e.object3D.position.z * 0.05) * 0.6;
+          }
+
+          const ship = document.getElementById('ship');
+          const isEnemy = e.classList.contains('enemy');
+
+          // Laser Hit Enemies
+          if (isEnemy) {
+            document.querySelectorAll('.laser').forEach(l => {
+              if (l.object3D.position.distanceTo(e.object3D.position) < 8) {
+                this.explode(e.object3D.position.clone(), e.getAttribute('data-color'), 15);
+                if (e.parentNode) e.parentNode.removeChild(e); 
+                if (l.parentNode) l.parentNode.removeChild(l);
+                window.game.score += (window.game.level * 100 + 50); 
+                window.updateHUD();
+              }
+            });
+          }
+
+          // Ship Collision
+          if (ship && ship.getAttribute('visible') === "true" && e.object3D.position.distanceTo(ship.object3D.position) < 5) {
+            if (isEnemy) {
+               this.explode(ship.object3D.position.clone(), '#ff00ff', 20);
+               window.takeDamage(); 
+            } else {
+               // Collect Powerups
+               const pType = e.getAttribute('data-type');
+               if (pType === 'shield') { window.game.shields = Math.min(3, window.game.shields + 1); window.updateHUD(); window.showMsg("SHIELD RESTORED", "#00ff00"); }
+               else if (pType === 'spread') { window.game.weapon = 'spread'; window.game.fireRate = 150; window.showMsg("SPREAD SHOT ACQUIRED", "#ff00ff"); }
+               else if (pType === 'rapid') { window.game.weapon = 'rapid'; window.game.fireRate = 50; window.showMsg("RAPID FIRE ACQUIRED", "#ffff00"); }
+               else if (pType === 'bomb') { 
+                  window.showMsg("TACTICAL NUKE DEPLOYED", "#00ffff"); 
+                  document.querySelectorAll('.enemy').forEach(en => {
+                     this.explode(en.object3D.position.clone(), en.getAttribute('data-color'), 15);
+                     if (en.parentNode) en.parentNode.removeChild(en);
+                     window.game.score += (window.game.level * 100);
+                  });
+                  window.updateHUD();
+               }
+               
+               let pColor = '#00ff00';
+               if(pType==='spread') pColor='#ff00ff'; else if(pType==='rapid') pColor='#ffff00'; else if(pType==='bomb') pColor='#00ffff';
+               this.explode(e.object3D.position.clone(), pColor, 10);
+            }
+            if (e.parentNode) e.parentNode.removeChild(e);
+          }
+
+          if (e.object3D.position.z > 50 && e.parentNode) e.parentNode.removeChild(e);
+        });
+      },
+      spawnEntity: function() {
+        const x = (Math.random() - 0.5) * (window.game.level > 1 ? 80 : 120); 
+        const y = Math.random() * 30 + 5;
+
+        // Spawn Power-up (10% chance)
+        if (Math.random() < 0.1) {
+           const types = ['shield', 'spread', 'rapid', 'bomb'];
+           const type = types[Math.floor(Math.random() * types.length)];
+           let color = '#00ff00';
+           if(type==='spread') color='#ff00ff'; else if(type==='rapid') color='#ffff00'; else if(type==='bomb') color='#00ffff';
+           
+           const p = document.createElement('a-entity');
+           p.setAttribute('position', `${x} ${y} -400`);
+           p.setAttribute('class', 'powerup');
+           p.setAttribute('data-type', type);
+           p.innerHTML = `<a-octahedron radius="2" animation="property: rotation; to: 0 360 0; dur: 2000; loop: true; easing: linear" material="color: #000; emissive: ${color}; emissiveIntensity: 5.0; wireframe: true"></a-octahedron>`;
+           this.enemies.appendChild(p);
+           return;
+        }
+
+        // Spawn Enemy
+        const typeIdx = Math.floor(Math.random() * 3);
+        const e = document.createElement('a-entity');
+        e.setAttribute('position', `${x} ${y} -400`); e.setAttribute('class', 'enemy');
+        let html = '', color = '', typeStr = '';
+
+        switch(typeIdx) {
+          case 0: // Interceptor
+            color = window.game.level >= 2 ? '#ff0000' : '#ffff00'; typeStr = 'viper';
+            html = `
+              <a-entity rotation="0 180 0">
+                <a-box width="1.5" height="1" depth="4" material="color: #222; metalness: 0.8; roughness: 0.3"></a-box>
+                <a-box width="10" height="0.15" depth="2" position="0 0 1" rotation="0 25 20" material="color: #111; metalness: 0.8"></a-box>
+                <a-box width="10" height="0.15" depth="2" position="0 0 1" rotation="0 -25 -20" material="color: #111; metalness: 0.8"></a-box>
+                <a-cylinder radius="0.2" height="4" position="-4.5 1.5 2" rotation="90 0 0" material="color: #000; emissive: ${color}; emissiveIntensity: 4.0"></a-cylinder>
+                <a-cylinder radius="0.2" height="4" position="4.5 -1.5 2" rotation="90 0 0" material="color: #000; emissive: ${color}; emissiveIntensity: 4.0"></a-cylinder>
+                <a-sphere radius="1.2" position="0 0.5 -0.5" material="color: #000; emissive: ${color}; emissiveIntensity: 3.0"></a-sphere>
+              </a-entity>`;
+            break;
+          case 1: // Eye
+            color = window.game.level >= 2 ? '#ff5500' : '#00ffff'; typeStr = 'tie';
+            html = `
+              <a-entity animation="property: rotation; to: 0 0 360; dur: 3500; loop: true; easing: linear">
+                <a-sphere radius="2.5" material="color: #111; metalness: 0.9; roughness: 0.2"></a-sphere>
+                <a-cylinder radius="0.4" height="10" rotation="0 0 90" material="color: #222"></a-cylinder>
+                <a-cylinder radius="5" height="0.2" segments-radial="6" position="-5 0 0" rotation="0 0 90" material="color: #000; emissive: ${color}; emissiveIntensity: 4.0; wireframe: true"></a-cylinder>
+                <a-cylinder radius="5" height="0.2" segments-radial="6" position="5 0 0" rotation="0 0 90" material="color: #000; emissive: ${color}; emissiveIntensity: 4.0; wireframe: true"></a-cylinder>
+              </a-entity>`;
+            break;
+          case 2: // Serpent
+            color = window.game.level >= 2 ? '#ff00ff' : '#ff00ff'; typeStr = 'wyrm';
+            html = `<a-entity>`;
+            for(let i=0; i<6; i++) {
+              html += `<a-sphere radius="${2.5 - i*0.3}" position="0 0 ${i*3}" material="color: #000; emissive: ${color}; emissiveIntensity: ${4.5 - i*0.4}"></a-sphere>`;
+            }
+            html += `</a-entity>`;
+            break;
+        }
+        e.setAttribute('data-color', color); e.setAttribute('data-type', typeStr);
+        e.innerHTML = html; this.enemies.appendChild(e);
+      },
+      explode: function(pos, color, particles) {
+        const b = document.createElement('a-entity');
+        b.setAttribute('position', pos);
+        for(let i=0; i<particles; i++) {
+          const s = document.createElement('a-entity');
+          s.setAttribute('geometry', 'primitive: tetrahedron; radius: 1.5');
+          s.setAttribute('material', `color: #000; emissive: ${color}; emissiveIntensity: 6.0`);
+          const dest = `${(Math.random()-0.5)*40} ${(Math.random()-0.5)*40} ${(Math.random()-0.5)*40}`;
+          s.setAttribute('animation', `property: position; to: ${dest}; dur: 600; easing: easeOutQuad`);
+          s.setAttribute('animation__scale', `property: scale; to: 0 0 0; dur: 600; easing: easeInQuad`);
+          b.appendChild(s);
+        }
+        const ring = document.createElement('a-torus');
+        ring.setAttribute('radius', '1'); ring.setAttribute('radius-tubular', '0.2');
+        ring.setAttribute('material', `color: #000; emissive: ${color}; emissiveIntensity: 6.0; transparent: true`);
+        ring.setAttribute('animation', 'property: scale; to: 30 30 30; dur: 500; easing: easeOutQuad');
+        ring.setAttribute('animation__fade', 'property: material.opacity; to: 0; dur: 500; easing: easeOutQuad');
+        b.appendChild(ring);
+
+        this.el.sceneEl.appendChild(b);
+        setTimeout(() => b.parentNode && b.parentNode.removeChild(b), 600);
+      }
+    });
+
+    // ==========================================
+    // G. SHIP CONTROLS & WEAPONS
+    // ==========================================
+    AFRAME.registerComponent('ship-ctrl', {
+      init: function () {
+        this.ship = document.getElementById('ship');
+        this.target = new THREE.Vector3(0, 10, -20);
+        this.firing = false; this.lastShot = 0;
+
+        const start = () => this.firing = true;
+        const end = () => this.firing = false;
+        window.addEventListener('mousedown', start); window.addEventListener('mouseup', end);
+        window.addEventListener('touchstart', start, {passive: false}); window.addEventListener('touchend', end, {passive: false});
+
+        const updatePos = (clientX, clientY) => {
+          if (window.game.state !== STATE.PLAYING) return;
+          const nx = (clientX / window.innerWidth) * 2 - 1;
+          const ny = -(clientY / window.innerHeight) * 2 + 1;
+          this.target.x = nx * 45 * window.game.sens;
+          this.target.y = (ny * 20 * window.game.sens) + 12;
+        };
+
+        window.addEventListener('mousemove', (e) => updatePos(e.clientX, e.clientY));
+        window.addEventListener('touchmove', (e) => { 
+          e.preventDefault(); 
+          if(e.touches.length > 0) updatePos(e.touches[0].clientX, e.touches[0].clientY); 
+        }, {passive: false});
+      },
+      tick: function (time, dt) {
+        if (window.game.state !== STATE.PLAYING || !this.ship) return;
+        
+        // Ship Movement
+        this.ship.object3D.position.lerp(this.target, 0.2);
+        const dx = (this.target.x - this.ship.object3D.position.x);
+        this.ship.object3D.rotation.z = THREE.MathUtils.lerp(this.ship.object3D.rotation.z, -dx * 0.05, 0.1);
+
+        // Firing Logic uses Dynamic FireRate!
+        if (this.firing && time - this.lastShot > window.game.fireRate) { 
+           this.shoot(); 
+           this.lastShot = time; 
+        }
+      },
+      shoot: function() {
+        const spread = window.game.weapon === 'spread';
+        const angles = spread ? [-0.15, -0.05, 0.05, 0.15] : [-0.05, 0.05];
+        
+        angles.forEach(offset => {
+          const l = document.createElement('a-entity');
+          l.setAttribute('geometry', 'primitive: cylinder; radius: 0.15; height: 18');
+          // Angle the spread shots outwards slightly
+          l.setAttribute('rotation', `90 ${offset * -150} 0`);
+          l.setAttribute('position', `${this.ship.object3D.position.x + offset*30} ${this.ship.object3D.position.y} ${this.ship.object3D.position.z - 4}`);
+          l.setAttribute('class', 'laser');
+          l.setAttribute('material', `color: #000; emissive: ${spread ? '#ff00ff' : '#00ffff'}; emissiveIntensity: 6.0`);
+          document.getElementById('projectiles').appendChild(l);
+        });
+      }
+    });
+
+    // ==========================================
+    // H. DEFERRED SCENE INJECTION
+    // ==========================================
+    const sceneHTML = `
+      <a-scene 
+        vaporwave-post-processing
+        game-manager ship-ctrl
+        renderer="antialias: false; colorManagement: true;"
+        fog="type: exponential; color: #070014; density: 0.0035"
+        device-orientation-permission-ui="enabled: false">
+        
+        <a-sky color="#070014"></a-sky>
+
+        <a-light type="ambient" color="#2a004a" intensity="1.2"></a-light>
+        <a-light type="directional" color="#00ffff" position="-2 3 1" intensity="1.5"></a-light>
+        <a-light type="directional" color="#ff00ff" position="2 2 -1" intensity="1.5"></a-light>
+
+        <!-- LEVEL 1: OUTRUN ATMOSPHERE -->
+        <a-entity id="level-1">
+          <a-entity vaporwave-sun></a-entity>
+          <a-entity vaporwave-mountains></a-entity>
+          <a-entity vaporwave-grid></a-entity>
+        </a-entity>
+
+        <!-- LEVEL 2: DEATH TRENCH ATMOSPHERE -->
+        <a-entity id="level-2" visible="false">
+          <a-entity trench-walls></a-entity>
+          <a-entity trench-grid></a-entity>
+        </a-entity>
+
+        <!-- LEVEL 3: CYBER CORE ATMOSPHERE -->
+        <a-entity id="level-3" visible="false">
+          <a-entity cyber-structures></a-entity>
+          <a-entity cyber-grid></a-entity>
+        </a-entity>
+
+        <!-- LEVEL 4: HYPERSPACE ATMOSPHERE -->
+        <a-entity id="level-4" visible="false">
+          <a-entity hyper-lines></a-entity>
+        </a-entity>
+
+        <!-- Player Ship -->
+        <a-entity id="ship" position="0 10 -20" visible="false">
+          <a-entity geometry="primitive: box; width: 1.4; height: 0.6; depth: 4.5" material="color: #1a1a2e; metalness: 0.8; roughness: 0.2"></a-entity>
+          <a-entity geometry="primitive: box; width: 0.7; height: 0.4; depth: 1.5" position="0 0.5 -0.5" material="color: #000; emissive: #00ffff; emissiveIntensity: 3.0"></a-entity>
+          
+          <a-entity position="0 0 0.5">
+            <a-entity geometry="primitive: box; width: 12; height: 0.15; depth: 2.5" rotation="0 30 0" material="color: #1a1a2e; metalness: 0.8; roughness: 0.2"></a-entity>
+            <a-entity geometry="primitive: box; width: 12; height: 0.15; depth: 2.5" rotation="0 -30 0" material="color: #1a1a2e; metalness: 0.8; roughness: 0.2"></a-entity>
+            <a-entity geometry="primitive: box; width: 12.2; height: 0.2; depth: 0.2" rotation="0 30 0" position="0 0 -1.2" material="color: #000; emissive: #ff00ff; emissiveIntensity: 4.0"></a-entity>
+            <a-entity geometry="primitive: box; width: 12.2; height: 0.2; depth: 0.2" rotation="0 -30 0" position="0 0 -1.2" material="color: #000; emissive: #ff00ff; emissiveIntensity: 4.0"></a-entity>
+          </a-entity>
+
+          <a-entity position="0 0 2.2">
+            <a-cylinder radius="0.6" height="0.2" rotation="90 0 0" material="color: #000; emissive: #ffff00; emissiveIntensity: 5.0"></a-cylinder>
+            <a-cone radius-bottom="0.6" radius-top="0" height="15" position="0 0 7.5" rotation="-90 0 0" material="color: #ffff00; transparent: true; opacity: 0.6; emissive: #ffff00; emissiveIntensity: 2.5"></a-cone>
+          </a-entity>
+        </a-entity>
+
+        <a-entity camera position="0 18 10" rotation="-12 0 0"></a-entity>
+        
+        <a-entity id="enemies"></a-entity>
+        <a-entity id="projectiles"></a-entity>
+
+      </a-scene>
+    `;
+    
+    document.getElementById('game-container').innerHTML = sceneHTML;
+
+    // Remove the Loading Screen
+    document.getElementById('screen-loading').classList.add('hidden');
+    document.getElementById('screen-start').classList.remove('hidden');
+  </script>
+</head>
+<body>
+
+  <!-- Loading State -->
+  <div id="screen-loading" class="screen">
+    <h1 class="title">BOOTING SYSTEM...</h1>
+  </div>
+
+  <!-- Start Menu -->
+  <div id="screen-start" class="screen hidden">
+    <h1 class="title">VAPORWAVE<br>OVERDRIVE</h1>
+    <h2 class="subtitle">198X ARCADE EDITION</h2>
+    <div class="btn" id="start-btn" onclick="window.startGame()">INITIALIZING...</div>
+    <div class="btn secondary" onclick="window.openSettings()">SETTINGS</div>
+  </div>
+
+  <!-- Realtime Settings Menu -->
+  <div id="screen-settings" class="screen hidden">
+    <h1 class="title" style="font-size: 40px;">SYSTEM SETTINGS</h1>
+    
+    <div class="slider-container">
+      <label>BLOOM STRENGTH: <span id="val-strength">1.5</span></label>
+      <input type="range" id="set-strength" min="0" max="4" step="0.1" value="1.5" oninput="window.updateSettings(); document.getElementById('val-strength').innerText=this.value;">
+    </div>
+    
+    <div class="slider-container">
+      <label>BLOOM RADIUS: <span id="val-radius">0.5</span></label>
+      <input type="range" id="set-radius" min="0" max="2" step="0.1" value="0.5" oninput="window.updateSettings(); document.getElementById('val-radius').innerText=this.value;">
+    </div>
+    
+    <div class="slider-container">
+      <label>BLOOM THRESHOLD: <span id="val-threshold">0.6</span></label>
+      <input type="range" id="set-threshold" min="0" max="1" step="0.05" value="0.6" oninput="window.updateSettings(); document.getElementById('val-threshold').innerText=this.value;">
+    </div>
+    
+    <div class="slider-container">
+      <label>MOUSE SENSITIVITY: <span id="val-sens">1.5</span></label>
+      <input type="range" id="set-sens" min="0.5" max="3" step="0.1" value="1.5" oninput="window.updateSettings(); document.getElementById('val-sens').innerText=this.value;">
+    </div>
+
+    <div class="slider-container">
+      <label>GAME SPEED: <span id="val-speed">1.0</span></label>
+      <input type="range" id="set-speed" min="0.5" max="2.5" step="0.1" value="1.0" oninput="window.updateSettings(); document.getElementById('val-speed').innerText=this.value;">
+    </div>
+
+    <div class="btn secondary" style="margin-top: 30px;" onclick="window.closeSettings()">BACK TO MENU</div>
+  </div>
+
+  <div id="screen-story" class="screen hidden">
+    <div id="story-text"></div>
+  </div>
+
+  <!-- In-Game HUD -->
+  <div id="hud">
+    <div class="hud-top">
+      <div class="score-display">SCORE <span id="score-val">000000</span></div>
+      <div class="shields" id="shields-val">▲▲▲</div>
+    </div>
+  </div>
+
+  <!-- Dynamic Event Messages -->
+  <div id="msg-overlay"></div>
+
+  <div id="screen-gameover" class="screen hidden">
+    <h1 class="title game-over-text">SYSTEM FAILURE</h1>
+    <div class="final-score">SCORE: <span id="final-score-val">000000</span></div>
+    <div class="btn" onclick="window.enterPlayState()">RETRY MISSION</div>
+  </div>
+
+  <!-- The Scene is injected here dynamically -->
+  <div id="game-container"></div>
+
+</body>
+</html>
