@@ -67,11 +67,9 @@
                 const width = window.innerWidth * pixelRatio;
                 const height = window.innerHeight * pixelRatio;
 
-                // Frame Buffer Object for Post Processing
                 this.target = new THREE.WebGLRenderTarget(width, height, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat });
                 this.target.texture.colorSpace = renderer.outputColorSpace;
 
-                // High-End Shader: Gaussian Bloom + Vignette + Color Grading
                 this.material = new THREE.ShaderMaterial({
                     uniforms: {
                         tDiffuse: { value: this.target.texture }, resolution: { value: new THREE.Vector2(width, height) },
@@ -84,15 +82,11 @@
                         uniform float bloomIntensity; uniform float bloomThreshold;
                         uniform vec3 tint; uniform float contrast; uniform float saturation; uniform float vignette;
                         varying vec2 vUv;
-
                         void main() {
                             vec4 texel = texture2D(tDiffuse, vUv);
                             vec3 color = texel.rgb;
-
-                            // 9-Tap Bright-Pass Pseudo Bloom
                             vec3 bloom = vec3(0.0);
-                            vec2 off = (1.0 / resolution) * 4.0; // Bloom spread radius
-
+                            vec2 off = (1.0 / resolution) * 4.0;
                             for(float x = -1.0; x <= 1.0; x += 1.0) {
                                 for(float y = -1.0; y <= 1.0; y += 1.0) {
                                     vec3 sampleCol = texture2D(tDiffuse, vUv + vec2(x, y) * off).rgb;
@@ -102,19 +96,12 @@
                                 }
                             }
                             color += bloom * bloomIntensity;
-
-                            // Contrast & Saturation Grading
                             color = (color - 0.5) * contrast + 0.5;
                             float luminance = dot(color, vec3(0.299, 0.587, 0.114));
                             color = mix(vec3(luminance), color, saturation);
-
-                            // Tint
                             color *= tint;
-
-                            // Edge Vignette
                             float dist = distance(vUv, vec2(0.5));
                             color *= smoothstep(1.0, vignette * 0.3, dist);
-
                             gl_FragColor = vec4(color, texel.a);
                         }
                     `
@@ -124,17 +111,12 @@
                 this.fsScene = new THREE.Scene(); this.fsScene.add(this.fsQuad);
                 this.fsCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
-                // Hijack the Renderer
                 this.originalRender = renderer.render;
                 this.renderer = renderer;
                 renderer.render = (scene, camera, renderTarget, forceClear) => {
                     if (scene === this.fsScene || renderTarget === this.target) { this.originalRender.call(renderer, scene, camera, renderTarget, forceClear); return; }
-                    
-                    // Render game to FBO
                     renderer.setRenderTarget(this.target); renderer.clear();
                     this.originalRender.call(renderer, scene, camera);
-                    
-                    // Render FBO to Screen with Shaders
                     renderer.setRenderTarget(null); renderer.clear();
                     this.originalRender.call(renderer, this.fsScene, this.fsCamera);
                 };
@@ -158,15 +140,18 @@
         // GAME CONFIGURATION FILE (BRENDON SMITH RESUME EDITION)
         // =====================================================================
         const GAME_CONFIG = {
-            version: "Resume Quest 1.0 - Brendon Smith",
+            version: "Resume Quest 1.1 - Spritesheet Ready",
 
-            // CUSTOM SPRITE SHEET INTEGRATION (Procedural defaults used here)
-            externalAssets: {
-                useExternal: false, 
-                enemies: { url: "", cols: 5, rows: 4 },
-                items: { url: "", cols: 4, rows: 2 },
-                npc: { url: "", cols: 1, rows: 1 }
+            // ==========================================
+            // GLOBAL SPRITE SHEET CONFIGURATION
+            // ==========================================
+            sprites: {
+                masterSheet: {
+                    useCustom: true,
+                    url: "spritesheet-rpg-.png" 
+                }
             },
+            // ==========================================
             
             classes: {
                 react_dev: { name: "React Ranger", hp: 120, mp: 40, atk: 12, def: 6, crit: 0.10, hpg: 15, mpg: 5, atkg: 3, defg: 1 },
@@ -174,11 +159,12 @@
                 xr_wizard: { name: "XR/3D Artificer", hp: 90, mp: 60, atk: 18, def: 4, crit: 0.20, hpg: 10, mpg: 10, atkg: 5, defg: 1 }
             },
 
+            // Updated items to match the layout of spritesheet-rpg-.png precisely
             items: {
                 coffee: { id: "coffee", name: "Espresso Shot", type: "consumable", effect: "hp", val: 50, desc: "Restores 50 HP. Pure caffeine.", color: "#78350f" },
                 redbull: { id: "redbull", name: "Energy Drink", type: "consumable", effect: "mp", val: 30, desc: "Restores 30 MP. Gives you wings.", color: "#38bdf8" },
-                ts_sword: { id: "ts_sword", name: "TypeScript Blade", type: "weapon", atk: 8, desc: "+8 ATK. Strongly typed edges.", color: "#3178c6" },
-                threejs_staff: { id: "threejs_staff", name: "Three.js Staff", type: "weapon", atk: 16, desc: "+16 ATK. Renders enemies useless.", color: "#fef08a" },
+                race_condition: { id: "race_condition", name: "Race Condition", type: "weapon", atk: 12, desc: "+12 ATK. Strikes asynchronously.", color: "#eab308" },
+                security_breach: { id: "security_breach", name: "Security Breach", type: "weapon", atk: 18, desc: "+18 ATK. Unlocks enemy defenses.", color: "#f87171" },
                 docker_armor: { id: "docker_armor", name: "Docker Container", type: "armor", def: 8, desc: "+8 DEF. Isolated protection.", color: "#0ea5e9" },
                 aws_shield: { id: "aws_shield", name: "AWS Cloud Shield", type: "armor", def: 15, desc: "+15 DEF. Highly available.", color: "#f59e0b" }
             },
@@ -203,7 +189,6 @@
                 "The Core Sector. Mastery over React, TypeScript, MERN, Unity3D, and ThreeJS has been achieved. The ultimate candidate awaits."
             ],
 
-            // BRIGHTENED THEMES: Bright skies, no roofs, light colors, vibrant fogs
             themes: [
                 { id: 'agency', name: 'BaileyLauerman Agency', roof: false, skyType: 'clouds', pp: { tint: '#ffffff', contrast: 1.1, saturation: 1.2, bloom: 1.0, vignette: 0.2, bThresh: 0.7 }, ui: { border: '#16a34a', top: '#4ade80', bg: 'rgba(20,50,20,0.85)' },
                   sky: '#38bdf8', fog: '#7dd3fc', ambient: '#f8fafc', light: '#fef08a', lightInt: 2.0, weather: 'none', wColor: '#88ccff',
@@ -515,44 +500,75 @@
             generateNPCSheet: function(outSize=256) {
                 const cvs = document.createElement('canvas'); cvs.width = outSize; cvs.height = outSize; const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false; this.drawMonster(ctx, "HoloGuide", 0, 0, outSize, "#38bdf8");
                 return cvs.toDataURL('image/png');
-            },
-            generateComicPanel: function(cvs, floor, theme) {
-                const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false;
-                const w = cvs.width; const h = cvs.height;
-                ctx.fillStyle = theme.sky; ctx.fillRect(0, 0, w, h);
-                ctx.fillStyle = theme.pal.wallLine; ctx.beginPath(); ctx.moveTo(0, h);
-                let terrainH = h * 0.6; ctx.lineTo(0, terrainH);
-                for(let i=0; i<=w; i+=20) { ctx.lineTo(i, terrainH + (Math.sin(i*0.1 + floor)*15) + (Math.random()*10)); }
-                ctx.lineTo(w, h); ctx.fill();
-                ctx.fillStyle = theme.pal.wallBase;
-                for(let i=0; i<5; i++) {
-                    let pw = 20 + Math.random()*30; let ph = 40 + Math.random()*60; let px = Math.random()*w;
-                    ctx.fillRect(px, h - ph - 10, pw, ph); ctx.fillStyle = theme.pal.accent; ctx.fillRect(px+5, h - ph, pw-10, 5); ctx.fillStyle = theme.pal.wallBase;
-                }
-                
-                let enemyKey = theme.enemies[floor % theme.enemies.length]; 
-                let enemyTemplate = GAME_CONFIG.enemies[enemyKey];
-                
-                // Draw either the custom external sprite or the procedural generated one
-                if (GAME_CONFIG.externalAssets.useExternal) {
-                    const img = document.getElementById('sprite-enemies');
-                    if (img && img.complete) {
-                        const cols = GAME_CONFIG.externalAssets.enemies.cols;
-                        const rows = GAME_CONFIG.externalAssets.enemies.rows;
-                        const sW = img.naturalWidth / cols; const sH = img.naturalHeight / rows;
-                        const sx = (enemyTemplate.spriteIndex % cols) * sW;
-                        const sy = Math.floor(enemyTemplate.spriteIndex / cols) * sH;
-                        ctx.drawImage(img, sx, sy, sW, sH, w*0.55, h*0.2, 90, 90);
-                    }
-                } else {
-                    this.drawMonster(ctx, enemyKey, w*0.6, h*0.2, 90, enemyTemplate.color);
-                }
-                
-                ctx.fillStyle = 'rgba(0,0,0,0.2)'; for(let y=0; y<h; y+=4) { ctx.fillRect(0, y, w, 2); }
             }
         };
 
         const AssetGen = {
+            sliceMasterSheet: function(img) {
+                const cvs = document.createElement('canvas'); const ctx = cvs.getContext('2d');
+                ctx.imageSmoothingEnabled = false;
+                const w = img.naturalWidth; const h = img.naturalHeight;
+                
+                // Smart slicer to extract a box based on percentage offsets to a base64 url
+                const extract = (id, xP, yP, wP, hP) => {
+                    cvs.width = w * wP; cvs.height = h * hP;
+                    ctx.clearRect(0,0, cvs.width, cvs.height);
+                    ctx.drawImage(img, w*xP, h*yP, w*wP, h*hP, 0, 0, cvs.width, cvs.height);
+                    let extractedImg = document.createElement('img');
+                    extractedImg.id = `sprite-${id}`;
+                    extractedImg.src = cvs.toDataURL('image/png');
+                    document.getElementById('assetsContainer').appendChild(extractedImg);
+                    return extractedImg.src;
+                };
+
+                // Enemies Area (Grid: left=1.2%, top=5.5%, width=52.2%, height=43.4%, 5 columns, 4 rows)
+                let eIdx = 0;
+                Object.keys(GAME_CONFIG.enemies).forEach(k => {
+                    let col = eIdx % 5; let row = Math.floor(eIdx / 5);
+                    GAME_CONFIG.enemies[k].spriteSrc = extract(`enemy-${k}`, 0.012 + col*0.1044, 0.055 + row*0.1085, 0.1044, 0.1085);
+                    eIdx++;
+                });
+
+                // Items Area (Grid: left=54.8%, top=5.5%, width=43.9%, height=22.0%, 4 columns, 2 rows)
+                let iIdx = 0;
+                Object.keys(GAME_CONFIG.items).forEach(k => {
+                    let col = iIdx % 4; let row = Math.floor(iIdx / 4);
+                    GAME_CONFIG.items[k].spriteSrc = extract(`item-${k}`, 0.548 + col*0.1097, 0.055 + row*0.1100, 0.1097, 0.1100);
+                    iIdx++;
+                });
+
+                // NPC Area (Grid: left=1.2%, top=88%, width=44%, height=11.7%, 4 cols) -> Grab Hiring Manager at col 0
+                GAME_CONFIG.npcSpriteSrc = extract('npc-guide', 0.012, 0.88, 0.11, 0.117);
+                
+                // Draw portrait for NPC dialogue 
+                const portCvs = document.getElementById('npcPortrait'); 
+                if(portCvs) { 
+                    const portCtx = portCvs.getContext('2d'); portCtx.imageSmoothingEnabled = false; portCtx.clearRect(0,0,32,32);
+                    let npcImg = new Image(); npcImg.onload = () => { portCtx.drawImage(npcImg, 0, 0, 32, 32); }; npcImg.src = GAME_CONFIG.npcSpriteSrc;
+                }
+            },
+
+            generateProceduralAssets: function() {
+                const assets = document.getElementById('assetsContainer');
+                
+                const enemyImg = document.createElement('img'); enemyImg.id = "sprite-enemies"; 
+                enemyImg.src = ProceduralArt.generateEnemySheet(256); assets.appendChild(enemyImg);
+                
+                const itemImg = document.createElement('img'); itemImg.id = "sprite-items"; 
+                itemImg.src = ProceduralArt.generateItemSheet(256); assets.appendChild(itemImg);
+                
+                const npcImg = document.createElement('img'); npcImg.id = "sprite-npc"; 
+                npcImg.src = ProceduralArt.generateNPCSheet(256); assets.appendChild(npcImg);
+
+                let eIdx = 0; Object.keys(GAME_CONFIG.enemies).forEach(k => { GAME_CONFIG.enemies[k].spriteIndex = eIdx++; GAME_CONFIG.enemies[k].spriteSrc = null; });
+                let iIdx = 0; Object.keys(GAME_CONFIG.items).forEach(k => { GAME_CONFIG.items[k].spriteIndex = iIdx++; GAME_CONFIG.items[k].spriteSrc = null; });
+                
+                GAME_CONFIG.npcSpriteSrc = null;
+
+                const portCvs = document.getElementById('npcPortrait'); 
+                if(portCvs) { const portCtx = portCvs.getContext('2d'); portCtx.imageSmoothingEnabled = false; portCtx.clearRect(0,0,32,32); ProceduralArt.drawMonster(portCtx, "HoloGuide", 0, 0, 32, "#38bdf8"); }
+            },
+
             createThemeTextures: function(theme) {
                 const p = theme.pal;
                 for(let i=0; i<4; i++) { this.generateCanvas(`tex-wall-${i}`, p.wallBase, p.wallLine, p.accent, p.style); }
@@ -648,20 +664,6 @@
 
         const Game = {
             init: function() {
-                // Initialize Sprite Index Map
-                let eIdx = 0; Object.keys(GAME_CONFIG.enemies).forEach(k => { GAME_CONFIG.enemies[k].spriteIndex = eIdx++; });
-                let iIdx = 0; Object.keys(GAME_CONFIG.items).forEach(k => { GAME_CONFIG.items[k].spriteIndex = iIdx++; });
-
-                const assets = document.getElementById('assetsContainer');
-                
-                // Load Procedural Generated Defaults
-                const enemyImg = document.createElement('img'); enemyImg.id = "sprite-enemies"; enemyImg.src = ProceduralArt.generateEnemySheet(256); assets.appendChild(enemyImg);
-                const itemImg = document.createElement('img'); itemImg.id = "sprite-items"; itemImg.src = ProceduralArt.generateItemSheet(256); assets.appendChild(itemImg);
-                const npcImg = document.createElement('img'); npcImg.id = "sprite-npc"; npcImg.src = ProceduralArt.generateNPCSheet(256); assets.appendChild(npcImg);
-                
-                const portCvs = document.getElementById('npcPortrait'); 
-                if(portCvs) { const portCtx = portCvs.getContext('2d'); portCtx.imageSmoothingEnabled = false; portCtx.clearRect(0,0,32,32); ProceduralArt.drawMonster(portCtx, "HoloGuide", 0, 0, 32, "#38bdf8"); }
-                
                 const classCont = document.getElementById('classListContainer');
                 Object.keys(GAME_CONFIG.classes).forEach(k => {
                     let c = GAME_CONFIG.classes[k];
@@ -691,7 +693,7 @@
                 document.getElementById('classModal').classList.add('hidden'); document.getElementById('uiLayer').classList.remove('hidden');
                 
                 // Starting items
-                p.inventory.push("coffee"); p.inventory.push("ts_sword");
+                p.inventory.push("coffee"); p.inventory.push("race_condition");
                 
                 this.log(`> Specialized as ${c.name}.`, "msg-sys"); 
                 State.currentTheme = GAME_CONFIG.themes[Math.floor(Math.random() * GAME_CONFIG.themes.length)];
@@ -711,7 +713,33 @@
 
                 let lore = GAME_CONFIG.storyline[Math.min(State.floor - 1, GAME_CONFIG.storyline.length - 1)];
                 text.innerText = lore;
-                ProceduralArt.generateComicPanel(cvs, State.floor, State.currentTheme);
+                
+                const ctx = cvs.getContext('2d'); ctx.imageSmoothingEnabled = false;
+                const w = cvs.width; const h = cvs.height;
+                const theme = State.currentTheme;
+                ctx.fillStyle = theme.sky; ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = theme.pal.wallLine; ctx.beginPath(); ctx.moveTo(0, h);
+                let terrainH = h * 0.6; ctx.lineTo(0, terrainH);
+                for(let i=0; i<=w; i+=20) { ctx.lineTo(i, terrainH + (Math.sin(i*0.1 + State.floor)*15) + (Math.random()*10)); }
+                ctx.lineTo(w, h); ctx.fill();
+                ctx.fillStyle = theme.pal.wallBase;
+                for(let i=0; i<5; i++) {
+                    let pw = 20 + Math.random()*30; let ph = 40 + Math.random()*60; let px = Math.random()*w;
+                    ctx.fillRect(px, h - ph - 10, pw, ph); ctx.fillStyle = theme.pal.accent; ctx.fillRect(px+5, h - ph, pw-10, 5); ctx.fillStyle = theme.pal.wallBase;
+                }
+                
+                let enemyKey = theme.enemies[State.floor % theme.enemies.length]; 
+                let enemyTemplate = GAME_CONFIG.enemies[enemyKey];
+                
+                if (enemyTemplate.spriteSrc) {
+                    const img = document.getElementById(`sprite-enemy-${enemyKey}`);
+                    if (img && img.complete) ctx.drawImage(img, w*0.55, h*0.2, 90, 90);
+                } else {
+                    ProceduralArt.drawMonster(ctx, enemyKey, w*0.6, h*0.2, 90, enemyTemplate.color);
+                }
+                
+                ctx.fillStyle = 'rgba(0,0,0,0.2)'; for(let y=0; y<h; y+=4) { ctx.fillRect(0, y, w, 2); }
+
                 modal.classList.remove('hidden'); setTimeout(() => { modal.style.opacity = 1; }, 50);
             },
 
@@ -794,13 +822,14 @@
                             const pBase = document.createElement('a-cylinder'); pBase.setAttribute('radius', '0.8'); pBase.setAttribute('height', '0.1'); pBase.setAttribute('color', th.pal.wallLine); pBase.setAttribute('position', '0 -0.95 0'); portalGrp.appendChild(pBase);
                             world.appendChild(portalGrp);
                         } else if (tile === TILE.NPC) {
-                            const isExt = GAME_CONFIG.externalAssets.useExternal;
-                            const nCols = isExt ? Math.max(1, GAME_CONFIG.externalAssets.npc.cols) : 1;
-                            const nRows = isExt ? Math.max(1, GAME_CONFIG.externalAssets.npc.rows) : 1;
-                            const rU = 1/nCols, rV = 1/nRows; const oU = 0, oV = isExt ? 1.0 - rV : 0;
-                            
                             const npc = document.createElement('a-plane'); npc.setAttribute('class', 'npc-sprite'); npc.setAttribute('position', `${posX} 1.0 ${posZ}`); npc.setAttribute('width', 1.8); npc.setAttribute('height', 1.8); 
-                            npc.setAttribute('material', `src: #sprite-npc; transparent: true; alphaTest: 0.1; shader: flat; repeat: ${rU} ${rV}; offset: ${oU} ${oV}`); 
+                            
+                            if (GAME_CONFIG.npcSpriteSrc) {
+                                npc.setAttribute('material', `src: #sprite-npc-guide; transparent: true; alphaTest: 0.1; shader: flat;`);
+                            } else {
+                                npc.setAttribute('material', `src: #sprite-npc; transparent: true; alphaTest: 0.1; shader: flat;`);
+                            }
+
                             npc.setAttribute('billboard', ''); npc.setAttribute('animation', `property: position; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true; to: ${posX} 1.1 ${posZ}`);
                             const aura = document.createElement('a-entity'); aura.setAttribute('light', `type: point; color: #38bdf8; intensity: 1.0; distance: 5;`); npc.appendChild(aura); world.appendChild(npc);
                         } else if (tile === TILE.FLOOR && (posX !== State.player.x * TILE_SIZE || posZ !== -State.player.y * TILE_SIZE)) {
@@ -811,18 +840,18 @@
                     }
                 }
 
-                const isExt = GAME_CONFIG.externalAssets.useExternal;
-                const iCols = isExt ? Math.max(1, GAME_CONFIG.externalAssets.items.cols) : Object.keys(GAME_CONFIG.items).length;
-                const iRows = isExt ? Math.max(1, GAME_CONFIG.externalAssets.items.rows) : 1;
-                const repeatU = 1 / iCols; const repeatV = 1 / iRows;
-
                 State.items.forEach((item) => {
                     const itemEl = document.createElement('a-plane'); itemEl.setAttribute('id', item.id); itemEl.setAttribute('position', `${item.x * TILE_SIZE} 0.4 ${-item.y * TILE_SIZE}`); itemEl.setAttribute('width', 0.8); itemEl.setAttribute('height', 0.8);
                     let conf = GAME_CONFIG.items[item.type]; 
-                    let offsetU = (conf.spriteIndex % iCols) * repeatU;
-                    let offsetV = isExt ? 1.0 - (Math.floor(conf.spriteIndex / iCols) + 1) * repeatV : 0;
                     
-                    itemEl.setAttribute('material', `src: #sprite-items; transparent: true; alphaTest: 0.1; shader: flat; repeat: ${repeatU} ${repeatV}; offset: ${offsetU} ${offsetV}`);
+                    if (conf.spriteSrc) {
+                        itemEl.setAttribute('material', `src: #sprite-item-${item.type}; transparent: true; alphaTest: 0.1; shader: flat;`);
+                    } else {
+                        const repeatU = 1 / Object.keys(GAME_CONFIG.items).length;
+                        const offsetU = conf.spriteIndex * repeatU;
+                        itemEl.setAttribute('material', `src: #sprite-items; transparent: true; alphaTest: 0.1; shader: flat; repeat: ${repeatU} 1; offset: ${offsetU} 0`);
+                    }
+
                     itemEl.setAttribute('billboard', ''); itemEl.setAttribute('animation', `property: position; dir: alternate; dur: 1500; easing: easeInOutSine; loop: true; to: ${item.x*TILE_SIZE} 0.6 ${-item.y*TILE_SIZE}`); world.appendChild(itemEl);
                 });
             },
@@ -857,7 +886,7 @@
             },
             debugLevelUp: function() { const p = State.player; p.xp += p.level * 100; this.log(`[HR] Granted Promotion XP...`, "msg-cheat"); this.levelUpPlayer(); this.updateUI(); this.toggleSettings(); },
             debugNextFloor: function() { this.log(`[HR] Fast-tracking to next Epoch...`, "msg-cheat"); this.toggleSettings(); State.floor++; State.currentTheme = GAME_CONFIG.themes[Math.floor(Math.random() * GAME_CONFIG.themes.length)]; this.showInterstitial(false); },
-            debugGiveLoot: function() { State.player.inventory.push("threejs_staff", "aws_shield", "coffee", "redbull"); this.log(`[HR] Deployed Premium Tech Stack!`, "msg-cheat"); this.toggleSettings(); },
+            debugGiveLoot: function() { State.player.inventory.push("security_breach", "aws_shield", "coffee", "redbull"); this.log(`[HR] Deployed Premium Tech Stack!`, "msg-cheat"); this.toggleSettings(); },
             debugHeal: function() { State.player.hp = State.player.maxHp; State.player.mp = State.player.maxMp; this.log(`[HR] PTO Granted. Health & Mana restored.`, "msg-cheat"); this.updateUI(); this.toggleSettings(); },
 
             toggleLog: function() { State.logVisible = !State.logVisible; const logCont = document.getElementById('messageLogContainer'); const btn = document.getElementById('btnToggleLog'); if (State.logVisible) { logCont.classList.remove('hidden'); btn.innerText = "LOG: ON"; btn.classList.replace('text-gray-400', 'text-white'); } else { logCont.classList.add('hidden'); btn.innerText = "LOG: OFF"; btn.classList.replace('text-white', 'text-gray-400'); } },
@@ -885,15 +914,14 @@
                     let actionBtn = ""; if (item.type === "consumable") actionBtn = `<button onclick="Game.useItem('${id}')" class="bg-blue-800 hover:bg-blue-700 text-white px-2 py-1 rounded text-[10px] font-bold border border-blue-600">USE</button>`; else if (item.type === "weapon" || item.type === "armor") actionBtn = `<button onclick="Game.equipItem('${id}')" class="bg-yellow-800 hover:bg-yellow-700 text-white px-2 py-1 rounded text-[10px] font-bold border border-yellow-600">EQUIP</button>`;
                     
                     let bgStyle = "";
-                    if (GAME_CONFIG.externalAssets.useExternal) {
-                        const cols = Math.max(1, GAME_CONFIG.externalAssets.items.cols); const rows = Math.max(1, GAME_CONFIG.externalAssets.items.rows);
-                        bgStyle = `background-size:${cols * 100}% ${rows * 100}%;background-position:${-(item.spriteIndex % cols) * 24}px ${-Math.floor(item.spriteIndex / cols) * 24}px;`;
+                    if (item.spriteSrc) {
+                        bgStyle = `background-image:url('${item.spriteSrc}');background-size:cover;`;
                     } else {
                         const cols = Object.keys(GAME_CONFIG.items).length;
-                        bgStyle = `background-size:${cols * 100}% 100%;background-position:${(item.spriteIndex / Math.max(1, cols - 1)) * 100}% 0;`;
+                        bgStyle = `background-image:url('${document.getElementById('sprite-items').src}');background-size:${cols * 100}% 100%;background-position:${(item.spriteIndex / Math.max(1, cols - 1)) * 100}% 0;`;
                     }
                     
-                    div.innerHTML = `<div class="flex items-center gap-1.5"><div style="width:24px;height:24px;background-image:url('${document.getElementById('sprite-items').src}');${bgStyle}image-rendering:pixelated"></div><div class="flex flex-col"><span class="text-white font-bold text-xs">${item.name} <span class="text-gray-400 text-[10px]">x${counts[id]}</span></span><span class="text-gray-300 text-[10px]">${item.desc}</span></div></div>${actionBtn}`; list.appendChild(div);
+                    div.innerHTML = `<div class="flex items-center gap-1.5"><div style="width:24px;height:24px;${bgStyle}image-rendering:pixelated"></div><div class="flex flex-col"><span class="text-white font-bold text-xs">${item.name} <span class="text-gray-400 text-[10px]">x${counts[id]}</span></span><span class="text-gray-300 text-[10px]">${item.desc}</span></div></div>${actionBtn}`; list.appendChild(div);
                 });
             },
 
@@ -995,14 +1023,14 @@
                 const cam = document.getElementById('mainCamera'); const enemyEl = document.createElement('a-plane'); enemyEl.setAttribute('id', 'activeEnemySprite');
                 enemyEl.setAttribute('position', `0 -1.0 -1.2`); enemyEl.setAttribute('width', `1.6`); enemyEl.setAttribute('height', `1.6`);
                 
-                const isExt = GAME_CONFIG.externalAssets.useExternal;
-                const eCols = isExt ? Math.max(1, GAME_CONFIG.externalAssets.enemies.cols) : Object.keys(GAME_CONFIG.enemies).length;
-                const eRows = isExt ? Math.max(1, GAME_CONFIG.externalAssets.enemies.rows) : 1;
-                const repeatU = 1 / eCols; const repeatV = 1 / eRows;
-                const offsetU = (enemyTemplate.spriteIndex % eCols) * repeatU;
-                const offsetV = isExt ? 1.0 - (Math.floor(enemyTemplate.spriteIndex / eCols) + 1) * repeatV : 0;
-                
-                enemyEl.setAttribute('material', `src: #sprite-enemies; transparent: true; alphaTest: 0.1; shader: flat; repeat: ${repeatU} ${repeatV}; offset: ${offsetU} ${offsetV};`);
+                if (enemyTemplate.spriteSrc) {
+                    enemyEl.setAttribute('material', `src: #sprite-enemy-${enemyKey}; transparent: true; alphaTest: 0.1; shader: flat;`);
+                } else {
+                    const repeatU = 1 / Object.keys(GAME_CONFIG.enemies).length;
+                    const offsetU = enemyTemplate.spriteIndex * repeatU;
+                    enemyEl.setAttribute('material', `src: #sprite-enemies; transparent: true; alphaTest: 0.1; shader: flat; repeat: ${repeatU} 1; offset: ${offsetU} 0;`);
+                }
+
                 enemyEl.setAttribute('animation__spawn', `property: position; to: 0 0.1 -1.2; dur: 400; easing: easeOutBack`); enemyEl.setAttribute('animation__float', `property: position; dir: alternate; dur: 1000; easing: easeInOutSine; loop: true; to: 0 0.15 -1.2; delay: 400`);
                 const aura = document.createElement('a-entity'); aura.setAttribute('light', `type: point; color: ${enemy.color}; intensity: 1.5; distance: 10; castShadow: false;`); aura.setAttribute('position', '0 0 0.5'); enemyEl.appendChild(aura); cam.appendChild(enemyEl); State.activeEnemySprite = enemyEl;
                 this.initiateCombat(enemy);
@@ -1051,7 +1079,7 @@
                 if (victory) {
                     if (State.activeEnemySprite) { State.activeEnemySprite.setAttribute('animation__death', 'property: scale; to: 0 0 0; dur: 350; easing: easeInBack'); setTimeout(() => { if(State.activeEnemySprite && State.activeEnemySprite.parentNode) State.activeEnemySprite.parentNode.removeChild(State.activeEnemySprite); State.activeEnemySprite = null; }, 400); }
                     const p = State.player; let xpGain = State.floor * 15 + Math.floor(Math.random() * 10); p.xp += xpGain; let leveled = this.levelUpPlayer(); let lootMsg = "";
-                    if (Math.random() < 0.4) { let table = State.floor < 3 ? ["ts_sword", "docker_armor"] : ["threejs_staff", "aws_shield"]; let dropId = table[Math.floor(Math.random() * table.length)]; p.inventory.push(dropId); lootMsg = `\nFound: ${GAME_CONFIG.items[dropId].name}`; this.log(`Gained Stack: ${GAME_CONFIG.items[dropId].name}!`, 'msg-loot'); } else if (Math.random() < 0.3) { p.inventory.push("coffee"); lootMsg = `\nFound: Espresso Shot`; }
+                    if (Math.random() < 0.4) { let table = State.floor < 3 ? ["race_condition", "docker_armor"] : ["security_breach", "aws_shield"]; let dropId = table[Math.floor(Math.random() * table.length)]; p.inventory.push(dropId); lootMsg = `\nFound: ${GAME_CONFIG.items[dropId].name}`; this.log(`Gained Stack: ${GAME_CONFIG.items[dropId].name}!`, 'msg-loot'); } else if (Math.random() < 0.3) { p.inventory.push("coffee"); lootMsg = `\nFound: Espresso Shot`; }
                     this.log(`Resolved ${State.activeEnemy.name}! Earned ${xpGain} XP.`, 'msg-loot'); State.mode = "VICTORY"; document.getElementById('combatActions').classList.add('hidden'); document.getElementById('combatVictory').classList.remove('hidden'); document.getElementById('victoryText').innerText = `Ticket Closed!\nEarned ${xpGain} XP.${leveled ? '\nPROMOTED!' : ''}${lootMsg}`; this.updateUI();
                 } else {
                     if(State.activeEnemySprite && State.activeEnemySprite.parentNode) State.activeEnemySprite.parentNode.removeChild(State.activeEnemySprite); State.activeEnemySprite = null;
@@ -1080,7 +1108,27 @@
             }
         };
 
-        window.addEventListener('DOMContentLoaded', () => { Game.init(); });
+        window.addEventListener('DOMContentLoaded', () => { 
+            const sc = GAME_CONFIG.sprites;
+            if (sc.masterSheet && sc.masterSheet.useCustom && sc.masterSheet.url) {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    AssetGen.sliceMasterSheet(img);
+                    Game.init();
+                };
+                img.onerror = () => {
+                    console.warn("Failed to load master sheet. Falling back to procedural generation.");
+                    sc.masterSheet.useCustom = false;
+                    AssetGen.generateProceduralAssets();
+                    Game.init();
+                };
+                img.src = sc.masterSheet.url;
+            } else {
+                AssetGen.generateProceduralAssets();
+                Game.init();
+            }
+        });
     </script>
 </body>
 </html>
