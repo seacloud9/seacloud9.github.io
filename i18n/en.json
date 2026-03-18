@@ -10,6 +10,7 @@
   },
   "nav": {
     "logo": "BRENDON SMITH",
+    "logoAlt": "BRENDON SMITH",
     "about": "About",
     "experience": "Experience",
     "work": "Projects",
@@ -35,24 +36,30 @@
     "title": "Engineering the <span class=\"it\">future</span> of digital",
     "titleAlt": "Engineering the <span class=\"it\">future</span> of digital interaction",
     "bio1": "I'm a <strong>creative engineer</strong> in the SF Bay Area with 10+ years across <strong>AI, media, gaming, biomedical, and immersive tech</strong>. I specialize in React, Three.js, WebXR, Babylon.js, and <strong>AI-driven development with LangChain, OpenAI, and Anthropic APIs</strong>.",
+    "bio1Extended": "I'm a <strong>creative engineer</strong> in the SF Bay Area with 15+ years across <strong>AI, media, gaming, biomedical, holographic retail, and immersive tech</strong>. I specialize in React, Three.js, WebXR, Babylon.js, Unity, and <strong>AI-driven development with LangChain, OpenAI, Anthropic, and custom AI agents</strong>.",
     "bio1Alt": "I'm a <strong>creative engineer</strong> in the SF Bay Area with 10+ years across <strong>AI, media, gaming, biomedical, and immersive tech</strong>. I specialize in React, Three.js, WebXR, and <strong>AI development with LangChain, OpenAI, and Anthropic</strong>.",
     "bio2": "From building <strong>m{ai}geXR</strong>, an AI platform generating 3D/XR from natural language, to the first <strong>FDA-approved digital therapeutic</strong> — I thrive where AI, creativity, and code converge.",
+    "bio2Extended": "From building <strong>m{ai}geXR</strong>, an AI platform generating immersive 3D/XR experiences from natural language, to pioneering the first <strong>FDA-approved digital therapeutic for ADHD</strong>, to creating <strong>holographic retail experiences for Microsoft</strong> — I thrive at the convergence of AI, immersive technology, creativity, and code.",
     "stats": {
       "years": {
         "value": "15+",
-        "label": "Years"
+        "label": "Years",
+        "labelExtended": "Years of<br>Innovation"
       },
       "repos": {
         "value": "300",
-        "label": "Repos"
+        "label": "Repos",
+        "labelExtended": "Open Source<br>Projects"
       },
       "users": {
         "value": "70M+",
-        "label": "Users"
+        "label": "Users",
+        "labelExtended": "Lives<br>Impacted"
       },
       "ai": {
         "value": "AI",
-        "label": "LangChain<br>OpenAI"
+        "label": "LangChain<br>OpenAI",
+        "labelExtended": "AI Powered<br>Development"
       }
     }
   },
@@ -65,7 +72,8 @@
         "role": "Senior | Principal Software Engineer",
         "company": "Independent App Development - Freelance — Private Clients, Microsoft, Rock Paper Reality",
         "description": "Holographic retail for Microsoft, AR campaigns with 8th Wall, React-Native and Shopify apps. Created Vibe coding 3D scene generator -> m{ai}geXR that has native mobile support on iOS and Android.",
-        "tags": ["React Native", "Three.js", "8th Wall", "Unity", "WebAR", "Shopify", "Stripe"]
+        "tags": ["React Native", "Three.js", "8th Wall", "Unity", "WebAR", "Shopify", "Stripe"],
+        "tagsExtended": ["React Native", "Three.js", "8th Wall", "Unity", "WebAR", "AI Agents"]
       },
       {
         "date": "2024 — 2026",
@@ -73,36 +81,56 @@
         "company": "UC Davis — RSS",
         "description": "Building microservices and applications with React, GraphQL, and MongoDB. Worked on enterprise software specifically the no-code Library Management.",
         "descriptionAlt": "Building AI-powered microservices and applications with React, GraphQL, and MongoDB. Worked on enterprise software specifically the no-code Library Management.",
-        "tags": ["React", "LangChain", "AI Agents"]
+        "tags": ["React", "LangChain", "AI Agents"],
+        "tagsExtended": ["React", "GraphQL", "MongoDB", "AI Agents"]
       },
       {
         "date": "2021 — 2022",
         "role": "Sr. Engineer / FE Lead",
+        "roleExtended": "Senior Engineer & Front-End Technical Lead",
         "company": "King (Candy Crush)",
         "description": "Led loyalty platform front-end, data-driven UI optimization.",
+        "descriptionExtended": "Led front-end architecture and development for the loyalty platform, driving data-driven UI optimization through A/B testing and analytics to boost in-game booster sales at scale.",
         "descriptionAlt": "Loyalty platform, data-driven optimization.",
-        "tags": ["React", "TypeScript", "D3"]
+        "tags": ["React", "TypeScript", "D3"],
+        "tagsExtended": ["React", "TypeScript", "D3.js", "A/B Testing"]
       },
       {
         "date": "2016 — 2019",
         "role": "Sr. Software Engineer",
         "company": "Akili Interactive",
         "description": "Helped Pioneer ADHD INsights FDA-approved digital therapeutic.",
+        "descriptionExtended": "Pioneered development of EndeavorRx (formerly EVO/ADHD Insights), the first FDA-approved prescription digital therapeutic for ADHD, including HIPAA-compliant patient dashboards and cross-platform native mobile applications.",
         "descriptionAlt": "EndeavorRx — first FDA digital therapeutic.",
-        "tags": ["React Native", "HIPAA", "FDA"]
+        "tags": ["React Native", "HIPAA", "FDA"],
+        "tagsExtended": ["React Native", "HIPAA", "FDA", "Digital Therapeutics"]
       },
       {
         "date": "2012 — 2016",
         "role": "Sr. Software Engineer",
         "company": "CBS Interactive",
         "description": "CBS All Access streaming, Big Brother Live Feeds for millions.",
+        "descriptionExtended": "Built CBS All Access (now Paramount+), one of the first major streaming platforms, including live Big Brother feeds serving millions of concurrent users with real-time WebGL visualizations.",
         "descriptionAlt": "CBS All Access streaming for millions.",
-        "tags": ["React", "WebGL", "Streaming"]
+        "tags": ["React", "WebGL", "Streaming"],
+        "tagsExtended": ["React", "WebGL", "Streaming", "Real-time"]
+      },
+      {
+        "date": "2010 — 2012",
+        "role": "Software Engineer",
+        "company": "Various Startups & Agencies",
+        "description": "Full-stack development for startups and digital agencies, building web applications and interactive experiences.",
+        "descriptionExtended": "Full-stack development for early-stage startups and digital agencies, building responsive web applications, interactive experiences, and rapid prototypes using emerging web technologies.",
+        "tags": ["JavaScript", "HTML5", "CSS3"],
+        "tagsExtended": ["JavaScript", "HTML5", "CSS3", "jQuery"]
       }
     ]
   },
   "skills": {
-    "marquee": ["React", "Babylon.js", "Three.js", "LangChain", "TypeScript", "WebXR", "Node.js", "GraphQL", "GLSL"]
+    "label": "Skills",
+    "title": "Technical <span class=\"it\">Expertise</span>",
+    "marquee": ["React", "Babylon.js", "Three.js", "LangChain", "TypeScript", "WebXR", "Node.js", "GraphQL", "GLSL"],
+    "marqueeExtended": ["React", "Babylon.js", "Three.js", "LangChain", "TypeScript", "WebXR", "Unity", "8th Wall", "Node.js", "GraphQL", "GLSL", "AI Agents"]
   },
   "projects": {
     "label": "Selected Work",
@@ -113,39 +141,50 @@
         "name": "ADHD Insights and EndeavorRx",
         "org": "Akili Interactive",
         "description": "FDA-approved digital therapeutic for ADHD. HIPAA-compliant dashboards and native apps.",
+        "descriptionExtended": "Pioneered EndeavorRx, the first FDA-approved prescription digital therapeutic for ADHD treatment. Built HIPAA-compliant patient dashboards, physician portals, and cross-platform native mobile applications serving thousands of patients.",
         "descriptionAlt": "FDA-approved digital therapeutic for ADHD.",
-        "tags": ["FDA", "React Native", "HIPAA"]
+        "tags": ["FDA", "React Native", "HIPAA"],
+        "tagsExtended": ["FDA-Approved", "React Native", "HIPAA", "Digital Therapeutics"]
       },
       {
         "number": "02",
         "name": "Candy Crush Loyalty",
         "org": "King",
         "description": "Loyalty platform front-end — data-driven booster sales through A/B testing.",
+        "descriptionExtended": "Led front-end architecture for King's loyalty platform, implementing data-driven UI optimization through sophisticated A/B testing frameworks that significantly increased in-game booster sales and player engagement at massive scale.",
         "descriptionAlt": "Loyalty platform — A/B testing at scale.",
-        "tags": ["React", "TypeScript", "Analytics"]
+        "tags": ["React", "TypeScript", "Analytics"],
+        "tagsExtended": ["React", "TypeScript", "Analytics", "A/B Testing"]
       },
       {
         "number": "03",
         "name": "Holographic Retail",
         "org": "Microsoft",
+        "orgExtended": "Microsoft & Rock Paper Reality",
         "description": "Holographic retail and immersive AR advertising with 8th Wall and Unity.",
+        "descriptionExtended": "Created cutting-edge holographic retail experiences for Microsoft and immersive AR advertising campaigns using 8th Wall WebAR, Unity, and Three.js, blending physical and digital retail environments for Fortune 500 brands.",
         "descriptionAlt": "Holographic retail and AR with 8th Wall + Unity.",
-        "tags": ["WebAR", "Three.js", "Unity"]
+        "tags": ["WebAR", "Three.js", "Unity"],
+        "tagsExtended": ["WebAR", "Three.js", "Unity", "8th Wall"]
       },
       {
         "number": "04",
         "name": "CBS All Access",
         "org": "CBS Interactive",
         "description": "One of the first major streaming platforms — Paramount+ foundations.",
+        "descriptionExtended": "Built CBS All Access (now Paramount+), one of the first major subscription streaming platforms, including live Big Brother feeds with real-time WebGL visualizations serving millions of concurrent viewers.",
         "descriptionAlt": "First major streaming platform — Paramount+.",
-        "tags": ["Streaming", "React", "WebGL"]
+        "tags": ["Streaming", "React", "WebGL"],
+        "tagsExtended": ["Streaming", "React", "WebGL", "Real-time"]
       }
     ]
   },
   "opensource": {
     "label": "Open Source",
     "title": "AI & XR <span class=\"it\">Open Source</span>",
+    "titleExtended": "AI & Immersive <span class=\"it\">Open Source</span>",
     "titleAlt": "AI & XR <span class=\"it\">open source</span>",
+    "intro": "Open source projects exploring the intersection of AI and immersive technologies.",
     "items": [
       {
         "badge": "AI + XR",
@@ -154,9 +193,13 @@
         "tagline": "From conversation to creation",
         "taglineAlt": "Conversation to creation",
         "description": "AI platform: natural language → 3D/XR. 5+ AI providers, 5+ frameworks, 3 platforms.",
+        "descriptionExtended": "Revolutionary AI platform that transforms natural language into immersive 3D and XR experiences. Integrates 5+ AI providers (OpenAI, Anthropic, Gemini, Mistral, Groq), supports 5+ frameworks (Three.js, Babylon.js, A-Frame, React-Three-Fiber, PlayCanvas), and deploys to web, iOS, and Android with native mobile support.",
         "descriptionAlt": "Natural language → 3D/XR. 5+ AI providers, 3 platforms.",
         "stats": ["3 Platforms", "5+ AI"],
+        "statsExtended": ["3 Platforms", "5+ AI Providers", "5+ Frameworks"],
+        "tagsExtended": ["LangChain", "OpenAI", "Three.js", "React Native", "Babylon.js", "A-Frame", "AI Agents"],
         "link": "View Project →",
+        "linkExtended": "Explore m{ai}geXR →",
         "linkAlt": "View →",
         "url": "https://maigexr.vercel.app/"
       },
@@ -166,10 +209,15 @@
         "icon": "🎮",
         "name": "NOVA64",
         "tagline": "Fantasy console",
+        "taglineExtended": "N64-era fantasy console for the browser",
         "description": "N64/PS1-era 3D games in browser. GPU engine, voxels, physics, 20+ demos.",
+        "descriptionExtended": "Fantasy console bringing N64/PS1-era 3D gaming to the browser with a custom GPU-accelerated rendering engine, voxel support, physics simulation, and 20+ playable demos ranging from racing to RPGs to puzzle games.",
         "descriptionAlt": "N64-era 3D games in browser. 20+ demos.",
         "stats": ["20+ Demos", "3D Engine"],
+        "statsExtended": ["20+ Games", "Custom GPU Engine", "Voxel Support"],
+        "tagsExtended": ["WebGL", "Game Engine", "Voxels", "Physics", "Retro"],
         "link": "View Project →",
+        "linkExtended": "Play NOVA64 →",
         "linkAlt": "View →",
         "url": "https://starcade9.github.io/"
       },
@@ -179,36 +227,47 @@
         "icon": "⚛️",
         "name": "react-babylonjs",
         "tagline": "React for Babylon.js",
+        "taglineExtended": "Declarative React renderer for Babylon.js 3D",
         "description": "Declarative React renderer for Babylon.js 3D engine.",
+        "descriptionExtended": "Declarative React renderer for Babylon.js 3D engine, enabling developers to build immersive 3D experiences using familiar React patterns and components with full TypeScript support and hooks integration.",
         "descriptionAlt": "Declarative renderer for Babylon.js.",
         "stats": ["React", "Babylon.js"],
+        "statsExtended": ["React", "Babylon.js", "TypeScript"],
+        "tagsExtended": ["React", "Babylon.js", "TypeScript", "3D", "WebGL"],
         "link": "GitHub →",
+        "linkExtended": "View on GitHub →",
         "url": "https://github.com/seacloud9/react-babylonjs"
       }
     ]
   },
   "contact": {
     "label": "Contact",
+    "labelExtended": "Let's Connect",
     "title": "Let's build<br>something <span class=\"it gl\">incredible</span>",
     "links": [
       {
         "label": "Email →",
+        "labelExtended": "Send an Email →",
         "url": "mailto:Brendonsmith@seacloud9.org"
       },
       {
         "label": "GitHub →",
+        "labelExtended": "View GitHub Profile →",
         "url": "https://github.com/seacloud9"
       },
       {
         "label": "LinkedIn →",
+        "labelExtended": "Connect on LinkedIn →",
         "url": "https://www.linkedin.com/in/brendonsmith/"
       },
       {
         "label": "X →",
+        "labelExtended": "Follow on X →",
         "url": "https://x.com/seacloud9"
       },
       {
         "label": "Studio →",
+        "labelExtended": "Visit Creative Studio →",
         "url": "https://seacloud9.studio"
       }
     ]
@@ -219,9 +278,10 @@
       "vaporwave": "Vaporwave Edition — Flying Through Digital Dreams",
       "vaporwaveCircuit": "Vaporwave Circuit — Infinite Horizon",
       "ocean": "Ocean Edition — Deep Sea Bioluminescence",
-      "storm": "Storm Edition",
+      "storm": "Storm Edition — Cinematic WebGL Storm",
       "terrain": "Terrain Edition — Procedural WebGL Landscape",
-      "neural": "Neural Edition"
+      "neural": "Neural Edition — AI-Powered Neural Networks",
+      "holographic": "Holographic Theme — Immersive Holographic Experience"
     }
   }
 }
