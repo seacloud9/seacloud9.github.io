@@ -244,6 +244,7 @@
     "label": "Contact",
     "labelExtended": "Let's Connect",
     "title": "Let's build<br>something <span class=\"it gl\">incredible</span>",
+    "titleAlt": "Let's build something <span class=\"it gl\">incredible</span>",
     "links": [
       {
         "label": "Email →",
