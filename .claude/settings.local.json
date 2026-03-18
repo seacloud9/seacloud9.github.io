@@ -28,7 +28,14 @@
       "Bash(pnpm run dev)",
       "Bash(cat:*)",
       "Bash(lsof:*)",
-      "Bash(git clone:*)"
+      "Bash(git clone:*)",
+      "Bash(test:*)",
+      "Bash(for dir in vaporwave-circuit ocean-depths storm-edition terrain-edition neural-network holographic-theme)",
+      "Bash(perl -i -pe:*)",
+      "Bash(node -e:*)",
+      "Bash(ls:*)",
+      "Bash(chmod:*)",
+      "Bash(curl:*)"
     ]
   }
 }

@@ -1,0 +1,2486 @@
+<!doctype html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://cdn.babylonjs.com/recast.js"></script>
+        <script src="https://cdn.babylonjs.com/ammo.js"></script>
+        <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+        <script src="https://cdn.babylonjs.com/cannon.js"></script>
+        <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+        <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+        <script src="https://cdn.babylonjs.com/babylon.js"></script>
+        <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+        <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html,
+            body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+
+            #canvasZone {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="canvasZone"><canvas id="renderCanvas"></canvas></div>
+        <script>
+                    var canvas = document.getElementById("renderCanvas");
+
+                    var startRenderLoop = function (engine, canvas) {
+                        engine.runRenderLoop(function () {
+                            if (sceneToRender && sceneToRender.activeCamera) {
+                                sceneToRender.render();
+                            }
+                        });
+                    }
+
+                    var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        // Cyberpunk FPS Game for Babylon.js Playground
+var createScene = function () {
+    // ------------------------------------------------------
+    // GAME CONFIGURATION
+    // ------------------------------------------------------
+    const CONFIG = {
+        // Game Settings
+        title: "CYBER VOID '85",
+        version: "1.0",
+        gameMode: "modern", // "modern" or "retro"
+
+        // Player Settings
+        player: {
+            startLives: 3,
+            maxHealth: 100,
+            movementSpeed: 0.2,
+            jumpHeight: 0.1,
+            gridMoveSpeed: 250, // ms per grid move in retro mode
+        },
+
+        // VR Settings
+        vr: {
+            enabled: true,
+            teleportation: true,
+            controllerModelEnabled: true
+        },
+
+        // Mobile Settings
+        mobile: {
+            enabled: true, // Auto-detects mobile, but can be forced
+            touchJoystickSize: "120px",
+            buttonSize: "60px"
+        },
+
+        // Visual Settings
+        visuals: {
+            neonIntensity: 0.8,
+            fogIntensity: 0.5,
+            glowIntensity: 0.7,
+            crtFilterEnabled: true,
+            pixelationLevel: 1 // Higher = more pixelated
+        },
+
+        // Enemy Settings
+        enemies: {
+            speed: 0.02,
+            damage: 10,
+            spawnRate: 0.25 // % chance of spawning in valid tiles
+        },
+
+        // Audio Settings
+        audio: {
+            musicVolume: 0.3,
+            sfxVolume: 0.5,
+            synthWaveEnabled: true
+        },
+
+        // Map Settings
+        map: {
+            width: 10,
+            height: 10,
+            tileSize: 4,
+            wallDensity: 0.2,
+            minimapSize: 150, // Size of minimap in pixels
+            minimapPosition: "topRight" // topRight, topLeft, bottomRight, bottomLeft
+        },
+
+        // Default Colors (for texture fallbacks)
+        defaultColors: {
+            floor: new BABYLON.Color3(0.1, 0.02, 0.2),      // Dark purple
+            wall: new BABYLON.Color3(0.3, 0.0, 0.6),        // Purple
+            enemy: new BABYLON.Color3(1.0, 0.0, 0.3),       // Pink
+            gun: new BABYLON.Color3(0.0, 0.7, 1.0),         // Cyan
+            decoration: new BABYLON.Color3(0.0, 1.0, 0.5),   // Teal
+            noise: new BABYLON.Color3(0.2, 0.0, 0.4),       // Dark purple
+            logo: new BABYLON.Color3(0.8, 0.0, 1.0),        // Bright purple
+            healthBar: new BABYLON.Color3(1.0, 0.0, 0.0),    // Red
+            gridTile: new BABYLON.Color3(0.05, 0.0, 0.1),    // Very dark purple
+            skybox: new BABYLON.Color3(0.15, 0.0, 0.3),      // Deep purple
+            playerMarker: new BABYLON.Color3(1.0, 1.0, 0.0), // Yellow
+            enemyMarker: new BABYLON.Color3(1.0, 0.0, 0.0)   // Red
+        }
+    };
+
+    // ------------------------------------------------------
+    // BASE64 TEXTURES - With simple data for fallbacks
+    // ------------------------------------------------------
+    const TEXTURES = {
+        // Floor texture
+        floorTexture: "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAALElEQVR4nGPsdhX+L8orxfD68zMGcmgmSjS//vyMgYkSzaMuGHXBqAuo6AIAnLB/Teva5CUAAAAASUVORK5CYII=",
+
+        // Wall texture
+        wallTexture: "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAALElEQVR4nGPMzMz8Ly4uzvDy5UsGcmgmSjS/fPmSgYkSzaMuGHXBqAuo6AIAJal/ruRwcdoAAAAASUVORK5CYII=",
+
+        // Enemy sprite
+        enemyTexture: "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAZ0lEQVR4nGNgGPKAEZvgJiWl/zfv3WNQV1JiYGBgYEBm+927h6KHiRTNN+/dY9ikpPQfpwGENMPY3QwM/7EaQIxmZDaGAaRqxhoGxLpiGHkBIyHB4hmf5lIkfVhTYjcDw39iNA8OAABwhHgSyKteZgAAAABJRU5ErkJggg==",
+
+        // Gun sprite
+        gunTexture: "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAIklEQVR4nGNgGAWMuCQaGhr+o/GxqmWi1AWjBgwLA4YBAADUKQQSKFLo8wAAAABJRU5ErkJggg==",
+
+        // Decoration sprite
+        decorationTexture: "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAIklEQVR4nGNgGP7g/3WG/5QZ8P8/XgOYKDJ91IBRAwYNAAC3XAbkhMKwIwAAAABJRU5ErkJggg==",
+
+        // Noise texture
+        noiseTexture: "iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAOUlEQVR4nGNgYGBwkYGBgTEd6KDR4GUAAPa/MIb3bTn5yYIM0blCYCBXHcEGiNWQdNGCkiT4IC+MDGOOL4kEH0JADzNAw9nBdR8AAAAABJRU5ErkJggg==",
+
+        // Logo texture
+        logoTexture: "iVBORw0KGgoAAAANSUhEUgAAAIAAAAAgCAYAAADaInAlAAAAYElEQVR4nO3WMQ0AIRAEwQNqcEABfvCCAzSAA/4lRwBNlZoXzGwRaS/+7hG7FqfrtdxhPuO+n+bRWpI0SZLUV+f66szMzMzMzMz6Wl9fnZmZmZmZmZn1tb6+OjMzMzMzM7M6DyKgAN3R38TXAAAAAElFTkSuQmCC",
+
+        // Health bar texture
+        healthBarTexture: "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAFUlEQVR4nGNkYGD4z0AEYBxVMKoAABLQAQH6de66AAAAAElFTkSuQmCC",
+
+        // Grid tile texture
+        gridTileTexture: "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAJklEQVR4nGNgGAWjgBjwr8H6P7H0f2IMIFYDWQ0YBaNgpAMA+6gJYShvR/AAAAAASUVORK5CYII=",
+
+        // Create a tiny fallback pixel (white pixel base64)
+        fallbackPixel: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="
+    };
+
+    // ------------------------------------------------------
+    // Audio files as Base64 (these would be actual audio files in a real game)
+    // ------------------------------------------------------
+    const AUDIO = {
+        // Fake audio placeholders (just the data header part)
+        synthwaveMusic: "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA",
+        shootSound: "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA",
+        hurtSound: "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA"
+    };
+
+    // ------------------------------------------------------
+    // Create Scene with Cyberpunk Environment
+    // ------------------------------------------------------
+    var scene = new BABYLON.Scene(engine);
+
+    // Create initial camera immediately (required for the scene to render)
+    var camera = new BABYLON.FreeCamera("playerCamera", new BABYLON.Vector3(0, 3, -10), scene);
+    camera.attachControl(canvas, true);
+
+    // Game state variables
+    let gameState = {
+        // Game lifecycle: "start", "playing", "gameover"
+        current: "start",
+
+        // Player stats
+        player: {
+            health: CONFIG.player.maxHealth,
+            lives: CONFIG.player.startLives,
+            score: 0,
+            position: new BABYLON.Vector3(0, 3, -10)
+        },
+
+        // Game objects
+        entities: {
+            vrHelper: null,
+            enemies: [],
+            bullets: [],
+            decorations: [],
+            walls: []
+        },
+
+        // Device and input state
+        device: {
+            isInVR: false,
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+            mobileControls: {}
+        },
+
+        // Game data and resources
+        resources: {
+            mapData: [],
+            mapDynamicTexture: null,
+            lastMapUpdateTime: 0,
+            mapUpdateInterval: 100,
+            lastMapDataURL: null,
+            minimapImage: null,
+            sounds: {},
+            materials: {},
+            uiContainers: {}
+        },
+
+        // Movement timing for grid-based movement
+        movement: {
+            nextGridMove: 0
+        }
+    };
+
+    // ------------------------------------------------------
+    // TEXTURE HELPERS - Fault-tolerant texture functions
+    // ------------------------------------------------------
+
+    /**
+     * Creates a texture with fallback color if loading fails
+     * @param {string} base64Str - Base64 encoded texture data
+     * @param {BABYLON.Color3} fallbackColor - Color to use if texture fails to load
+     * @returns {BABYLON.Texture} The created texture
+     */
+    const createFaultTolerantTexture = function (base64Str, fallbackColor) {
+        try {
+            const texture = new BABYLON.Texture(
+                "data:image/png;base64," + base64Str,
+                scene,
+                false,
+                true,
+                BABYLON.Texture.BILINEAR_SAMPLINGMODE
+            );
+
+            // Add fallback color reference to texture
+            texture.fallbackColor = fallbackColor;
+
+            // Add error handling
+            texture.onLoadObservable.add(() => {
+                console.log("Texture loaded successfully");
+            });
+            /*
+            texture.onErrorObservable.add(() => {
+                console.warn("Texture failed to load, using fallback color");
+                // The material using this texture should check for errors and use fallback
+            });
+            */
+
+            return texture;
+        } catch (error) {
+            console.warn("Error creating texture, returning null", error);
+            return null;
+        }
+    };
+
+    /**
+     * Creates a material with texture and fallback color
+     * @param {string} name - Material name
+     * @param {string} base64Str - Base64 encoded texture data
+     * @param {BABYLON.Color3} fallbackColor - Color to use if texture fails to load
+     * @returns {BABYLON.StandardMaterial} The created material
+     */
+    const createTexturedMaterial = function (name, base64Str, fallbackColor) {
+        const material = new BABYLON.StandardMaterial(name + "_material", scene);
+
+        // Always set the fallback color
+        material.diffuseColor = fallbackColor;
+        material.emissiveColor = fallbackColor.scale(0.3);
+
+        // Try to use texture if provided
+        if (base64Str) {
+            try {
+                const texture = createFaultTolerantTexture(base64Str, fallbackColor);
+
+                if (texture) {
+                    material.diffuseTexture = texture;
+                    // Reset diffuse color to show texture properly
+                    material.diffuseColor = new BABYLON.Color3(1, 1, 1);
+
+                    // If texture fails to load, revert to fallback color
+                    /*
+                    texture.onErrorObservable.add(() => {
+                        material.diffuseTexture = null;
+                        material.diffuseColor = fallbackColor;
+                        material.emissiveColor = fallbackColor.scale(0.3);
+                    });
+                    */
+                }
+            } catch (error) {
+                console.warn(`Failed to create textured material for ${name}, using fallback color`, error);
+                // Fallback color is already set
+            }
+        }
+
+        return material;
+    };
+
+    /**
+     * Creates a transparent material with texture and fallback color
+     * @param {string} name - Material name
+     * @param {string} base64Str - Base64 encoded texture data
+     * @param {BABYLON.Color3} fallbackColor - Color to use if texture fails to load
+     * @returns {BABYLON.StandardMaterial} The created transparent material
+     */
+    const createTransparentTexturedMaterial = function (name, base64Str, fallbackColor) {
+        const material = createTexturedMaterial(name, base64Str, fallbackColor);
+
+        // Add transparency settings
+        material.backFaceCulling = false;
+
+        if (material.diffuseTexture) {
+            material.diffuseTexture.hasAlpha = true;
+        }
+
+        return material;
+    };
+
+    // ------------------------------------------------------
+    // CYBERPUNK ENVIRONMENT SETUP
+    // ------------------------------------------------------
+    /**
+     * Sets up the cyberpunk visual environment
+     */
+    const setupCyberpunkEnvironment = function () {
+        // Fog effect for cyberpunk feel
+        scene.fogMode = BABYLON.Scene.FOGMODE_EXP;
+        scene.fogColor = new BABYLON.Color3(0.15, 0, 0.3);
+        scene.fogDensity = CONFIG.visuals.fogIntensity * 0.01;
+
+        // Background color
+        scene.clearColor = new BABYLON.Color3(0.05, 0, 0.1);
+
+        // Post-processing for cyberpunk effect
+        if (CONFIG.visuals.crtFilterEnabled) {
+            var pipeline = new BABYLON.DefaultRenderingPipeline("pipeline", true, scene);
+
+            // Chromatic aberration
+            pipeline.chromaticAberration.aberrationAmount = 1;
+            pipeline.chromaticAberration.enabled = true;
+
+            // Grain effect
+            pipeline.grain.intensity = 20;
+            pipeline.grain.enabled = true;
+
+            // Glow effect for neon
+            pipeline.bloomEnabled = true;
+            pipeline.bloomThreshold = 0.1;
+            pipeline.bloomWeight = CONFIG.visuals.glowIntensity;
+            pipeline.bloomKernel = 64;
+            pipeline.bloomScale = 0.5;
+        }
+
+        // Global light
+        var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+        light.intensity = 0.7;
+        light.diffuse = new BABYLON.Color3(0.8, 0.2, 0.8);
+        light.specular = new BABYLON.Color3(0.5, 0.2, 1);
+
+        // Lava Sky using LavaMaterial
+        var skybox = BABYLON.MeshBuilder.CreateBox("skyBox", {
+            size: 2000.0,
+            sideOrientation: BABYLON.Mesh.BACKSIDE
+        }, scene);
+        skybox.infiniteDistance = true;
+        skybox.checkCollisions = false;
+
+        // LavaMaterial with cyberpunk colors
+        var lavaSkyMat = new BABYLON.LavaMaterial("lavaSkyMat", scene);
+        lavaSkyMat.backFaceCulling = false;
+
+        // Try to load noise texture with fallback
+        try {
+            lavaSkyMat.noiseTexture = createFaultTolerantTexture(TEXTURES.noiseTexture, CONFIG.defaultColors.noise);
+
+            if (!lavaSkyMat.noiseTexture) {
+                // Create a procedural noise texture as fallback
+                console.log("Creating procedural noise texture as fallback");
+                lavaSkyMat.noiseTexture = new BABYLON.NoiseProceduralTexture("noiseTexture", 256, scene);
+                lavaSkyMat.noiseTexture.octaves = 4;
+                lavaSkyMat.noiseTexture.persistence = 1.2;
+            }
+
+            lavaSkyMat.noiseTexture.uScale = 4;
+            lavaSkyMat.noiseTexture.vScale = 4;
+        } catch (error) {
+            console.warn("Failed to create noise texture for lava material", error);
+            // Set more aggressive diffuse/emissive colors to compensate for lack of texture
+            lavaSkyMat.diffuseColor = CONFIG.defaultColors.skybox;
+            lavaSkyMat.emissiveColor = CONFIG.defaultColors.skybox.scale(1.5);
+        }
+
+        // Cyberpunk purple/pink color scheme
+        lavaSkyMat.diffuseColor = new BABYLON.Color3(0.5, 0, 1);
+        lavaSkyMat.emissiveColor = new BABYLON.Color3(0.2, 0, 0.4);
+        lavaSkyMat.fogColor = new BABYLON.Color3(0.7, 0, 0.8);
+        lavaSkyMat.speed = 1.5;
+        lavaSkyMat.movingSpeed = 0.4;
+        lavaSkyMat.alpha = 1.0;
+
+        skybox.material = lavaSkyMat;
+    };
+
+    // ------------------------------------------------------
+    // GAME UI SYSTEM
+    // ------------------------------------------------------
+    /**
+     * Creates all game UI components
+     */
+    const createGameUI = function () {
+        // Create UI containers for each game state
+        createStartScreen();
+        createGameScreen();
+        createGameOverScreen();
+
+        // Show the initial game state
+        showGameState(gameState.current);
+    };
+
+    /**
+     * Creates the start screen UI
+     */
+    const createStartScreen = function () {
+        var startUI = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("startUI", true, scene);
+        startUI.idealWidth = 1920;
+
+        // Container for start screen
+        var startContainer = new BABYLON.GUI.StackPanel();
+        startContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        startContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        startContainer.name = "start";
+        startUI.addControl(startContainer);
+
+        // Store for reference
+        gameState.resources.uiContainers.start = startContainer;
+
+        // Title logo - with fallback
+        var logoImage = new BABYLON.GUI.Image("logo", "data:image/png;base64," + TEXTURES.logoTexture);
+        logoImage.width = "600px";
+        logoImage.height = "120px";
+        logoImage.paddingBottom = "40px";
+
+        // Create fallback text in advance but don't add it to container yet
+        var titleTextFallback = new BABYLON.GUI.TextBlock("titleLogoFallback", CONFIG.title);
+        titleTextFallback.color = "#ff00ff";
+        titleTextFallback.fontSize = 100;
+        titleTextFallback.shadowColor = "#00ffff";
+        titleTextFallback.shadowOffsetX = 3;
+        titleTextFallback.shadowOffsetY = 3;
+        titleTextFallback.paddingBottom = "40px";
+
+        // Fixed: Uncommented and corrected the logoImage source change handler
+        /*
+        logoImage.onSourceChangedObservable.add(() => {
+            // Check if the image has loaded properly after a short delay
+            setTimeout(() => {
+                // If the image's source is empty or null, switch to fallback
+                if (!logoImage.source || logoImage._workingCanvas && logoImage._workingCanvas.width === 0) {
+                    console.warn("Logo failed to load, using text fallback");
+                    
+                    // Replace logoImage with titleTextFallback
+                    const index = startContainer.children.indexOf(logoImage);
+                    if (index !== -1) {
+                        startContainer.removeControl(logoImage);
+                        startContainer.addControl(titleTextFallback);
+                        startContainer.markAsDirty();
+                    }
+                } else {
+                    console.log("Logo loaded successfully");
+                }
+            }, 500); // Give it time to attempt loading
+        });
+        */
+
+        startContainer.addControl(logoImage);
+
+        // Game title
+        var titleText = new BABYLON.GUI.TextBlock("title", CONFIG.title);
+        titleText.color = "#ff00ff";
+        titleText.fontSize = 80;
+        titleText.shadowColor = "#00ffff";
+        titleText.shadowOffsetX = 3;
+        titleText.shadowOffsetY = 3;
+        titleText.paddingBottom = "50px";
+        startContainer.addControl(titleText);
+
+        // Mode selection
+        var modePanel = new BABYLON.GUI.StackPanel();
+        modePanel.isVertical = false;
+        modePanel.height = "100px";
+
+        var modeLabel = new BABYLON.GUI.TextBlock("modeLabel", "MODE:");
+        modeLabel.color = "#00ffff";
+        modeLabel.fontSize = 24;
+        modeLabel.width = "100px";
+        modePanel.addControl(modeLabel);
+
+        var modeRadioContainer = new BABYLON.GUI.StackPanel();
+        modeRadioContainer.isVertical = false;
+        modeRadioContainer.spacing = 20;
+
+        var modernRadio = new BABYLON.GUI.RadioButton("modernRadio");
+        modernRadio.background = "#00ffff";
+        modernRadio.color = "#ff00ff";
+        modernRadio.fontSize = 24;
+        modernRadio.onIsCheckedChangedObservable.add(function (state) {
+            if (state) CONFIG.gameMode = "modern";
+        });
+
+        var modernRadioLabel = new BABYLON.GUI.TextBlock("modernLabel", "Modern");
+        modernRadioLabel.color = "#ffffff";
+        modernRadioLabel.fontSize = 24;
+        modernRadioLabel.paddingLeft = 5;
+        modernRadioLabel.width = "100px";
+
+        var retroRadio = new BABYLON.GUI.RadioButton("retroRadio");
+        retroRadio.background = "#00ffff";
+        retroRadio.color = "#ff00ff";
+        retroRadio.fontSize = 24;
+        retroRadio.onIsCheckedChangedObservable.add(function (state) {
+            if (state) CONFIG.gameMode = "retro";
+        });
+
+        var retroRadioLabel = new BABYLON.GUI.TextBlock("retroLabel", "Retro");
+        retroRadioLabel.color = "#ffffff";
+        retroRadioLabel.fontSize = 24;
+        retroRadioLabel.paddingLeft = 5;
+        retroRadioLabel.width = "100px";
+
+        if (CONFIG.gameMode === "modern") {
+            modernRadio.isChecked = true;
+        } else {
+            retroRadio.isChecked = true;
+        }
+
+        var modern = new BABYLON.GUI.StackPanel();
+        modern.isVertical = false;
+        modern.addControl(modernRadio);
+        modern.addControl(modernRadioLabel);
+
+        var retro = new BABYLON.GUI.StackPanel();
+        retro.isVertical = false;
+        retro.addControl(retroRadio);
+        retro.addControl(retroRadioLabel);
+
+        modeRadioContainer.addControl(modern);
+        modeRadioContainer.addControl(retro);
+        modePanel.addControl(modeRadioContainer);
+        startContainer.addControl(modePanel);
+
+        // VR mode option (if supported)
+        var vrPanel = new BABYLON.GUI.StackPanel();
+        vrPanel.isVertical = false;
+        vrPanel.height = "60px";
+
+        var vrLabel = new BABYLON.GUI.TextBlock("vrLabel", "VR MODE:");
+        vrLabel.color = "#00ffff";
+        vrLabel.fontSize = 24;
+        vrLabel.width = "150px";
+        vrPanel.addControl(vrLabel);
+
+        var vrCheckbox = new BABYLON.GUI.Checkbox();
+        vrCheckbox.width = "20px";
+        vrCheckbox.height = "20px";
+        vrCheckbox.isChecked = CONFIG.vr.enabled;
+        vrCheckbox.color = "#ff00ff";
+        vrCheckbox.background = "#00ffff";
+        vrCheckbox.onIsCheckedChangedObservable.add(function (state) {
+            CONFIG.vr.enabled = state;
+        });
+        vrPanel.addControl(vrCheckbox);
+
+        // Only show VR option if WebXR is supported
+        if (navigator.xr) {
+            startContainer.addControl(vrPanel);
+        }
+
+        // Start button
+        var startButton = BABYLON.GUI.Button.CreateSimpleButton("startButton", "START GAME");
+        startButton.width = "300px";
+        startButton.height = "80px";
+        startButton.color = "#ffffff";
+        startButton.background = "#ff00ff";
+        startButton.cornerRadius = 0;
+        startButton.fontSize = 36;
+        startButton.shadowColor = "#00ffff";
+        startButton.shadowOffsetX = 3;
+        startButton.shadowOffsetY = 3;
+        startButton.paddingTop = "40px";
+
+        startButton.onPointerUpObservable.add(function () {
+            startGame();
+        });
+
+        startContainer.addControl(startButton);
+
+        // Version
+        var versionText = new BABYLON.GUI.TextBlock("version", "v" + CONFIG.version);
+        versionText.color = "#888888";
+        versionText.fontSize = 16;
+        versionText.paddingTop = "40px";
+        startContainer.addControl(versionText);
+    };
+
+    /**
+     * Creates the game screen UI
+     */
+    const createGameScreen = function () {
+        // Create a container for all game elements
+        var gameGUI = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("gameUI", true, scene);
+        gameGUI.idealWidth = 1920;
+        gameGUI.renderScale = 1;
+
+        var gameContainer = new BABYLON.GUI.StackPanel();
+        gameContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        gameContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        gameContainer.isVisible = false;
+        gameContainer.name = "playing";
+        gameGUI.addControl(gameContainer);
+
+        // Store for reference
+        gameState.resources.uiContainers.playing = gameContainer;
+
+        // Create player stats UI
+        createPlayerStatsUI(gameContainer);
+
+        // Create minimap UI (now a completely separate self-contained system)
+        createMinimapUI();
+
+        // Create mobile controls if needed
+        if (CONFIG.mobile.enabled && gameState.device.isMobile) {
+            createMobileControls(gameGUI);
+        }
+    };
+
+    /**
+     * Creates the game over screen UI
+     */
+    const createGameOverScreen = function () {
+        var gameOverUI = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("gameOverUI", true, scene);
+        gameOverUI.idealWidth = 1920;
+
+        var gameOverContainer = new BABYLON.GUI.StackPanel();
+        gameOverContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        gameOverContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        gameOverContainer.name = "gameover";
+        gameOverContainer.isVisible = false;
+        gameOverUI.addControl(gameOverContainer);
+
+        // Store for reference
+        gameState.resources.uiContainers.gameover = gameOverContainer;
+
+        // Game Over text
+        var gameOverText = new BABYLON.GUI.TextBlock("gameOverText", "GAME OVER");
+        gameOverText.color = "#ff0000";
+        gameOverText.fontSize = 80;
+        gameOverText.shadowColor = "#880000";
+        gameOverText.shadowOffsetX = 3;
+        gameOverText.shadowOffsetY = 3;
+        gameOverText.paddingBottom = "50px";
+        gameOverContainer.addControl(gameOverText);
+
+        // Score
+        var scoreText = new BABYLON.GUI.TextBlock("finalScore", "SCORE: 0");
+        scoreText.color = "#00ffff";
+        scoreText.fontSize = 40;
+        scoreText.paddingBottom = "30px";
+        gameOverContainer.addControl(scoreText);
+
+        // Restart button
+        var restartButton = BABYLON.GUI.Button.CreateSimpleButton("restartButton", "PLAY AGAIN");
+        restartButton.width = "300px";
+        restartButton.height = "80px";
+        restartButton.color = "#ffffff";
+        restartButton.background = "#ff00ff";
+        restartButton.cornerRadius = 0;
+        restartButton.fontSize = 32;
+        restartButton.shadowColor = "#00ffff";
+        restartButton.shadowOffsetX = 3;
+        restartButton.shadowOffsetY = 3;
+        restartButton.paddingTop = "40px";
+
+        restartButton.onPointerUpObservable.add(function () {
+            resetGame();
+            startGame();
+        });
+
+        gameOverContainer.addControl(restartButton);
+    };
+
+    /**
+     * Creates player stats UI elements
+     * @param {BABYLON.GUI.StackPanel} parentContainer - Parent container for UI elements
+     */
+    const createPlayerStatsUI = function (parentContainer) {
+        var statsContainer = new BABYLON.GUI.StackPanel();
+        statsContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        statsContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        statsContainer.paddingTop = "20px";
+        statsContainer.paddingLeft = "20px";
+        parentContainer.addControl(statsContainer);
+
+        // Health bar
+        var healthContainer = new BABYLON.GUI.StackPanel();
+        healthContainer.isVertical = false;
+        healthContainer.height = "30px";
+        statsContainer.addControl(healthContainer);
+
+        var healthLabel = new BABYLON.GUI.TextBlock("healthLabel", "HEALTH:");
+        healthLabel.color = "#00ffff";
+        healthLabel.width = "100px";
+        healthLabel.fontSize = 20;
+        healthContainer.addControl(healthLabel);
+
+        var healthBarBackground = new BABYLON.GUI.Rectangle("healthBarBg");
+        healthBarBackground.width = "300px";
+        healthBarBackground.height = "20px";
+        healthBarBackground.background = "#333333";
+        healthBarBackground.color = "#00ffff";
+        healthBarBackground.thickness = 1;
+        healthContainer.addControl(healthBarBackground);
+
+        var healthBar = new BABYLON.GUI.Rectangle("healthBar");
+        healthBar.width = "100%";
+        healthBar.height = "100%";
+        healthBar.background = "#ff00ff";
+        healthBar.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        healthBarBackground.addControl(healthBar);
+
+        // Store for reference
+        gameState.resources.healthBar = healthBar;
+
+        // Lives display
+        var livesContainer = new BABYLON.GUI.StackPanel();
+        livesContainer.isVertical = false;
+        livesContainer.height = "30px";
+        livesContainer.paddingTop = "10px";
+        statsContainer.addControl(livesContainer);
+
+        var livesLabel = new BABYLON.GUI.TextBlock("livesLabel", "LIVES:");
+        livesLabel.color = "#00ffff";
+        livesLabel.width = "100px";
+        livesLabel.fontSize = 20;
+        livesContainer.addControl(livesLabel);
+
+        var livesValueText = new BABYLON.GUI.TextBlock("livesValue", gameState.player.lives.toString());
+        livesValueText.color = "#ff00ff";
+        livesValueText.fontSize = 20;
+        livesContainer.addControl(livesValueText);
+
+        // Store for reference
+        gameState.resources.livesText = livesValueText;
+
+        // Score display
+        var scoreContainer = new BABYLON.GUI.StackPanel();
+        scoreContainer.isVertical = false;
+        scoreContainer.height = "30px";
+        scoreContainer.paddingTop = "10px";
+        statsContainer.addControl(scoreContainer);
+
+        var scoreLabel = new BABYLON.GUI.TextBlock("scoreLabel", "SCORE:");
+        scoreLabel.color = "#00ffff";
+        scoreLabel.width = "100px";
+        scoreLabel.fontSize = 20;
+        scoreContainer.addControl(scoreLabel);
+
+        var scoreValueText = new BABYLON.GUI.TextBlock("scoreValue", "0");
+        scoreValueText.color = "#ff00ff";
+        scoreValueText.fontSize = 20;
+        scoreContainer.addControl(scoreValueText);
+
+        // Store for reference
+        gameState.resources.scoreText = scoreValueText;
+    };
+
+    /**
+     * Creates minimap UI elements
+     * @param {BABYLON.GUI.AdvancedDynamicTexture} parentUI - Parent UI for minimap
+     */
+    const createMinimapUI = function (parentUI) {
+        // Create a separate fullscreen UI for the minimap to ensure it's always visible
+        var minimapUI = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("minimapUI", true, scene);
+        minimapUI.idealWidth = 1920;
+
+        var minimapSize = CONFIG.map.minimapSize;
+
+        // Create container for minimap to allow for better organization
+        var minimapContainer = new BABYLON.GUI.Rectangle("minimapContainer");
+        minimapContainer.width = (minimapSize + 20) + "px";
+        minimapContainer.height = (minimapSize + 20) + "px";
+        minimapContainer.thickness = 2;
+        minimapContainer.color = "#00ffff";
+        minimapContainer.cornerRadius = 5;
+        minimapContainer.background = "rgba(0, 0, 0, 0.5)";
+
+        // Set position based on config
+        switch (CONFIG.map.minimapPosition) {
+            case "topLeft":
+                minimapContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+                minimapContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+                minimapContainer.paddingTop = "20px";
+                minimapContainer.paddingLeft = "20px";
+                break;
+            case "bottomRight":
+                minimapContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+                minimapContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+                minimapContainer.paddingBottom = "20px";
+                minimapContainer.paddingRight = "20px";
+                break;
+            case "bottomLeft":
+                minimapContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+                minimapContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+                minimapContainer.paddingBottom = "20px";
+                minimapContainer.paddingLeft = "20px";
+                break;
+            case "topRight":
+            default:
+                minimapContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+                minimapContainer.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+                minimapContainer.paddingTop = "20px";
+                minimapContainer.paddingRight = "20px";
+        }
+
+        minimapUI.addControl(minimapContainer);
+
+        // Add minimap title
+        var minimapTitle = new BABYLON.GUI.TextBlock("minimapTitle", "MAZE MAP");
+        minimapTitle.color = "#00ffff";
+        minimapTitle.fontSize = 14;
+        minimapTitle.height = "20px";
+        minimapTitle.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        minimapTitle.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        minimapContainer.addControl(minimapTitle);
+
+        // Create the actual map image
+        var mapImage = new BABYLON.GUI.Image("mapImage");
+        mapImage.width = minimapSize + "px";
+        mapImage.height = minimapSize + "px";
+        mapImage.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        mapImage.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        mapImage.paddingTop = "10px"; // To make space for the title
+        minimapContainer.addControl(mapImage);
+
+        // Create fallback elements for minimap in advance
+        var minimapFallback = new BABYLON.GUI.Rectangle("minimapFallback");
+        minimapFallback.width = minimapSize + "px";
+        minimapFallback.height = minimapSize + "px";
+        minimapFallback.background = "#1a1a2a";
+        minimapFallback.color = "#00ffff";
+        minimapFallback.thickness = 2;
+        minimapFallback.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        minimapFallback.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        minimapFallback.paddingTop = "10px";
+
+        var minimapText = new BABYLON.GUI.TextBlock("minimapText", "MAP");
+        minimapText.color = "#ff00ff";
+        minimapText.fontSize = 20;
+        minimapFallback.addControl(minimapText);
+
+        // Store image reference first so we can safely use the following handler
+        gameState.resources.minimapImage = mapImage;
+        gameState.resources.minimapContainer = minimapContainer;
+
+        // We'll comment this out since it might be causing issues
+        /* 
+        mapImage.onSourceChangedObservable.add(() => {
+            // Check if the image loaded correctly after a short delay
+            setTimeout(() => {
+                if (!mapImage.source || mapImage._workingCanvas && mapImage._workingCanvas.width === 0) {
+                    console.warn("Minimap image failed to load");
+                    
+                    // Replace mapImage with minimapFallback
+                    minimapContainer.removeControl(mapImage);
+                    minimapContainer.addControl(minimapFallback);
+                    
+                    // Update reference for potential future use
+                    gameState.resources.minimapImage = minimapFallback;
+                }
+            }, 300);
+        });
+        */
+    };
+
+    /**
+     * Creates mobile touch controls
+     * @param {BABYLON.GUI.AdvancedDynamicTexture} parentUI - Parent UI for mobile controls
+     */
+    const createMobileControls = function (parentUI) {
+        // Left virtual joystick for movement
+        var leftJoystick = new BABYLON.GUI.Ellipse("leftJoystick");
+        leftJoystick.width = CONFIG.mobile.touchJoystickSize;
+        leftJoystick.height = CONFIG.mobile.touchJoystickSize;
+        leftJoystick.color = "#00ffff";
+        leftJoystick.thickness = 2;
+        leftJoystick.background = "rgba(0, 0, 0, 0.5)";
+        leftJoystick.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        leftJoystick.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        leftJoystick.left = "100px";
+        leftJoystick.top = "-100px";
+        parentUI.addControl(leftJoystick);
+
+        // Joystick thumb
+        var leftJoystickThumb = new BABYLON.GUI.Ellipse("leftJoystickThumb");
+        leftJoystickThumb.width = "40px";
+        leftJoystickThumb.height = "40px";
+        leftJoystickThumb.color = "transparent";
+        leftJoystickThumb.background = "#ff00ff";
+        leftJoystick.addControl(leftJoystickThumb);
+
+        // Right virtual joystick for looking around
+        var rightJoystick = new BABYLON.GUI.Ellipse("rightJoystick");
+        rightJoystick.width = CONFIG.mobile.touchJoystickSize;
+        rightJoystick.height = CONFIG.mobile.touchJoystickSize;
+        rightJoystick.color = "#00ffff";
+        rightJoystick.thickness = 2;
+        rightJoystick.background = "rgba(0, 0, 0, 0.5)";
+        rightJoystick.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        rightJoystick.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        rightJoystick.left = "-100px";
+        rightJoystick.top = "-100px";
+        parentUI.addControl(rightJoystick);
+
+        // Joystick thumb
+        var rightJoystickThumb = new BABYLON.GUI.Ellipse("rightJoystickThumb");
+        rightJoystickThumb.width = "40px";
+        rightJoystickThumb.height = "40px";
+        rightJoystickThumb.color = "transparent";
+        rightJoystickThumb.background = "#ff00ff";
+        rightJoystick.addControl(rightJoystickThumb);
+
+        // Shoot button
+        var shootButton = BABYLON.GUI.Button.CreateSimpleButton("shootButton", "FIRE");
+        shootButton.width = CONFIG.mobile.buttonSize;
+        shootButton.height = CONFIG.mobile.buttonSize;
+        shootButton.cornerRadius = 999;
+        shootButton.color = "#ffffff";
+        shootButton.background = "#ff0000";
+        shootButton.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        shootButton.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        shootButton.left = "-30px";
+        shootButton.top = "-200px";
+        shootButton.onPointerDownObservable.add(function () {
+            shootBullet();
+        });
+        parentUI.addControl(shootButton);
+
+        // Mode toggle button
+        var modeToggleButton = BABYLON.GUI.Button.CreateSimpleButton("modeToggleButton", CONFIG.gameMode === "modern" ? "MOD" : "RET");
+        modeToggleButton.width = "50px";
+        modeToggleButton.height = "50px";
+        modeToggleButton.color = "#ffffff";
+        modeToggleButton.cornerRadius = 0;
+        modeToggleButton.background = CONFIG.gameMode === "modern" ? "#00ffff" : "#ff00ff";
+        modeToggleButton.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        modeToggleButton.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        modeToggleButton.left = "-20px";
+        modeToggleButton.top = "200px";
+        modeToggleButton.onPointerUpObservable.add(function () {
+            CONFIG.gameMode = CONFIG.gameMode === "modern" ? "retro" : "modern";
+            modeToggleButton.textBlock.text = CONFIG.gameMode === "modern" ? "MOD" : "RET";
+            modeToggleButton.background = CONFIG.gameMode === "modern" ? "#00ffff" : "#ff00ff";
+        });
+        parentUI.addControl(modeToggleButton);
+
+        // Store references for later use
+        gameState.device.mobileControls = {
+            leftJoystick,
+            leftJoystickThumb,
+            rightJoystick,
+            rightJoystickThumb,
+            shootButton,
+            modeToggleButton,
+            leftJoystickOffset: { x: 0, y: 0 },
+            rightJoystickOffset: { x: 0, y: 0 }
+        };
+
+        // Virtual joystick behavior
+        setupMobileJoysticks(leftJoystick, leftJoystickThumb, rightJoystick, rightJoystickThumb);
+    };
+
+    /**
+     * Configures mobile joystick interactions
+     * @param {BABYLON.GUI.Ellipse} leftJoystick - Left joystick control
+     * @param {BABYLON.GUI.Ellipse} leftJoystickThumb - Left joystick thumb
+     * @param {BABYLON.GUI.Ellipse} rightJoystick - Right joystick control
+     * @param {BABYLON.GUI.Ellipse} rightJoystickThumb - Right joystick thumb
+     */
+    const setupMobileJoysticks = function (leftJoystick, leftJoystickThumb, rightJoystick, rightJoystickThumb) {
+        var leftJoystickPointerID = -1;
+        var rightJoystickPointerID = -1;
+
+        // Left joystick for movement
+        leftJoystick.onPointerDownObservable.add(function (info) {
+            leftJoystickPointerID = info.pointerId;
+        });
+
+        leftJoystick.onPointerMoveObservable.add(function (info) {
+            if (leftJoystickPointerID === info.pointerId) {
+                // Calculate joystick offset
+                let center = leftJoystick.centerPosition || {
+                    x: leftJoystick._currentMeasure.left + leftJoystick._currentMeasure.width / 2,
+                    y: leftJoystick._currentMeasure.top + leftJoystick._currentMeasure.height / 2
+                };
+                let xOffset = info.x - center.x;
+                let yOffset = info.y - center.y;
+
+                // Normalize offset
+                let radius = parseFloat(leftJoystick.width) / 2 * 0.7;
+                let distance = Math.sqrt(xOffset * xOffset + yOffset * yOffset);
+
+                // Clamp to radius
+                if (distance > radius) {
+                    xOffset *= radius / distance;
+                    yOffset *= radius / distance;
+                }
+
+                // Update thumb position
+                leftJoystickThumb.left = xOffset + "px";
+                leftJoystickThumb.top = yOffset + "px";
+
+                // Store normalized offset for movement
+                gameState.device.mobileControls.leftJoystickOffset.x = xOffset / radius;
+                gameState.device.mobileControls.leftJoystickOffset.y = yOffset / radius;
+            }
+        });
+
+        leftJoystick.onPointerUpObservable.add(function (info) {
+            if (leftJoystickPointerID === info.pointerId) {
+                leftJoystickPointerID = -1;
+                leftJoystickThumb.left = "0px";
+                leftJoystickThumb.top = "0px";
+                gameState.device.mobileControls.leftJoystickOffset = { x: 0, y: 0 };
+            }
+        });
+
+        // Right joystick for camera
+        rightJoystick.onPointerDownObservable.add(function (info) {
+            rightJoystickPointerID = info.pointerId;
+        });
+
+        rightJoystick.onPointerMoveObservable.add(function (info) {
+            if (rightJoystickPointerID === info.pointerId) {
+                // Calculate joystick offset
+                let center = rightJoystick.centerPosition || {
+                    x: rightJoystick._currentMeasure.left + rightJoystick._currentMeasure.width / 2,
+                    y: rightJoystick._currentMeasure.top + rightJoystick._currentMeasure.height / 2
+                };
+                let xOffset = info.x - center.x;
+                let yOffset = info.y - center.y;
+
+                // Normalize offset
+                let radius = parseFloat(rightJoystick.width) / 2 * 0.7;
+                let distance = Math.sqrt(xOffset * xOffset + yOffset * yOffset);
+
+                // Clamp to radius
+                if (distance > radius) {
+                    xOffset *= radius / distance;
+                    yOffset *= radius / distance;
+                }
+
+                // Update thumb position
+                rightJoystickThumb.left = xOffset + "px";
+                rightJoystickThumb.top = yOffset + "px";
+
+                // Store normalized offset for camera
+                gameState.device.mobileControls.rightJoystickOffset.x = xOffset / radius;
+                gameState.device.mobileControls.rightJoystickOffset.y = yOffset / radius;
+            }
+        });
+
+        rightJoystick.onPointerUpObservable.add(function (info) {
+            if (rightJoystickPointerID === info.pointerId) {
+                rightJoystickPointerID = -1;
+                rightJoystickThumb.left = "0px";
+                rightJoystickThumb.top = "0px";
+                gameState.device.mobileControls.rightJoystickOffset = { x: 0, y: 0 };
+            }
+        });
+    };
+
+    // ------------------------------------------------------
+    // CAMERA SETUP
+    // ------------------------------------------------------
+    /**
+     * Sets up the player camera and controls
+     */
+    const setupCamera = function () {
+        // Configure controls - adding arrow keys alongside WASD
+        camera.keysUp = [87, 38];      // W, Arrow Up
+        camera.keysDown = [83, 40];    // S, Arrow Down
+        camera.keysLeft = [65, 37];    // A, Arrow Left
+        camera.keysRight = [68, 39];   // D, Arrow Right
+
+        // Physics and collisions
+        camera.checkCollisions = true;
+        camera.applyGravity = true;
+        camera.ellipsoid = new BABYLON.Vector3(0.5, 1.0, 0.5);
+        scene.gravity = new BABYLON.Vector3(0, -0.2, 0);
+
+        // Jump with Space and shooting
+        scene.onKeyboardObservable.add((kbInfo) => {
+            if (gameState.current === "playing" && kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN) {
+                // Space always shoots
+                if (kbInfo.event.code === "Space" && !kbInfo.event.repeat) {
+                    shootBullet();
+                }
+
+                // Toggle movement mode with Tab
+                if (kbInfo.event.code === "Tab") {
+                    CONFIG.gameMode = CONFIG.gameMode === "modern" ? "retro" : "modern";
+
+                    // Update UI if needed
+                    const modeToggleButton = gameState.device.mobileControls.modeToggleButton;
+                    if (modeToggleButton) {
+                        modeToggleButton.textBlock.text = CONFIG.gameMode === "modern" ? "MOD" : "RET";
+                        modeToggleButton.background = CONFIG.gameMode === "modern" ? "#00ffff" : "#ff00ff";
+                    }
+                }
+            }
+        });
+    };
+
+    // ------------------------------------------------------
+    // VR SETUP
+    // ------------------------------------------------------
+    /**
+     * Sets up VR capabilities if available
+     */
+    const setupVR = function () {
+        // Check if WebXR is available
+        if (navigator.xr) {
+            // Create WebXR experience helper
+            var xrHelper = scene.createDefaultXRExperienceAsync({
+                floorMeshes: [scene.getMeshByName("floor")],
+                uiOptions: {
+                    sessionMode: "immersive-vr",
+                    referenceSpaceType: "local-floor"
+                }
+            }).then((xrHelper) => {
+                // Store VR helper
+                gameState.entities.vrHelper = xrHelper;
+
+                // Set up VR camera and controllers
+                if (xrHelper.baseExperience) {
+                    // Use teleportation in VR if enabled
+                    if (CONFIG.vr.teleportation) {
+                        xrHelper.teleportation.attach();
+                    }
+
+                    // Enter VR with controller
+                    xrHelper.baseExperience.onStateChangedObservable.add((state) => {
+                        gameState.device.isInVR = state === BABYLON.WebXRState.IN_XR;
+                    });
+
+                    // Setup VR controller input for shooting
+                    xrHelper.input.onControllerAddedObservable.add((controller) => {
+                        controller.onMotionControllerInitObservable.add((motionController) => {
+                            const triggerComponent = motionController.getMainComponent();
+                            if (triggerComponent) {
+                                triggerComponent.onButtonStateChangedObservable.add((component) => {
+                                    if (component.pressed) {
+                                        shootBullet();
+                                    }
+                                });
+                            }
+                        });
+                    });
+                }
+            }).catch((error) => {
+                console.log("XR not available: " + error);
+            });
+        }
+    };
+
+    // ------------------------------------------------------
+    // MAP GENERATION
+    // ------------------------------------------------------
+    /**
+     * Generates the game map and places entities
+     */
+    const generateMap = function () {
+        // Map dimensions
+        const MAP_WIDTH = CONFIG.map.width;
+        const MAP_HEIGHT = CONFIG.map.height;
+        const tileSize = CONFIG.map.tileSize;
+
+        // Create map data
+        gameState.resources.mapData = [];
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+            gameState.resources.mapData[y] = [];
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                if (x === 0 || x === MAP_WIDTH - 1 || y === 0 || y === MAP_HEIGHT - 1) {
+                    gameState.resources.mapData[y][x] = 1; // boundary wall
+                } else {
+                    let rand = Math.random();
+                    if (rand < CONFIG.map.wallDensity) {
+                        gameState.resources.mapData[y][x] = 1; // wall
+                    } else if (rand < CONFIG.map.wallDensity + CONFIG.enemies.spawnRate) {
+                        gameState.resources.mapData[y][x] = 2; // enemy spawn
+                    } else {
+                        gameState.resources.mapData[y][x] = 0; // floor
+                    }
+                }
+            }
+        }
+
+        // Create fault-tolerant textured materials
+        var floorMat = createTexturedMaterial("floor", TEXTURES.gridTileTexture, CONFIG.defaultColors.floor);
+        floorMat.diffuseTexture && (floorMat.diffuseTexture.uScale = 4);
+        floorMat.diffuseTexture && (floorMat.diffuseTexture.vScale = 4);
+        floorMat.emissiveColor = CONFIG.defaultColors.floor.scale(0.2);
+
+        var wallMat = createTexturedMaterial("wall", TEXTURES.wallTexture, CONFIG.defaultColors.wall);
+        wallMat.emissiveColor = CONFIG.defaultColors.wall.scale(0.2);
+
+        // Store materials for reuse
+        gameState.resources.materials.floor = floorMat;
+        gameState.resources.materials.wall = wallMat;
+
+        // Create grid
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                let tile = gameState.resources.mapData[y][x];
+
+                // Floor
+                let floor = BABYLON.MeshBuilder.CreateGround(
+                    "floor_" + x + "_" + y,
+                    { width: tileSize, height: tileSize },
+                    scene
+                );
+                floor.position.set(x * tileSize, 0, y * tileSize);
+                floor.material = floorMat.clone("floorMat_" + x + "_" + y);
+                floor.checkCollisions = true;
+
+                // Add grid lines for retro feel
+                if ((x + y) % 2 === 0) {
+                    let floorEmissiveMat = floorMat.clone("floorEmissiveMat_" + x + "_" + y);
+                    floorEmissiveMat.emissiveColor = CONFIG.defaultColors.floor.scale(0.4);
+                    floor.material = floorEmissiveMat;
+                }
+
+                // Wall
+                if (tile === 1) {
+                    let wall = BABYLON.MeshBuilder.CreateBox(
+                        "wall_" + x + "_" + y,
+                        { width: tileSize, depth: tileSize, height: 4 },
+                        scene
+                    );
+                    wall.position.set(x * tileSize, 2, y * tileSize);
+
+                    // Create neon effect on some walls
+                    let wallMatInstance = wallMat.clone("wallMatInstance_" + x + "_" + y);
+
+                    // Random neon color for walls
+                    if (Math.random() < 0.3) {
+                        let neonColor;
+                        const colorRnd = Math.random();
+                        if (colorRnd < 0.33) {
+                            neonColor = new BABYLON.Color3(0, 0.5, 1);  // Blue
+                        } else if (colorRnd < 0.66) {
+                            neonColor = new BABYLON.Color3(1, 0, 0.5);  // Pink
+                        } else {
+                            neonColor = new BABYLON.Color3(0, 1, 0.5);  // Teal
+                        }
+
+                        wallMatInstance.emissiveColor = neonColor.scale(CONFIG.visuals.neonIntensity);
+
+                        // Add a point light for the neon glow
+                        let neonLight = new BABYLON.PointLight("neonLight_" + x + "_" + y,
+                            new BABYLON.Vector3(x * tileSize, 2, y * tileSize),
+                            scene);
+                        neonLight.diffuse = neonColor;
+                        neonLight.specular = neonColor;
+                        neonLight.intensity = 0.7;
+                        neonLight.range = 8;
+                    }
+
+                    wall.material = wallMatInstance;
+                    wall.checkCollisions = true;
+
+                    // Store walls for collision detection
+                    gameState.entities.walls.push(wall);
+                }
+
+                // Enemy or Decoration
+                if (tile === 2) {
+                    if (Math.random() < 0.5) {
+                        // Enemy billboard plane with fault-tolerant texture
+                        let enemy = BABYLON.MeshBuilder.CreatePlane("enemy_" + x + "_" + y, { width: 2, height: 2 }, scene);
+                        enemy.position.set(x * tileSize, 1, y * tileSize);
+
+                        // Create transparent material with fallback
+                        let eMat = createTransparentTexturedMaterial("enemy_" + x + "_" + y, TEXTURES.enemyTexture, CONFIG.defaultColors.enemy);
+                        eMat.emissiveColor = CONFIG.defaultColors.enemy.scale(0.5);
+
+                        enemy.material = eMat;
+                        enemy.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+
+                        // Add enemy to the list
+                        gameState.entities.enemies.push(enemy);
+                    } else {
+                        // Decoration with fault-tolerant texture
+                        let dec = BABYLON.MeshBuilder.CreatePlane("dec_" + x + "_" + y, { width: 1, height: 2 }, scene);
+                        dec.position.set(x * tileSize, 1, y * tileSize);
+
+                        // Create transparent material with fallback
+                        let dMat = createTransparentTexturedMaterial("dec_" + x + "_" + y, TEXTURES.decorationTexture, CONFIG.defaultColors.decoration);
+                        dMat.emissiveColor = CONFIG.defaultColors.decoration.scale(0.5);
+
+                        dec.material = dMat;
+                        dec.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+
+                        // Add a point light for the decoration
+                        let decLight = new BABYLON.PointLight("decLight_" + x + "_" + y,
+                            new BABYLON.Vector3(x * tileSize, 1, y * tileSize),
+                            scene);
+                        decLight.diffuse = CONFIG.defaultColors.decoration;
+                        decLight.specular = CONFIG.defaultColors.decoration;
+                        decLight.intensity = 0.5;
+                        decLight.range = 5;
+
+                        // Store decoration
+                        gameState.entities.decorations.push(dec);
+                    }
+                }
+            }
+        }
+
+        // Randomly place the camera on a free tile
+        let freeSpot = findFreeTile();
+        camera.position.set(freeSpot.x * tileSize, 3, freeSpot.y * tileSize);
+        gameState.player.position = camera.position.clone();
+
+        // Initial dynamic map creation
+        createDynamicMinimapTexture();
+    };
+
+    /**
+     * Finds a free tile on the map
+     * @returns {Object} Position with x and y coordinates
+     */
+    const findFreeTile = function () {
+        const MAP_WIDTH = CONFIG.map.width;
+        const MAP_HEIGHT = CONFIG.map.height;
+
+        while (true) {
+            let rx = Math.floor(Math.random() * MAP_WIDTH);
+            let ry = Math.floor(Math.random() * MAP_HEIGHT);
+            if (gameState.resources.mapData[ry] && gameState.resources.mapData[ry][rx] === 0) {
+                return { x: rx, y: ry };
+            }
+        }
+    };
+
+    // ------------------------------------------------------
+    // MINIMAP SYSTEM
+    // ------------------------------------------------------
+    // ------------------------------------------------------
+    // MINIMAP SYSTEM
+    // ------------------------------------------------------
+    /**
+     * Creates the dynamic texture for the minimap
+     */
+    const createDynamicMinimapTexture = function () {
+        // A dynamic texture for the map (drawn bigger so details are clear)
+        const MAP_SCALE = 12;
+        const MAP_WIDTH = CONFIG.map.width;
+        const MAP_HEIGHT = CONFIG.map.height;
+
+        try {
+            // Create a dynamic texture for the minimap with generous size
+            gameState.resources.mapDynamicTexture = new BABYLON.DynamicTexture(
+                "mapDynamicTexture",
+                { width: MAP_WIDTH * MAP_SCALE, height: MAP_HEIGHT * MAP_SCALE },
+                scene,
+                false // <-- changed to false for better performance
+            );
+
+            // Explicitly set canvas size
+            const ctx = gameState.resources.mapDynamicTexture.getContext();
+            ctx.canvas.width = MAP_WIDTH * MAP_SCALE;
+            ctx.canvas.height = MAP_HEIGHT * MAP_SCALE;
+
+            // Initialize map error tracking
+            gameState.resources.mapErrorCount = 0;
+            gameState.resources.lastMapUpdateTime = 0;
+            gameState.resources.mapUpdateInterval = 16; // match typical frame rate (60fps)
+            gameState.resources.lastMapDataURL = null;
+
+            // Force an initial draw of the map
+            drawMap();
+
+            // Set the minimap image source immediately if it exists
+            if (gameState.resources.minimapImage) {
+                try {
+                    const dataURL = gameState.resources.mapDynamicTexture.getContext().canvas.toDataURL("image/png");
+                    gameState.resources.minimapImage.source = dataURL;
+                    gameState.resources.lastMapDataURL = dataURL;
+                    console.log("Initial minimap set successfully");
+                } catch (e) {
+                    console.warn("Failed to set initial minimap image", e);
+                }
+            }
+        } catch (error) {
+            console.warn("Failed to create dynamic texture for minimap", error);
+            // Create a direct procedural fallback map instead
+            createProceduralMinimapFallback();
+        }
+    };
+
+    /**
+     * Creates a procedural minimap as a fallback when dynamic texture fails
+     */
+    const createProceduralMinimapFallback = function () {
+        // If we can't create a dynamic texture, we'll create a direct GUI-based map
+        if (!gameState.resources.minimapContainer) return;
+
+        // Remove the image if it exists
+        if (gameState.resources.minimapImage && gameState.resources.minimapImage.parent) {
+            gameState.resources.minimapContainer.removeControl(gameState.resources.minimapImage);
+        }
+
+        // Create a grid container for the map
+        const mapGrid = new BABYLON.GUI.Grid("mapGrid");
+        mapGrid.width = "100%";
+        mapGrid.height = "100%";
+        mapGrid.paddingTop = "10px"; // For the title
+        mapGrid.addColumnDefinition(1);
+        mapGrid.addRowDefinition(1);
+
+        // Add to the minimap container
+        gameState.resources.minimapContainer.addControl(mapGrid);
+
+        // Create a canvas panel for direct drawing
+        const mapCanvas = new BABYLON.GUI.Rectangle("mapCanvas");
+        mapCanvas.width = "100%";
+        mapCanvas.height = "100%";
+        mapCanvas.thickness = 0;
+        mapCanvas.background = "#111122";
+        mapGrid.addControl(mapCanvas, 0, 0);
+
+        // Store reference to this canvas
+        gameState.resources.minimapCanvas = mapCanvas;
+
+        // Add player marker
+        const playerMarker = new BABYLON.GUI.Ellipse("playerMarker");
+        playerMarker.width = "10px";
+        playerMarker.height = "10px";
+        playerMarker.background = "#ffff00";
+        playerMarker.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        playerMarker.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        mapCanvas.addControl(playerMarker);
+
+        // Store reference to the player marker
+        gameState.resources.playerMarker = playerMarker;
+
+        // We'll update the marker position in the game loop
+        console.log("Created procedural minimap fallback");
+    };
+
+    /**
+     * Draws the minimap with player and enemy positions
+     */
+    const drawMap = function () {
+        if (!gameState.resources.mapData) return;
+
+        // Check if we're using the dynamic texture approach or the procedural fallback
+        if (gameState.resources.mapDynamicTexture) {
+            drawDynamicTextureMap();
+        } else if (gameState.resources.minimapCanvas) {
+            updateProceduralMap();
+        } else {
+            // Neither approach is available, try to create a fallback
+            createProceduralMinimapFallback();
+        }
+    };
+
+    /**
+     * Draws the minimap using dynamic texture
+     */
+    const drawDynamicTextureMap = function () {
+        // Make sure minimapImage still exists
+        if (!gameState.resources.minimapImage || !gameState.resources.mapDynamicTexture) return;
+
+        let tileSize = CONFIG.map.tileSize;
+        const MAP_SCALE = 12;
+        const MAP_WIDTH = CONFIG.map.width;
+        const MAP_HEIGHT = CONFIG.map.height;
+
+        try {
+            let ctx = gameState.resources.mapDynamicTexture.getContext();
+
+            // Ensure canvas has the right size
+            if (ctx.canvas.width !== MAP_WIDTH * MAP_SCALE || ctx.canvas.height !== MAP_HEIGHT * MAP_SCALE) {
+                ctx.canvas.width = MAP_WIDTH * MAP_SCALE;
+                ctx.canvas.height = MAP_HEIGHT * MAP_SCALE;
+            }
+
+            // Clear previous frame completely
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+            // Cyberpunk color scheme
+            const floorColor = "#111122";
+            const wall1Color = "#ff00ff";
+            const wall2Color = "#00ffff";
+            const playerColor = "#ffff00";
+            const enemyColor = "#ff0000";
+
+            // Draw floors/walls with cyberpunk aesthetic
+            for (let my = 0; my < gameState.resources.mapData.length; my++) {
+                for (let mx = 0; mx < gameState.resources.mapData[my].length; mx++) {
+                    if (gameState.resources.mapData[my][mx] === 1) {
+                        // Walls alternate colors for grid effect
+                        ctx.fillStyle = (mx + my) % 2 === 0 ? wall1Color : wall2Color;
+                    } else {
+                        // Floor
+                        ctx.fillStyle = floorColor;
+                    }
+                    ctx.fillRect(mx * MAP_SCALE, my * MAP_SCALE, MAP_SCALE, MAP_SCALE);
+
+                    // Draw grid lines for better visibility
+                    ctx.strokeStyle = "#333344";
+                    ctx.lineWidth = 0.5;
+                    ctx.strokeRect(mx * MAP_SCALE, my * MAP_SCALE, MAP_SCALE, MAP_SCALE);
+                }
+            }
+
+            // Draw enemies as red dots
+            for (let i = 0; i < gameState.entities.enemies.length; i++) {
+                const enemy = gameState.entities.enemies[i];
+                if (!enemy.isDisposed()) {
+                    let ex = enemy.position.x / tileSize;
+                    let ey = enemy.position.z / tileSize;
+
+                    // Enhanced enemy markers
+                    ctx.fillStyle = enemyColor;
+                    ctx.beginPath();
+                    ctx.arc(ex * MAP_SCALE + MAP_SCALE / 2, ey * MAP_SCALE + MAP_SCALE / 2, 3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Add pulsing effect to enemies
+                    const pulseSize = 1 + Math.sin(performance.now() * 0.01) * 0.5;
+                    ctx.strokeStyle = "#ff6666";
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(ex * MAP_SCALE + MAP_SCALE / 2, ey * MAP_SCALE + MAP_SCALE / 2, 3 + pulseSize, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+
+            // Draw player as a yellow triangle pointing in direction - use same method as bullet direction
+            let px = camera.position.x / tileSize;
+            let py = camera.position.z / tileSize;
+
+            // Fixed: Use same method as bullet direction for consistency
+            let forward = new BABYLON.Vector3(0, 0, 1);
+            forward = camera.getDirection(forward);
+            let angle = Math.atan2(forward.z, forward.x);
+
+            ctx.save();
+            ctx.translate(px * MAP_SCALE + MAP_SCALE / 2, py * MAP_SCALE + MAP_SCALE / 2);
+            ctx.rotate(angle);
+
+            // Draw player marker with improved visibility
+            ctx.fillStyle = playerColor;
+            ctx.beginPath();
+            ctx.moveTo(0, -5);
+            ctx.lineTo(-4, 5);
+            ctx.lineTo(4, 5);
+            ctx.closePath();
+            ctx.fill();
+
+            // Add player marker outline for better visibility
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.restore();
+
+            // Draw bullets for better tracking
+            for (let i = 0; i < gameState.entities.bullets.length; i++) {
+                const bullet = gameState.entities.bullets[i];
+                if (!bullet.isDisposed()) {
+                    let bx = bullet.position.x / tileSize;
+                    let by = bullet.position.z / tileSize;
+
+                    ctx.fillStyle = "#ffffff";
+                    ctx.beginPath();
+                    ctx.arc(bx * MAP_SCALE + MAP_SCALE / 2, by * MAP_SCALE + MAP_SCALE / 2, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // No legend - removed for cleaner interface
+
+            // CRITICAL - Force update the texture
+            gameState.resources.mapDynamicTexture.update(true); // Force immediate update
+
+            // Convert to dataURL and set image source
+            try {
+                let dataURL = ctx.canvas.toDataURL("image/png");
+
+                // CRITICAL - Always update the image source every frame
+                if (gameState.resources.minimapImage instanceof BABYLON.GUI.Image) {
+                    gameState.resources.minimapImage.source = dataURL;
+                    gameState.resources.lastMapDataURL = dataURL;
+                }
+            } catch (e) {
+                console.warn("Failed to set minimap image source:", e);
+                // If this consistently fails, we might want to switch to procedural approach
+                if (++gameState.resources.mapErrorCount > 5) {
+                    createProceduralMinimapFallback();
+                }
+            }
+        } catch (error) {
+            console.warn("Error drawing dynamic texture minimap", error);
+            // Switch to procedural fallback
+            createProceduralMinimapFallback();
+        }
+    };
+
+    /**
+     * Updates the procedural minimap fallback
+     */
+    const updateProceduralMap = function () {
+        if (!gameState.resources.minimapCanvas || !gameState.resources.playerMarker) {
+            return;
+        }
+
+        const mapWidth = CONFIG.map.width;
+        const mapHeight = CONFIG.map.height;
+        const tileSize = CONFIG.map.tileSize;
+
+        try {
+            // Clear any existing enemy markers
+            const children = [...gameState.resources.minimapCanvas.children];
+            for (let i = 0; i < children.length; i++) {
+                if (children[i].name && children[i].name.startsWith("enemy_marker_")) {
+                    gameState.resources.minimapCanvas.removeControl(children[i]);
+                }
+            }
+
+            // Update player position marker
+            if (camera && gameState.resources.playerMarker) {
+                // Convert position to minimap coordinates (0-100%)
+                const px = (camera.position.x / (mapWidth * tileSize)) * 100;
+                const py = (camera.position.z / (mapHeight * tileSize)) * 100;
+
+                gameState.resources.playerMarker.left = px + "%";
+                gameState.resources.playerMarker.top = py + "%";
+
+                // Update player marker rotation
+                const angle = Math.atan2(camera.getForwardRay().direction.z, camera.getForwardRay().direction.x);
+                gameState.resources.playerMarker.rotation = angle;
+            }
+
+            // Add enemy markers
+            for (let i = 0; i < gameState.entities.enemies.length; i++) {
+                const enemy = gameState.entities.enemies[i];
+                if (!enemy.isDisposed()) {
+                    // Convert position to percentages
+                    const ex = (enemy.position.x / (mapWidth * tileSize)) * 100;
+                    const ey = (enemy.position.z / (mapHeight * tileSize)) * 100;
+
+                    // Create or update enemy marker
+                    const markerName = "enemy_marker_" + i;
+                    let enemyMarker = gameState.resources.minimapCanvas.getChildByName(markerName);
+
+                    if (!enemyMarker) {
+                        enemyMarker = new BABYLON.GUI.Ellipse(markerName);
+                        enemyMarker.width = "8px";
+                        enemyMarker.height = "8px";
+                        enemyMarker.background = "#ff0000";
+                        enemyMarker.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+                        enemyMarker.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+                        gameState.resources.minimapCanvas.addControl(enemyMarker);
+                    }
+
+                    enemyMarker.left = ex + "%";
+                    enemyMarker.top = ey + "%";
+                }
+            }
+        } catch (error) {
+            console.warn("Error updating procedural minimap", error);
+        }
+    };
+
+    // ------------------------------------------------------
+    // GUN SETUP
+    // ------------------------------------------------------
+    /**
+     * Sets up the player's weapon
+     */
+    const setupGun = function () {
+        // Create fault-tolerant gun material
+        let gunMaterial = createTransparentTexturedMaterial("gun", TEXTURES.gunTexture, CONFIG.defaultColors.gun);
+        gunMaterial.emissiveColor = CONFIG.defaultColors.gun.scale(0.3);
+
+        // Create gun plane
+        let gun = BABYLON.MeshBuilder.CreatePlane("gun", { width: 2, height: 2 }, scene);
+        gun.material = gunMaterial;
+
+        // Position the gun in front of the camera
+        gun.scaling.set(0.5, 0.5, 0.5);
+        gun.position.z = 2;
+        gun.position.y = -1;
+        gun.parent = camera;
+
+        // Gun movement animation for walking
+        scene.registerBeforeRender(function () {
+            if (gameState.current === "playing" && CONFIG.gameMode === "modern") {
+                // Small bobbing effect
+                let time = performance.now() * 0.003;
+                let bobX = Math.sin(time * 2) * 0.02;
+                let bobY = Math.abs(Math.sin(time)) * 0.02;
+                gun.position.x = bobX;
+                gun.position.y = -1 + bobY;
+            }
+        });
+
+        // Store gun reference
+        gameState.gun = gun;
+    };
+
+    // ------------------------------------------------------
+    // SOUND SYSTEM
+    // ------------------------------------------------------
+    /**
+     * Initializes game sound effects
+     */
+    const initSounds = function () {
+        // Create a sound for shooting
+        var shootSound = new BABYLON.Sound("shootSound", AUDIO.shootSound, scene, null, {
+            loop: false,
+            autoplay: false,
+            volume: CONFIG.audio.sfxVolume
+        });
+
+        // Create a sound for taking damage
+        var hurtSound = new BABYLON.Sound("hurtSound", AUDIO.hurtSound, scene, null, {
+            loop: false,
+            autoplay: false,
+            volume: CONFIG.audio.sfxVolume
+        });
+
+        // Store sounds for later use in our local object
+        gameState.resources.sounds = {
+            shoot: shootSound,
+            hurt: hurtSound
+        };
+    };
+
+    /**
+     * Plays background music
+     */
+    const playBackgroundMusic = function () {
+        if (CONFIG.audio.synthWaveEnabled) {
+            // Create a looping background music
+            var music = new BABYLON.Sound("music", AUDIO.synthwaveMusic, scene, null, {
+                loop: true,
+                autoplay: true,
+                volume: CONFIG.audio.musicVolume
+            });
+
+            // Store music reference
+            gameState.resources.sounds.music = music;
+        }
+    };
+
+    // ------------------------------------------------------
+    // GAMEPLAY FUNCTIONS
+    // ------------------------------------------------------
+    /**
+     * Creates and fires a bullet
+     */
+    const shootBullet = function () {
+        if (gameState.current !== "playing") return;
+
+        // Play shoot sound
+        if (gameState.resources.sounds && gameState.resources.sounds.shoot) {
+            gameState.resources.sounds.shoot.play();
+        }
+
+        // Create bullet
+        let bullet = BABYLON.MeshBuilder.CreateSphere("bullet", { diameter: 0.3 }, scene);
+
+        // Position bullet exactly where camera is looking
+        bullet.position = camera.position.clone();
+
+        // Get exact forward direction vector based on where camera is looking
+        let forward = new BABYLON.Vector3(0, 0, 1);
+        forward = camera.getDirection(forward);
+
+        // Place the bullet slightly in front of camera
+        bullet.position.addInPlace(forward.scale(1));
+
+        // Neon bullet
+        let bulletMat = new BABYLON.StandardMaterial("bulletMat", scene);
+        bulletMat.diffuseColor = new BABYLON.Color3(1, 1, 0);
+        bulletMat.emissiveColor = new BABYLON.Color3(1, 1, 0);
+        bullet.material = bulletMat;
+
+        // Add a point light to the bullet
+        let bulletLight = new BABYLON.PointLight("bulletLight", bullet.position, scene);
+        bulletLight.diffuse = new BABYLON.Color3(1, 1, 0);
+        bulletLight.intensity = 0.5;
+        bulletLight.range = 3;
+        bulletLight.parent = bullet;
+
+        // Store bullet properties and use forward direction
+        bullet.direction = forward.clone();
+        bullet.speed = 0.6;
+        bullet.lifeTime = 0;
+
+        gameState.entities.bullets.push(bullet);
+
+        // Gun recoil animation
+        let gun = scene.getMeshByName("gun");
+        if (gun) {
+            let initialPosition = gun.position.clone();
+
+            // Quick recoil back
+            BABYLON.Animation.CreateAndStartAnimation(
+                "gunRecoil",
+                gun,
+                "position",
+                30,
+                5,
+                initialPosition,
+                new BABYLON.Vector3(initialPosition.x, initialPosition.y, initialPosition.z + 0.3),
+                BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+            );
+
+            // Return to position
+            setTimeout(() => {
+                BABYLON.Animation.CreateAndStartAnimation(
+                    "gunReturn",
+                    gun,
+                    "position",
+                    30,
+                    15,
+                    gun.position,
+                    initialPosition,
+                    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                );
+            }, 50);
+        }
+    };
+
+    /**
+     * Handles player taking damage
+     * @param {number} amount - Amount of damage to take
+     */
+    const playerTakeDamage = function (amount) {
+        // Update player health
+        gameState.player.health -= amount;
+
+        // Update health bar UI
+        if (gameState.resources.healthBar) {
+            gameState.resources.healthBar.width = (gameState.player.health / CONFIG.player.maxHealth * 100) + "%";
+        }
+
+        // Play hurt sound
+        if (gameState.resources.sounds && gameState.resources.sounds.hurt) {
+            gameState.resources.sounds.hurt.play();
+        }
+
+        // Shake camera effect
+        let originalPosition = camera.position.clone();
+        let shakeIntensity = 0.2;
+        let shakeDuration = 200; // ms
+        let startTime = performance.now();
+
+        let shakeCamera = function () {
+            let elapsedTime = performance.now() - startTime;
+            let shakeProgress = elapsedTime / shakeDuration;
+
+            if (shakeProgress < 1) {
+                // Random offset based on intensity that decreases over time
+                let offsetX = (Math.random() - 0.5) * shakeIntensity * (1 - shakeProgress);
+                let offsetY = (Math.random() - 0.5) * shakeIntensity * (1 - shakeProgress);
+
+                // Apply shake to camera
+                camera.position.x = originalPosition.x + offsetX;
+                camera.position.y = originalPosition.y + offsetY;
+
+                // Continue shaking
+                requestAnimationFrame(shakeCamera);
+            } else {
+                // Reset to original position
+                camera.position.x = originalPosition.x;
+                camera.position.y = originalPosition.y;
+            }
+        };
+
+        // Start camera shake
+        shakeCamera();
+
+        // Screen flash effect (red for damage)
+        const flashIntensity = 0.8;
+        let postProcess = new BABYLON.PostProcess(
+            "damage",
+            "damageEffect",
+            ["flashColor", "flashIntensity"],
+            null,
+            1.0,
+            camera
+        );
+
+        postProcess.onApply = function (effect) {
+            effect.setFloat3("flashColor", 1.0, 0.0, 0.0);
+            effect.setFloat("flashIntensity", flashIntensity);
+        };
+
+        // Remove effect after short time
+        setTimeout(function () {
+            postProcess.dispose();
+        }, 200);
+
+        // Check if player lost a life
+        if (gameState.player.health <= 0) {
+            gameState.player.lives--;
+
+            // Update lives UI
+            if (gameState.resources.livesText) {
+                gameState.resources.livesText.text = gameState.player.lives.toString();
+            }
+
+            if (gameState.player.lives <= 0) {
+                // Game over
+                endGame();
+            } else {
+                // Reset health and reposition player
+                gameState.player.health = CONFIG.player.maxHealth;
+
+                // Find new safe position
+                let freeSpot = findFreeTile();
+                camera.position.set(
+                    freeSpot.x * CONFIG.map.tileSize,
+                    3,
+                    freeSpot.y * CONFIG.map.tileSize
+                );
+                gameState.player.position = camera.position.clone();
+            }
+        }
+    };
+
+    /**
+     * Creates particle explosion effect
+     * @param {BABYLON.Vector3} position - Position for explosion
+     */
+    const createExplosion = function (position) {
+        // Create a particle system for explosion
+        var particleSystem = new BABYLON.ParticleSystem("explosion", 100, scene);
+
+        // Create a fallback noise texture or use existing
+        let particleTexture;
+
+        try {
+            // Try to use noise texture for particles
+            particleTexture = createFaultTolerantTexture(TEXTURES.noiseTexture, CONFIG.defaultColors.noise);
+
+            if (!particleTexture) {
+                // Create a procedural noise texture as fallback
+                console.log("Creating procedural noise texture for particles");
+                particleTexture = new BABYLON.NoiseProceduralTexture("noiseParticleTexture", 256, scene);
+                particleTexture.octaves = 4;
+                particleTexture.persistence = 1.2;
+            }
+        } catch (error) {
+            console.warn("Failed to create particle texture, using default", error);
+            // Default texture (small white square)
+            particleTexture = new BABYLON.Texture("data:image/png;base64," + TEXTURES.fallbackPixel, scene);
+        }
+
+        particleSystem.particleTexture = particleTexture;
+
+        // Emitter
+        particleSystem.emitter = position;
+        particleSystem.minEmitBox = new BABYLON.Vector3(-0.2, -0.2, -0.2);
+        particleSystem.maxEmitBox = new BABYLON.Vector3(0.2, 0.2, 0.2);
+
+        // Colors
+        particleSystem.color1 = new BABYLON.Color4(1, 0.5, 0, 1.0);
+        particleSystem.color2 = new BABYLON.Color4(1, 0, 1, 1.0);
+        particleSystem.colorDead = new BABYLON.Color4(0, 0, 0, 0.0);
+
+        // Size, lifetime, emission rate
+        particleSystem.minSize = 0.3;
+        particleSystem.maxSize = 0.8;
+        particleSystem.minLifeTime = 0.2;
+        particleSystem.maxLifeTime = 0.5;
+        particleSystem.emitRate = 100;
+
+        // Blend mode
+        particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+
+        // Speed
+        particleSystem.minEmitPower = 1;
+        particleSystem.maxEmitPower = 3;
+        particleSystem.updateSpeed = 0.01;
+
+        // Start and auto dispose
+        particleSystem.start();
+        setTimeout(() => {
+            particleSystem.stop();
+            setTimeout(() => {
+                particleSystem.dispose();
+            }, 1000);
+        }, 200);
+    };
+
+    // ------------------------------------------------------
+    // GAME STATE MANAGEMENT
+    // ------------------------------------------------------
+    /**
+     * Starts the game
+     */
+    const startGame = function () {
+        gameState.current = "playing";
+
+        // Configure the camera and create the 3D world if needed
+        setupCamera();
+        setupVR();
+        generateMap();
+        setupGun();
+        initSounds();
+        playBackgroundMusic();
+
+        /**
+ * Updates the minimap with current player and enemy positions
+ * Now with error handling
+ */
+        const updateMinimap = function () {
+            try {
+                // Check if we're using the dynamic texture approach or the procedural fallback
+                if (gameState.resources.mapDynamicTexture) {
+                    drawMap();
+                } else if (gameState.resources.minimapCanvas && gameState.resources.playerMarker) {
+                    // Procedural minimap update
+                    updateProceduralMap();
+                }
+            } catch (error) {
+                // Silently handle errors to prevent game crashes
+                console.warn("Error updating minimap:", error);
+
+                // After multiple consecutive errors, try to create a more reliable fallback
+                if (!gameState.resources.mapErrorCount) {
+                    gameState.resources.mapErrorCount = 1;
+                } else if (++gameState.resources.mapErrorCount > 10) {
+                    // Only attempt to create fallback if we've had multiple failures
+                    // and don't already have a fallback solution
+                    if (!gameState.resources.minimapCanvas) {
+                        try {
+                            createProceduralMinimapFallback();
+                            gameState.resources.mapErrorCount = 0; // Reset error count
+                        } catch (e) {
+                            console.warn("Failed to create minimap fallback:", e);
+                        }
+                    }
+                }
+            }
+        };
+
+        // Set up a dedicated rendering observer for the minimap
+        // that will update on every single frame
+        scene.onBeforeRenderObservable.add(() => {
+            if (gameState.current === "playing") {
+                updateMinimap();
+            }
+        });
+
+        // Start game loop if not already started
+        if (!scene.onBeforeRenderObservable.hasObservers()) {
+            scene.onBeforeRenderObservable.add(updateGameLoop);
+        }
+
+        showGameState(gameState.current);
+    };
+
+    /**
+     * Ends the game (game over)
+     */
+    const endGame = function () {
+        gameState.current = "gameover";
+
+        // Update final score on game over screen
+        const finalScoreText = scene.getEngine().getInputElement().querySelector("#finalScore");
+        if (finalScoreText) {
+            finalScoreText.textContent = "SCORE: " + gameState.player.score;
+        }
+
+        showGameState(gameState.current);
+    };
+
+    /**
+     * Resets the game state
+     */
+    const resetGame = function () {
+        // Reset player stats
+        gameState.player.health = CONFIG.player.maxHealth;
+        gameState.player.lives = CONFIG.player.startLives;
+        gameState.player.score = 0;
+
+        // Clear existing enemies and bullets
+        for (let i = 0; i < gameState.entities.enemies.length; i++) {
+            if (!gameState.entities.enemies[i].isDisposed()) {
+                gameState.entities.enemies[i].dispose();
+            }
+        }
+        gameState.entities.enemies = [];
+
+        for (let i = 0; i < gameState.entities.bullets.length; i++) {
+            if (!gameState.entities.bullets[i].isDisposed()) {
+                gameState.entities.bullets[i].dispose();
+            }
+        }
+        gameState.entities.bullets = [];
+
+        // Regenerate map
+        if (gameState.resources.mapData) {
+            // Remove existing meshes
+            for (let i = scene.meshes.length - 1; i >= 0; i--) {
+                if (scene.meshes[i].name.startsWith("floor_") ||
+                    scene.meshes[i].name.startsWith("wall_") ||
+                    scene.meshes[i].name.startsWith("enemy_") ||
+                    scene.meshes[i].name.startsWith("dec_")) {
+                    scene.meshes[i].dispose();
+                }
+            }
+
+            // Generate new map
+            generateMap();
+        }
+    };
+
+    /**
+     * Shows the current game state UI
+     * @param {string} state - Current game state
+     */
+    const showGameState = function (state) {
+        // Hide all game state containers
+        for (let key in gameState.resources.uiContainers) {
+            if (gameState.resources.uiContainers[key]) {
+                gameState.resources.uiContainers[key].isVisible = false;
+            }
+        }
+
+        // Show the current state container
+        if (gameState.resources.uiContainers[state]) {
+            gameState.resources.uiContainers[state].isVisible = true;
+        }
+    };
+
+    // ------------------------------------------------------
+    // GAME LOOP
+    // ------------------------------------------------------
+    /**
+     * Main game loop update function
+     */
+    const updateGameLoop = function () {
+        if (gameState.current !== "playing") return;
+
+        // Get delta time for smooth movement
+        let dt = engine.getDeltaTime() / 16.6667;
+
+        // Mobile controls for movement
+        if (CONFIG.mobile.enabled && gameState.device.isMobile && gameState.device.mobileControls.leftJoystick) {
+            const speed = CONFIG.player.movementSpeed;
+            const offset = gameState.device.mobileControls.leftJoystickOffset;
+
+            // Forward/back movement based on joystick y-axis
+            if (offset.y !== 0) {
+                camera.position.addInPlace(camera.getDirection(BABYLON.Vector3.Forward()).scale(offset.y * speed * dt));
+            }
+
+            // Left/right movement based on joystick x-axis
+            if (offset.x !== 0) {
+                camera.position.addInPlace(camera.getDirection(BABYLON.Vector3.Right()).scale(offset.x * speed * dt));
+            }
+        }
+
+        // Mobile controls for movement
+        if (CONFIG.mobile.enabled && gameState.device.isMobile && gameState.device.mobileControls.leftJoystick) {
+            const speed = CONFIG.player.movementSpeed;
+            const offset = gameState.device.mobileControls.leftJoystickOffset;
+
+            // Forward/back movement based on joystick y-axis
+            if (offset.y !== 0) {
+                camera.position.addInPlace(camera.getDirection(BABYLON.Vector3.Forward()).scale(offset.y * speed * dt));
+            }
+
+            // Left/right movement based on joystick x-axis
+            if (offset.x !== 0) {
+                camera.position.addInPlace(camera.getDirection(BABYLON.Vector3.Right()).scale(offset.x * speed * dt));
+            }
+        }
+
+        // Mobile controls for camera
+        if (CONFIG.mobile.enabled && gameState.device.isMobile && gameState.device.mobileControls.rightJoystick) {
+            const lookSpeed = 0.05;
+            const offset = gameState.device.mobileControls.rightJoystickOffset;
+
+            // Rotate camera based on joystick
+            if (offset.x !== 0) {
+                camera.rotation.y += offset.x * lookSpeed * dt;
+            }
+
+            if (offset.y !== 0) {
+                // Limit vertical look to prevent flipping
+                const newRotationX = camera.rotation.x + offset.y * lookSpeed * dt;
+                const maxLookUp = Math.PI / 3;
+                const maxLookDown = -Math.PI / 3;
+                camera.rotation.x = Math.max(Math.min(newRotationX, maxLookUp), maxLookDown);
+            }
+        }
+
+        // Retro movement mode
+        if (CONFIG.gameMode === "retro") {
+            // Disable normal movement controls
+            if (camera && camera.inputs && camera.inputs.attached && camera.inputs.attached.keyboard) {
+                camera.inputs.attached.keyboard.detachControl();
+            }
+
+            // Grid-based movement with keyboard
+            let keyPressed = false;
+
+            // Only process a move if enough time has passed
+            if (now > gameState.movement.nextGridMove) {
+                if (scene.getEngine().isKeyDown(87) || scene.getEngine().isKeyDown(38)) { // W or Up Arrow
+                    camera.position.addInPlace(camera.getDirection(BABYLON.Vector3.Forward()).scale(CONFIG.map.tileSize));
+                    keyPressed = true;
+                } else if (scene.getEngine().isKeyDown(83) || scene.getEngine().isKeyDown(40)) { // S or Down Arrow
+                    camera.position.addInPlace(camera.getDirection(BABYLON.Vector3.Forward()).scale(-CONFIG.map.tileSize));
+                    keyPressed = true;
+                } else if (scene.getEngine().isKeyDown(65) || scene.getEngine().isKeyDown(37)) { // A or Left Arrow
+                    camera.rotation.y += Math.PI / 2;
+                    keyPressed = true;
+                } else if (scene.getEngine().isKeyDown(68) || scene.getEngine().isKeyDown(39)) { // D or Right Arrow
+                    camera.rotation.y -= Math.PI / 2;
+                    keyPressed = true;
+                }
+
+                if (keyPressed) {
+                    gameState.movement.nextGridMove = now + CONFIG.player.gridMoveSpeed;
+                }
+            }
+        } else {
+            // Modern controls - reattach keyboard if needed
+            if (camera && camera.inputs && camera.inputs.attached && camera.inputs.attached.keyboard && !camera.inputs.attached.keyboard.isAttached) {
+                camera.inputs.attachInput(camera.inputs.attached.keyboard);
+            }
+        }
+
+        // Update player position for tracking
+        gameState.player.position = camera.position.clone();
+
+        // Enemies move toward the player
+        for (let i = 0; i < gameState.entities.enemies.length; i++) {
+            const enemy = gameState.entities.enemies[i];
+            if (!enemy.isDisposed()) {
+                // Calculate direction to player
+                let dir = camera.position.subtract(enemy.position);
+                dir.y = 0;
+                let dist = dir.length();
+
+                // Move toward player if not too close
+                if (dist > 0.5) {
+                    let moveDir = dir.normalize().scale(CONFIG.enemies.speed * dt);
+                    enemy.position.addInPlace(moveDir);
+                } else {
+                    // Damage player if enemy is close
+                    playerTakeDamage(CONFIG.enemies.damage * dt * 0.1);
+                }
+            }
+        }
+
+        // Move bullets & check collisions
+        for (let i = gameState.entities.bullets.length - 1; i >= 0; i--) {
+            let b = gameState.entities.bullets[i];
+            if (b.isDisposed()) {
+                gameState.entities.bullets.splice(i, 1);
+                continue;
+            }
+
+            // Move bullet forward
+            b.position.addInPlace(b.direction.scale(b.speed * dt));
+            b.lifeTime += dt;
+
+            // Destroy bullets after timeout
+            if (b.lifeTime > 60) {
+                b.dispose();
+                gameState.entities.bullets.splice(i, 1);
+                continue;
+            }
+
+            // Check collisions with enemies
+            for (let j = 0; j < gameState.entities.enemies.length; j++) {
+                let e = gameState.entities.enemies[j];
+                if (!e.isDisposed() && b.intersectsMesh(e, false)) {
+                    // Destroy enemy with particle effect
+                    createExplosion(e.position);
+                    e.dispose();
+                    gameState.entities.enemies.splice(j, 1);
+
+                    // Remove bullet
+                    b.dispose();
+                    gameState.entities.bullets.splice(i, 1);
+
+                    // Update score
+                    gameState.player.score += 100;
+                    if (gameState.resources.scoreText) {
+                        gameState.resources.scoreText.text = gameState.player.score.toString();
+                    }
+
+                    break;
+                }
+            }
+
+            // Check collisions with walls
+            for (let j = 0; j < gameState.entities.walls.length; j++) {
+                let w = gameState.entities.walls[j];
+                if (!w.isDisposed() && b.intersectsMesh(w, false)) {
+                    // Bullet hits wall - create small effect
+                    createWallImpact(b.position, b.direction);
+
+                    // Remove bullet
+                    b.dispose();
+                    gameState.entities.bullets.splice(i, 1);
+                    break;
+                }
+            }
+        }
+    };
+
+    /**
+     * Creates a small particle effect when a bullet hits a wall
+     * @param {BABYLON.Vector3} position - Impact position
+     * @param {BABYLON.Vector3} direction - Impact direction
+     */
+    const createWallImpact = function (position, direction) {
+        // Create a small particle system for wall impact
+        var impactSystem = new BABYLON.ParticleSystem("impact", 30, scene);
+
+        // Use simple particle texture
+        impactSystem.particleTexture = new BABYLON.Texture("data:image/png;base64," + TEXTURES.fallbackPixel, scene);
+
+        // Set the impact position slightly away from the wall to avoid clipping
+        const impactPos = position.subtract(direction.scale(0.1));
+        impactSystem.emitter = impactPos;
+
+        // Make particles emit in hemisphere facing away from impact point
+        impactSystem.direction1 = direction.scale(-1).add(new BABYLON.Vector3(0.5, 0.5, 0.5));
+        impactSystem.direction2 = direction.scale(-1).add(new BABYLON.Vector3(-0.5, 0.5, -0.5));
+
+        // Cyberpunk colors for impact
+        impactSystem.color1 = new BABYLON.Color4(0, 1, 1, 1);
+        impactSystem.color2 = new BABYLON.Color4(1, 0, 1, 1);
+        impactSystem.colorDead = new BABYLON.Color4(0.5, 0, 0.5, 0);
+
+        // Small, fast particles
+        impactSystem.minSize = 0.05;
+        impactSystem.maxSize = 0.1;
+        impactSystem.minLifeTime = 0.1;
+        impactSystem.maxLifeTime = 0.3;
+        impactSystem.emitRate = 100;
+        impactSystem.minEmitPower = 0.5;
+        impactSystem.maxEmitPower = 2;
+        impactSystem.updateSpeed = 0.005;
+        impactSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+
+        // Start and auto dispose
+        impactSystem.start();
+        setTimeout(() => {
+            impactSystem.stop();
+            setTimeout(() => {
+                impactSystem.dispose();
+            }, 300);
+        }, 100);
+    };
+
+    /**
+     * Adds a "Jump" keybind for modern mode, separate from shooting
+     */
+    const setupJumpKey = function () {
+        // Add "Jump" on 'J' key for modern mode
+        scene.onKeyboardObservable.add((kbInfo) => {
+            if (gameState.current === "playing" &&
+                kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN &&
+                kbInfo.event.code === "KeyJ" &&
+                !kbInfo.event.repeat &&
+                CONFIG.gameMode === "modern") {
+                camera.cameraDirection.y += CONFIG.player.jumpHeight;
+            }
+        });
+    };
+
+    // ------------------------------------------------------
+    // INITIALIZE GAME
+    // ------------------------------------------------------
+    // Setup environment
+    setupCyberpunkEnvironment();
+
+    // Create UI screens
+    createGameUI();
+
+    // Set up jump key
+    setupJumpKey();
+
+    // Add initial functions to scene ready observable
+    scene.executeWhenReady(() => {
+        // Scene is ready, do any final initialization
+        console.log("Cyberpunk FPS initialized");
+    });
+
+    // Return the scene
+    return scene;
+};
+                window.initFunction = async function() {
+                    
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+                    
+                    const engineOptions = window.engine.getCreationOptions();
+                    if (engineOptions.audioEngine !== false) {
+                        BABYLON.AbstractEngine.audioEngine = BABYLON.AbstractEngine.AudioEngineFactory(window.engine.getRenderingCanvas(), window.engine.getAudioContext(), window.engine.getAudioDestination());
+                    }
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene
+                    });
+
+                    // Resize
+                    window.addEventListener("resize", function () {
+                        engine.resize();
+                    });
+        </script>
+    </body>
+</html>

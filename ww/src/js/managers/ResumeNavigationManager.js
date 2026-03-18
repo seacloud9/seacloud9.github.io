@@ -277,29 +277,29 @@ class ResumeNavigationManager {
     // Animate camera to cinematic view during boat settle
     this.animateCameraToCinematicView()
 
-    // Phase 1: Wait for boat to settle, then start crystal rise
+    // Phase 1: Wait for boat to settle, then start animations
     setTimeout(() => {
-      console.log(`💎 Starting glowing crystal rise...`)
-      this.showCrystalRise()
+      // DISABLED: Crystal effect - rendering pipeline incompatibility
+      // The crystals were being created correctly but invisible due to a fundamental
+      // rendering issue that we couldn't resolve. Skipping this phase.
 
-      // Phase 2: After crystals rise, show 3D triforce
+      // Start 3D triforce directly
+      console.log(`✨ Starting 3D shader triforce...`)
+      console.log(`⏱️  Will run for ${config.shader3D.totalDuration}ms before CSS triforce`)
+      this.show3DTriforceAnimation()
+
+      // Phase 2: After 3D animation, show CSS triforce
       setTimeout(() => {
-        console.log(`✨ Starting 3D shader triforce...`)
-        this.show3DTriforceAnimation()
+        console.log(`🔺 Starting CSS triforce overlay (after ${config.shader3D.totalDuration}ms delay)...`)
+        this.showTriforceAnimation()
 
-        // Phase 3: After 3D animation, show CSS triforce
+        // Phase 3: After CSS animation, show modal
         setTimeout(() => {
-          console.log(`🔺 Starting CSS triforce overlay...`)
-          this.showTriforceAnimation()
-
-          // Phase 4: After CSS animation, show modal
-          setTimeout(() => {
-            console.log(`📋 Opening modal with content...`)
-            this.hideTriforceAnimation()
-            this.openDetailModal(this.currentIsland.id)
-          }, config.css2D.totalDuration + config.modal.pauseBeforeFade)
-        }, config.shader3D.totalDuration)
-      }, config.crystals.duration)
+          console.log(`📋 Opening modal with content...`)
+          this.hideTriforceAnimation()
+          this.openDetailModal(this.currentIsland.id)
+        }, config.css2D.totalDuration + config.modal.pauseBeforeFade)
+      }, config.shader3D.totalDuration)
     }, config.boatSettleDelay)
   }
 
@@ -387,7 +387,13 @@ class ResumeNavigationManager {
       console.warn('⚠️  Triforce effect not initialized')
       return
     }
-    this.triforceEffect.play()
+
+    // Get boat position to position triforce
+    // boat has structure: boat.object.position
+    const boatPosition = this.boat?.object?.position || { x: 0, y: 0, z: 0 }
+    console.log(`🔺 Positioning 3D triforce at boat: (${boatPosition.x.toFixed(2)}, ${boatPosition.y.toFixed(2)}, ${boatPosition.z.toFixed(2)})`)
+
+    this.triforceEffect.play(boatPosition)
   }
 
   /**

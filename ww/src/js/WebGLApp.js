@@ -299,6 +299,14 @@ export default class WebGLApp {
     }
 
     if (view && this.#isViewRenderingEnabled) {
+      // Ensure WebGL state is correct after render targets
+      const gl = this.#renderer.instance.getContext()
+      gl.colorMask(true, true, true, true)
+      gl.depthMask(true)
+
+      // Clear color and depth before main render (autoClear is false)
+      this.#renderer.instance.clear(true, true, false)
+
       this.#renderer.render(view.scene, view.camera)
       this.depthViewer?.render(this.#renderer.instance)
 

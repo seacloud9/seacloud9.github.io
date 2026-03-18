@@ -6,25 +6,25 @@ export const ANIMATION_CONFIG = {
   // Triforce Arrival Sequence
   triforce: {
     // Pre-animation
-    boatSettleDelay: 1000, // Wait for boat to stop (was 500ms) - SLOWER
+    boatSettleDelay: 800, // Wait for boat to stop - snappier
 
-    // Rising Crystals (NEW - dramatic buildup)
+    // Rising Crystals (DISABLED - rendering issues)
     crystals: {
-      count: 12, // Number of glowing crystals
-      spreadRadius: 6.0, // How far they spread around boat (increased for visibility)
-      riseSpeed: 3.0, // Upward velocity (increased)
-      duration: 3000, // Total crystal animation duration (3s)
-      yPosition: 1.0, // Starting height above water (lowered to see them rise from water)
+      count: 12,
+      spreadRadius: 6.0,
+      riseSpeed: 3.0,
+      duration: 0, // Set to 0 since disabled
+      yPosition: 1.0,
     },
 
-    // 3D Shader Animation (NEW - inspired by original game)
+    // 3D Shader Animation - RE-ENABLED (testing with construction-time add)
     shader3D: {
-      fadeInDuration: 1000, // 3D triforce fade-in
-      rotationSpeed: 0.5, // Rotation multiplier (radians/sec)
-      glowPulseDuration: 2500, // Glow pulse cycle
-      holdDuration: 1500, // Hold at peak before fade
-      fadeOutDuration: 800, // Fade-out time
-      totalDuration: 5800, // Total 3D animation: 1000+2500+1500+800
+      fadeInDuration: 600,
+      rotationSpeed: 0.8,
+      glowPulseDuration: 1500,
+      holdDuration: 800,
+      fadeOutDuration: 500,
+      totalDuration: 3400, // Back to normal duration
 
       // Particle system
       particles: {
@@ -44,13 +44,13 @@ export const ANIMATION_CONFIG = {
       },
     },
 
-    // CSS SVG Animation (existing, but slower)
+    // CSS SVG Animation - snappier timing
     css2D: {
-      pieceDuration: 1400, // Each piece animation (was 600ms) - SLOWER
-      pieceStagger: 500, // Delay between pieces (was 200ms) - SLOWER
-      glowDuration: 1500, // Glow pulse duration (was 800ms) - SLOWER
-      glowDelay: 1600, // When to start glow (was 1000ms) - SLOWER
-      totalDuration: 4100, // Total: 1400 + (500*2) + 1500 = 4100ms
+      pieceDuration: 800, // Each piece animation - faster
+      pieceStagger: 250, // Delay between pieces - tighter
+      glowDuration: 1000, // Glow pulse duration - quicker
+      glowDelay: 900, // When to start glow - earlier
+      totalDuration: 2300, // Total: 800 + (250*2) + 1000 = 2300ms
 
       // Easing functions
       easing: {
@@ -61,10 +61,10 @@ export const ANIMATION_CONFIG = {
 
     // Modal Transition
     modal: {
-      pauseBeforeFade: 300, // Pause after triforce fades
-      fadeInDuration: 800, // Modal fade/scale (was 400ms) - SLOWER
+      pauseBeforeFade: 200, // Brief pause after triforce fades
+      fadeInDuration: 600, // Modal fade/scale - snappier
       scaleEasing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', // Smooth pop-in
-      initialDelay: 80, // Delay before starting modal animation
+      initialDelay: 60, // Minimal delay
     },
 
     // Cinematic Camera
@@ -105,8 +105,8 @@ export const ANIMATION_CONFIG = {
   },
 }
 
-// Total timeline: 1000 (settle) + 3000 (crystals) + 5800 (3D triforce) + 4100 (CSS) + 300 (pause) + 800 (modal) = 15,000ms (15 seconds)
-// Much more cinematic and memorable than old 2.7s! Now with dramatic crystal buildup!
+// Total timeline: 800 (settle) + 0 (crystals disabled) + 3400 (3D triforce) + 2300 (CSS) + 200 (pause) + 600 (modal) = 7,300ms (~7 seconds)
+// Snappier and more engaging - crystals disabled due to rendering issues
 
 console.log(
   `✨ Triforce arrival sequence duration: ${ANIMATION_CONFIG.triforce.totalSequenceTime}ms`

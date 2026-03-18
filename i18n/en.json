@@ -1,0 +1,227 @@
+{
+  "meta": {
+    "title": "Brendon Smith — Creative Engineer",
+    "description": "Crafting immersive digital experiences at the intersection of AI, art & engineering"
+  },
+  "loading": {
+    "initializing": "Initializing Experience...",
+    "selecting": "Selecting Portfolio Experience...",
+    "hint": "Loading immersive portfolio..."
+  },
+  "nav": {
+    "logo": "BRENDON SMITH",
+    "about": "About",
+    "experience": "Experience",
+    "work": "Projects",
+    "projects": "Projects",
+    "oss": "Open Source",
+    "contact": "Contact"
+  },
+  "hero": {
+    "tag": "Creative Engineer — 15+ Years",
+    "tagAlt": "Creative Engineer — 15+ Years",
+    "firstName": "Brendon",
+    "lastName": "Smith",
+    "fullName": "Brendon Smith",
+    "subtitle": "Crafting immersive digital experiences at the intersection of AI, art & engineering — from AI-powered XR platforms to FDA-approved therapeutics.",
+    "subtitleShort": "Crafting immersive digital experiences at the intersection of AI, art & engineering.",
+    "subtitleExtended": "Crafting immersive digital experiences at the intersection of AI, art & engineering — from AI-powered XR platforms to FDA-approved therapeutics & holographic retail.",
+    "scrollHint": "Scroll to explore",
+    "location": "Berkeley, CA",
+    "locationAlt": "SF Bay Area"
+  },
+  "about": {
+    "label": "About",
+    "title": "Engineering the <span class=\"it\">future</span> of digital",
+    "titleAlt": "Engineering the <span class=\"it\">future</span> of digital interaction",
+    "bio1": "I'm a <strong>creative engineer</strong> in the SF Bay Area with 10+ years across <strong>AI, media, gaming, biomedical, and immersive tech</strong>. I specialize in React, Three.js, WebXR, Babylon.js, and <strong>AI-driven development with LangChain, OpenAI, and Anthropic APIs</strong>.",
+    "bio1Alt": "I'm a <strong>creative engineer</strong> in the SF Bay Area with 10+ years across <strong>AI, media, gaming, biomedical, and immersive tech</strong>. I specialize in React, Three.js, WebXR, and <strong>AI development with LangChain, OpenAI, and Anthropic</strong>.",
+    "bio2": "From building <strong>m{ai}geXR</strong>, an AI platform generating 3D/XR from natural language, to the first <strong>FDA-approved digital therapeutic</strong> — I thrive where AI, creativity, and code converge.",
+    "stats": {
+      "years": {
+        "value": "15+",
+        "label": "Years"
+      },
+      "repos": {
+        "value": "300",
+        "label": "Repos"
+      },
+      "users": {
+        "value": "70M+",
+        "label": "Users"
+      },
+      "ai": {
+        "value": "AI",
+        "label": "LangChain<br>OpenAI"
+      }
+    }
+  },
+  "experience": {
+    "label": "Experience",
+    "title": "Selected <span class=\"it\">Experience</span>",
+    "items": [
+      {
+        "date": "2022 — Now",
+        "role": "Senior | Principal Software Engineer",
+        "company": "Independent App Development - Freelance — Private Clients, Microsoft, Rock Paper Reality",
+        "description": "Holographic retail for Microsoft, AR campaigns with 8th Wall, React-Native and Shopify apps. Created Vibe coding 3D scene generator -> m{ai}geXR that has native mobile support on iOS and Android.",
+        "tags": ["React Native", "Three.js", "8th Wall", "Unity", "WebAR", "Shopify", "Stripe"]
+      },
+      {
+        "date": "2024 — 2026",
+        "role": "Applications Developer L4",
+        "company": "UC Davis — RSS",
+        "description": "Building microservices and applications with React, GraphQL, and MongoDB. Worked on enterprise software specifically the no-code Library Management.",
+        "descriptionAlt": "Building AI-powered microservices and applications with React, GraphQL, and MongoDB. Worked on enterprise software specifically the no-code Library Management.",
+        "tags": ["React", "LangChain", "AI Agents"]
+      },
+      {
+        "date": "2021 — 2022",
+        "role": "Sr. Engineer / FE Lead",
+        "company": "King (Candy Crush)",
+        "description": "Led loyalty platform front-end, data-driven UI optimization.",
+        "descriptionAlt": "Loyalty platform, data-driven optimization.",
+        "tags": ["React", "TypeScript", "D3"]
+      },
+      {
+        "date": "2016 — 2019",
+        "role": "Sr. Software Engineer",
+        "company": "Akili Interactive",
+        "description": "Helped Pioneer ADHD INsights FDA-approved digital therapeutic.",
+        "descriptionAlt": "EndeavorRx — first FDA digital therapeutic.",
+        "tags": ["React Native", "HIPAA", "FDA"]
+      },
+      {
+        "date": "2012 — 2016",
+        "role": "Sr. Software Engineer",
+        "company": "CBS Interactive",
+        "description": "CBS All Access streaming, Big Brother Live Feeds for millions.",
+        "descriptionAlt": "CBS All Access streaming for millions.",
+        "tags": ["React", "WebGL", "Streaming"]
+      }
+    ]
+  },
+  "skills": {
+    "marquee": ["React", "Babylon.js", "Three.js", "LangChain", "TypeScript", "WebXR", "Node.js", "GraphQL", "GLSL"]
+  },
+  "projects": {
+    "label": "Selected Work",
+    "title": "Projects that <span class=\"it\">shaped</span> experiences",
+    "items": [
+      {
+        "number": "01",
+        "name": "ADHD Insights and EndeavorRx",
+        "org": "Akili Interactive",
+        "description": "FDA-approved digital therapeutic for ADHD. HIPAA-compliant dashboards and native apps.",
+        "descriptionAlt": "FDA-approved digital therapeutic for ADHD.",
+        "tags": ["FDA", "React Native", "HIPAA"]
+      },
+      {
+        "number": "02",
+        "name": "Candy Crush Loyalty",
+        "org": "King",
+        "description": "Loyalty platform front-end — data-driven booster sales through A/B testing.",
+        "descriptionAlt": "Loyalty platform — A/B testing at scale.",
+        "tags": ["React", "TypeScript", "Analytics"]
+      },
+      {
+        "number": "03",
+        "name": "Holographic Retail",
+        "org": "Microsoft",
+        "description": "Holographic retail and immersive AR advertising with 8th Wall and Unity.",
+        "descriptionAlt": "Holographic retail and AR with 8th Wall + Unity.",
+        "tags": ["WebAR", "Three.js", "Unity"]
+      },
+      {
+        "number": "04",
+        "name": "CBS All Access",
+        "org": "CBS Interactive",
+        "description": "One of the first major streaming platforms — Paramount+ foundations.",
+        "descriptionAlt": "First major streaming platform — Paramount+.",
+        "tags": ["Streaming", "React", "WebGL"]
+      }
+    ]
+  },
+  "opensource": {
+    "label": "Open Source",
+    "title": "AI & XR <span class=\"it\">Open Source</span>",
+    "titleAlt": "AI & XR <span class=\"it\">open source</span>",
+    "items": [
+      {
+        "badge": "AI + XR",
+        "icon": "🧠",
+        "name": "m{ai}geXR",
+        "tagline": "From conversation to creation",
+        "taglineAlt": "Conversation to creation",
+        "description": "AI platform: natural language → 3D/XR. 5+ AI providers, 5+ frameworks, 3 platforms.",
+        "descriptionAlt": "Natural language → 3D/XR. 5+ AI providers, 3 platforms.",
+        "stats": ["3 Platforms", "5+ AI"],
+        "link": "View Project →",
+        "linkAlt": "View →",
+        "url": "https://maigexr.vercel.app/"
+      },
+      {
+        "badge": "Game Engine",
+        "badgeAlt": "Engine",
+        "icon": "🎮",
+        "name": "NOVA64",
+        "tagline": "Fantasy console",
+        "description": "N64/PS1-era 3D games in browser. GPU engine, voxels, physics, 20+ demos.",
+        "descriptionAlt": "N64-era 3D games in browser. 20+ demos.",
+        "stats": ["20+ Demos", "3D Engine"],
+        "link": "View Project →",
+        "linkAlt": "View →",
+        "url": "https://starcade9.github.io/"
+      },
+      {
+        "badge": "React + 3D",
+        "badgeAlt": "React",
+        "icon": "⚛️",
+        "name": "react-babylonjs",
+        "tagline": "React for Babylon.js",
+        "description": "Declarative React renderer for Babylon.js 3D engine.",
+        "descriptionAlt": "Declarative renderer for Babylon.js.",
+        "stats": ["React", "Babylon.js"],
+        "link": "GitHub →",
+        "url": "https://github.com/seacloud9/react-babylonjs"
+      }
+    ]
+  },
+  "contact": {
+    "label": "Contact",
+    "title": "Let's build<br>something <span class=\"it gl\">incredible</span>",
+    "links": [
+      {
+        "label": "Email →",
+        "url": "mailto:Brendonsmith@seacloud9.org"
+      },
+      {
+        "label": "GitHub →",
+        "url": "https://github.com/seacloud9"
+      },
+      {
+        "label": "LinkedIn →",
+        "url": "https://www.linkedin.com/in/brendonsmith/"
+      },
+      {
+        "label": "X →",
+        "url": "https://x.com/seacloud9"
+      },
+      {
+        "label": "Studio →",
+        "url": "https://seacloud9.studio"
+      }
+    ]
+  },
+  "footer": {
+    "copyright": "© 2026 Brendon Smith",
+    "editions": {
+      "vaporwave": "Vaporwave Edition — Flying Through Digital Dreams",
+      "vaporwaveCircuit": "Vaporwave Circuit — Infinite Horizon",
+      "ocean": "Ocean Edition — Deep Sea Bioluminescence",
+      "storm": "Storm Edition",
+      "terrain": "Terrain Edition — Procedural WebGL Landscape",
+      "neural": "Neural Edition"
+    }
+  }
+}

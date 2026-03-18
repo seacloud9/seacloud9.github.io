@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brendon Smith — Vaporwave Terrain Edition</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+    --bg:#0a0515;
+    --fg:#e8e4df;
+    --fg2:rgba(232,228,223,.85);
+    --fg3:rgba(232,228,223,.5);
+    --cyan:#00ffff;
+    --pink:#ff00ff;
+    --purple:#b388ff;
+    --orange:#ff6ec7;
+    --glow-cyan:rgba(0,255,255,.25);
+    --glow-pink:rgba(255,0,255,.25);
+    --card-bg:rgba(14, 7, 30, 0.45);
+    --card-bg-inner:rgba(6, 3, 14, 0.75);
+    --card-border:rgba(255,255,255,.08);
+    --line:rgba(255,255,255,.05);
+    --display:'Space Grotesk',sans-serif;
+    --vaporwave:'Orbitron',sans-serif;
+    --serif:'Fraunces',serif
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:var(--display);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+#renderCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;outline:none}
+.grain{position:fixed;inset:0;z-index:9997;pointer-events:none;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px}
+.scanlines{position:fixed;inset:0;z-index:9998;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.08) 0px,rgba(0,0,0,.08) 1px,transparent 1px,transparent 2px);opacity:.4}
+.vignette{position:fixed;inset:0;z-index:9999;pointer-events:none;background:radial-gradient(circle at center,transparent 0%,transparent 50%,rgba(10,5,21,.6) 100%)}
+#perf-badge{position:fixed;top:100px;right:24px;z-index:100;font-family:var(--vaporwave);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);background:rgba(0,0,0,.7);backdrop-filter:blur(12px);padding:10px 16px;border-radius:10px;border:1px solid var(--cyan);box-shadow:0 0 20px var(--glow-cyan);display:flex;flex-direction:column;gap:4px}
+#perf-badge .fps{font-family:var(--vaporwave);font-size:24px;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.scroll-content{position:relative;z-index:10}
+nav{position:fixed;top:0;left:0;width:100%;padding:24px 48px;display:flex;justify-content:space-between;align-items:center;z-index:200;background:rgba(10,5,21,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--cyan);box-shadow:0 0 30px var(--glow-cyan)}
+.logo{font-family:var(--vaporwave);font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.02em;text-shadow:0 0 20px var(--glow-cyan)}
+.nav-mid{display:flex;gap:36px;list-style:none}
+.nav-mid a{color:var(--fg2);text-decoration:none;font-family:var(--vaporwave);font-size:10px;letter-spacing:.18em;text-transform:uppercase;transition:all .3s;padding:8px 14px;border-radius:8px}
+.nav-mid a:hover{color:var(--cyan);background:rgba(0,255,255,.08);box-shadow:0 0 15px var(--glow-cyan)}
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:8px;background:none;border:none}
+.hamburger span{display:block;width:22px;height:2px;background:var(--cyan);border-radius:2px;transition:all .3s;box-shadow:0 0 10px var(--glow-cyan)}
+.hamburger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}.hamburger.open span:nth-child(2){opacity:0}.hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+.mobile-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:250;flex-direction:column;justify-content:center;align-items:center;gap:28px;opacity:0;pointer-events:none;transition:opacity .4s}
+.mobile-overlay.open{opacity:1;pointer-events:all}
+.mobile-overlay a{font-family:var(--vaporwave);font-size:32px;font-weight:700;color:var(--fg);text-decoration:none;opacity:0;transform:translateY(16px);transition:all .45s}
+.mobile-overlay.open a{opacity:1;transform:translateY(0)}.mobile-overlay.open a:nth-child(1){transition-delay:.06s}.mobile-overlay.open a:nth-child(2){transition-delay:.12s}.mobile-overlay.open a:nth-child(3){transition-delay:.18s}.mobile-overlay.open a:nth-child(4){transition-delay:.24s}.mobile-overlay.open a:nth-child(5){transition-delay:.3s}
+.mobile-overlay a:hover{background:linear-gradient(135deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* HERO SECTION */
+.hero{height:100vh;display:flex;align-items:center;justify-content:center;padding:0 48px;text-align:center}
+.hero-glass{background:var(--card-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(0,255,255,0.25);border-radius:32px;padding:72px 64px;box-shadow:0 20px 50px rgba(0,0,0,0.6), inset 0 0 30px rgba(0,255,255,0.05);max-width:960px;width:100%}
+.hero-tag{font-family:var(--vaporwave);font-size:11px;letter-spacing:.28em;text-transform:uppercase;margin-bottom:28px;opacity:0;animation:fu .75s ease .5s forwards}
+.hero-tag span{background:linear-gradient(90deg,var(--cyan),var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 0 20px var(--glow-cyan)}
+.hero-h{font-family:var(--vaporwave);font-size:clamp(64px,13vw,180px);font-weight:900;line-height:.88;letter-spacing:-.05em;opacity:0;transform:translateY(50px);animation:fu 1.1s ease .7s forwards;text-shadow:0 8px 30px rgba(0,0,0,0.8)}
+.hero-h .gl{background:linear-gradient(135deg,var(--cyan),var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 0 40px var(--glow-pink)}
+.hero-h .it{font-family:var(--serif);font-style:italic;font-weight:300;-webkit-text-fill-color:var(--fg)}
+.hero-sub{font-family:var(--serif);font-size:clamp(18px,2.5vw,26px);font-weight:400;color:var(--fg2);margin-top:36px;max-width:640px;line-height:1.7;opacity:0;animation:fu .9s ease 1s forwards;margin-left:auto;margin-right:auto;text-shadow:0 4px 15px rgba(0,0,0,0.9)}
+
+/* SECTIONS & GLASS LAYERS */
+.section{padding:120px 0}
+.container{max-width:1200px;margin:0 auto;padding:0 48px}
+.glass{background:var(--card-bg);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--cyan);border-radius:32px;padding:60px 52px;box-shadow:0 12px 40px rgba(0,0,0,.4),0 0 30px var(--glow-cyan)}
+.inner-glass{background:var(--card-bg-inner);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:44px;box-shadow:0 10px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.5)}
+
+.slbl{font-family:var(--vaporwave);font-size:10px;letter-spacing:.32em;text-transform:uppercase;margin-bottom:24px;display:inline-flex;align-items:center;gap:10px;padding:6px 16px;border-radius:24px;border:1px solid var(--cyan);background:var(--card-bg-inner);box-shadow:0 0 20px var(--glow-cyan)}
+.slbl span{background:linear-gradient(90deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sh{font-family:var(--vaporwave);font-size:clamp(36px,5.5vw,68px);font-weight:700;line-height:1.1;margin-bottom:40px;letter-spacing:-.03em;text-shadow:0 4px 20px rgba(0,0,0,0.6)}
+.sh .it{font-family:var(--serif);font-style:italic;font-weight:300}
+
+.bt{font-family:var(--display);font-weight:500;font-size:18px;line-height:1.88;color:var(--fg2);margin-bottom:24px;text-shadow:0 2px 10px rgba(0,0,0,0.9)}
+.bt strong{color:var(--cyan);font-weight:700;text-shadow:0 0 10px var(--glow-cyan), 0 2px 10px rgba(0,0,0,0.9)}
+
+.about-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:64px;align-items:start}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.st{background:var(--card-bg-inner);border:1px solid rgba(255,255,255,0.08);padding:36px 26px;border-radius:20px;backdrop-filter:blur(16px);transition:all .5s;box-shadow:0 10px 30px rgba(0,0,0,0.3)}
+.st:hover{border-color:var(--pink);box-shadow:0 0 28px var(--glow-pink),0 12px 24px rgba(0,0,0,.4);transform:translateY(-4px)}
+.st-v{font-family:var(--vaporwave);font-size:48px;font-weight:800;background:linear-gradient(135deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;text-shadow:0 4px 15px rgba(0,0,0,0.5)}
+.st-l{font-family:var(--vaporwave);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);margin-top:12px}
+
+.exp-container{display:flex;flex-direction:column;gap:20px}
+.exp-item{display:grid;grid-template-columns:160px 1fr;gap:36px;transition:all .45s;cursor:pointer}
+.exp-item:hover{border-color:var(--cyan);box-shadow:0 0 25px var(--glow-cyan),0 10px 30px rgba(0,0,0,.5);transform:translateY(-4px)}
+.exp-d{font-family:var(--vaporwave);font-size:10px;color:var(--cyan);padding-top:5px;text-shadow:0 0 10px var(--glow-cyan), 0 2px 5px rgba(0,0,0,0.8)}
+.exp-r{font-family:var(--vaporwave);font-size:22px;font-weight:700;margin-bottom:4px;text-shadow:0 2px 10px rgba(0,0,0,0.8)}
+.exp-c{font-family:var(--serif);font-style:italic;font-size:16px;margin-bottom:14px;background:linear-gradient(90deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 2px 10px rgba(0,0,0,0.8)}
+.exp-t{font-family:var(--display);font-weight:500;font-size:15px;line-height:1.8;color:var(--fg2);max-width:560px;text-shadow:0 2px 10px rgba(0,0,0,0.9)}
+.exp-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.exp-tags span{font-family:var(--vaporwave);font-size:8px;text-transform:uppercase;padding:6px 14px;border:1px solid rgba(0,255,255,.38);color:var(--cyan);border-radius:24px;background:rgba(0,255,255,.05);box-shadow:0 0 10px var(--glow-cyan), 0 2px 5px rgba(0,0,0,0.5)}
+
+.mq-w{overflow:hidden;padding:32px 0;border-top:1px solid var(--cyan);border-bottom:1px solid var(--cyan);box-shadow:0 0 20px var(--glow-cyan), inset 0 0 20px var(--glow-cyan);background:rgba(10,5,21,0.6);backdrop-filter:blur(10px)}
+.mq-w+.mq-w{border-top:none}
+.mq-t{display:flex;gap:44px;animation:mq 30s linear infinite;width:max-content}
+.mq-t.rv{animation-direction:reverse;animation-duration:36s}
+.mq-s{font-family:var(--vaporwave);font-size:clamp(26px,4.5vw,52px);font-weight:800;white-space:nowrap;background:linear-gradient(135deg,rgba(0,255,255,.25),rgba(255,0,255,.25));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;transition:all .45s}
+.mq-s:hover{background:linear-gradient(90deg,var(--cyan),var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 0 30px var(--glow-cyan)}
+.mq-d{opacity:.48;font-size:18px;align-self:center;color:var(--cyan);text-shadow:0 0 10px var(--glow-cyan)}
+
+.pj-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px}
+.pj{background:var(--card-bg-inner);border:1px solid rgba(255,255,255,0.08);padding:52px 44px;border-radius:24px;backdrop-filter:blur(20px);transition:all .55s;cursor:pointer;overflow:hidden;position:relative;box-shadow:0 10px 30px rgba(0,0,0,0.4)}
+.pj::after{content:'';position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,var(--cyan),var(--pink),var(--purple));transform:scaleX(0);transform-origin:left;transition:transform .55s}
+.pj:hover{border-color:var(--pink);transform:translateY(-6px);box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 35px var(--glow-pink)}.pj:hover::after{transform:scaleX(1)}
+.pj-n{font-family:var(--vaporwave);font-size:68px;font-weight:900;background:linear-gradient(135deg,rgba(0,255,255,.25),rgba(255,0,255,.2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:16px;text-shadow:0 4px 20px rgba(0,0,0,0.5)}
+.pj-name{font-family:var(--vaporwave);font-size:26px;font-weight:700;margin-bottom:6px;text-shadow:0 2px 10px rgba(0,0,0,0.8)}
+.pj-org{font-family:var(--serif);font-style:italic;font-size:15px;margin-bottom:18px;background:linear-gradient(90deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 2px 10px rgba(0,0,0,0.8)}
+.pj-desc{font-family:var(--display);font-weight:500;font-size:15px;line-height:1.85;color:var(--fg2);text-shadow:0 2px 10px rgba(0,0,0,0.9)}
+.pj-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.pj-tags span{font-family:var(--vaporwave);font-size:8px;text-transform:uppercase;padding:6px 14px;border:1px solid rgba(255,0,255,.38);color:var(--pink);border-radius:24px;background:rgba(255,0,255,.05);box-shadow:0 0 10px var(--glow-pink), 0 2px 5px rgba(0,0,0,0.5)}
+
+.oss-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:20px}
+.oss-card{background:var(--card-bg-inner);border:1px solid rgba(255,255,255,0.08);padding:44px 36px;border-radius:24px;backdrop-filter:blur(20px);text-decoration:none;color:var(--fg);display:block;transition:all .55s;box-shadow:0 10px 30px rgba(0,0,0,0.4)}
+.oss-card:hover{border-color:var(--pink);box-shadow:0 0 35px var(--glow-pink),0 16px 40px rgba(0,0,0,.6);transform:translateY(-6px)}
+.oss-badge{display:inline-block;font-family:var(--vaporwave);font-size:8px;letter-spacing:.12em;text-transform:uppercase;padding:5px 14px;border-radius:24px;margin-bottom:18px;background:linear-gradient(135deg,var(--cyan),var(--pink));color:#000;font-weight:500;box-shadow:0 0 20px var(--glow-cyan)}
+.oss-icon{font-size:32px;margin-bottom:14px}
+.oss-name{font-family:var(--vaporwave);font-size:24px;font-weight:700;margin-bottom:5px;text-shadow:0 2px 10px rgba(0,0,0,0.8)}
+.oss-tagline{font-family:var(--serif);font-style:italic;font-size:14px;margin-bottom:16px;background:linear-gradient(90deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 2px 10px rgba(0,0,0,0.8)}
+.oss-desc{font-family:var(--display);font-weight:500;font-size:13px;line-height:1.8;color:var(--fg2);margin-bottom:16px;text-shadow:0 2px 10px rgba(0,0,0,0.9)}
+.oss-stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.oss-stats span{font-family:var(--vaporwave);font-size:8px;padding:5px 12px;border:1px solid var(--cyan);color:var(--cyan);border-radius:24px;box-shadow:0 0 10px var(--glow-cyan), 0 2px 5px rgba(0,0,0,0.5);background:rgba(0,255,255,0.05)}
+.oss-link{font-family:var(--vaporwave);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--cyan);margin-top:14px;text-shadow:0 0 10px var(--glow-cyan), 0 2px 5px rgba(0,0,0,0.8)}
+
+.cta-h{font-family:var(--vaporwave);font-size:clamp(52px,10vw,120px);font-weight:900;line-height:.97;margin-bottom:52px;text-shadow:0 8px 30px rgba(0,0,0,0.6)}
+.cta-h .it{font-family:var(--serif);font-style:italic;font-weight:300}
+.cta-h .gl{background:linear-gradient(135deg,var(--cyan),var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 0 30px var(--glow-pink)}
+.clinks{display:flex;gap:14px;flex-wrap:wrap}
+.cl{text-decoration:none;color:var(--fg2);font-family:var(--vaporwave);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:16px 32px;border:1px solid var(--cyan);border-radius:16px;background:var(--card-bg-inner);backdrop-filter:blur(16px);transition:all .35s;text-shadow:0 2px 5px rgba(0,0,0,0.8);box-shadow:0 8px 20px rgba(0,0,0,0.3)}
+.cl:hover{color:var(--cyan);border-color:var(--cyan);box-shadow:0 0 20px var(--glow-cyan), 0 12px 24px rgba(0,0,0,0.5);transform:translateY(-4px)}
+footer{padding:44px 48px;display:flex;justify-content:space-between;font-size:9px;color:var(--fg3);letter-spacing:.12em;border-top:1px solid var(--cyan);box-shadow:0 0 20px var(--glow-cyan), inset 0 0 20px rgba(0,255,255,0.1);background:rgba(10,5,21,0.6);backdrop-filter:blur(10px)}
+
+@keyframes fu{to{opacity:1;transform:translateY(0)}}
+@keyframes mq{to{transform:translateX(-50%)}}
+.rv-el{opacity:0;transform:translateY(28px);transition:all 1s cubic-bezier(.19,1,.22,1)}.rv-el.vis{opacity:1;transform:translateY(0)}
+
+@media(max-width:1080px){.container{padding:0 36px}.about-grid{gap:44px}.oss-grid{grid-template-columns:1fr 1fr}.glass{padding:52px 40px}}
+@media(max-width:768px){.hamburger{display:flex}.nav-mid{display:none}.mobile-overlay{display:flex}nav{padding:18px 22px}.container{padding:0 22px}.hero{padding:0 22px}.hero-glass{padding:44px 28px;border-radius:24px}.hero-h{font-size:clamp(48px,13vw,76px)}.hero-sub{font-size:17px;max-width:100%}.section{padding:88px 0}.glass{padding:36px 24px;border-radius:24px}.inner-glass{padding:32px 24px;border-radius:20px}.about-grid{grid-template-columns:1fr;gap:32px}.stats{grid-template-columns:1fr 1fr;gap:16px}.exp-item{grid-template-columns:1fr;gap:16px}.exp-d{margin-bottom:0px}.pj-grid,.oss-grid{grid-template-columns:1fr;gap:20px}.pj{padding:40px 32px}.oss-card{padding:36px 28px}.clinks{gap:12px;flex-direction:column}.cl{text-align:center;justify-content:center}.cta-h{font-size:clamp(38px,10vw,56px)}footer{padding:28px 22px;flex-direction:column;gap:10px;text-align:center}.sh{font-size:clamp(28px,7.5vw,44px)}#perf-badge{top:auto;bottom:14px;right:14px;font-size:8px}}
+@media(max-width:480px){.hero{padding:0 16px}.hero-glass{padding:36px 20px}.hero-h{font-size:clamp(40px,13vw,60px)}.container{padding:0 16px}.section{padding:68px 0}.glass{padding:28px 20px;border-radius:20px}.inner-glass{padding:28px 20px}.sh{font-size:clamp(24px,7vw,36px)}.exp-item{padding:28px 20px}.pj{padding:32px 24px}}
+</style>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/postProcessesLibrary/babylon.postprocessLibrary.min.js"></script>
+</head>
+<body>
+<div class="grain"></div>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+<canvas id="renderCanvas"></canvas>
+<div id="perf-badge"><span class="fps">60</span>FPS<br>Vaporwave Circuit</div>
+<div class="scroll-content">
+<nav><div class="logo" data-i18n="nav.logo"></div><ul class="nav-mid"><li><a href="#about" data-i18n="nav.about"></a></li><li><a href="#exp" data-i18n="nav.experience"></a></li><li><a href="#work" data-i18n="nav.work"></a></li><li><a href="#oss" data-i18n="nav.oss"></a></li><li><a href="#contact" data-i18n="nav.contact"></a></li></ul><button class="hamburger" id="hamburger" aria-label="Menu"><span></span><span></span><span></span></button></nav>
+<div class="mobile-overlay" id="mobileMenu"><a href="#about" class="mob-link" data-i18n="nav.about"></a><a href="#exp" class="mob-link" data-i18n="nav.experience"></a><a href="#work" class="mob-link" data-i18n="nav.projects"></a><a href="#oss" class="mob-link" data-i18n="nav.oss"></a><a href="#contact" class="mob-link" data-i18n="nav.contact"></a></div>
+
+<section class="hero">
+    <div class="hero-glass rv-el">
+        <div class="hero-tag"><span data-i18n="hero.tagAlt"></span></div>
+        <h1 class="hero-h"><span class="gl" data-i18n="hero.firstName"></span><br><span class="it" data-i18n="hero.lastName"></span></h1>
+        <p class="hero-sub" data-i18n="hero.subtitle"></p>
+    </div>
+</section>
+
+<section id="about" class="section">
+    <div class="container">
+        <div class="glass">
+            <div class="about-grid">
+                <div class="inner-glass rv-el">
+                    <div class="slbl"><span data-i18n="about.label"></span></div>
+                    <h2 class="sh" data-i18n-html="about.title"></h2>
+                    <p class="bt" data-i18n-html="about.bio1"></p>
+                    <p class="bt" data-i18n-html="about.bio2"></p>
+                </div>
+                <div>
+                    <div class="stats rv-el">
+                        <div class="st"><div class="st-v" data-i18n="about.stats.years.value"></div><div class="st-l" data-i18n="about.stats.years.label"></div></div>
+                        <div class="st"><div class="st-v" data-i18n="about.stats.repos.value"></div><div class="st-l" data-i18n="about.stats.repos.label"></div></div>
+                        <div class="st"><div class="st-v" data-i18n="about.stats.users.value"></div><div class="st-l" data-i18n="about.stats.users.label"></div></div>
+                        <div class="st"><div class="st-v" data-i18n="about.stats.ai.value"></div><div class="st-l" data-i18n-html="about.stats.ai.label"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="exp" class="section">
+    <div class="container">
+        <div class="glass">
+            <div class="slbl rv-el"><span data-i18n="experience.label"></span></div>
+            <h2 class="sh rv-el" data-i18n-html="experience.title"></h2>
+            <div class="exp-container">
+              <div class="exp-item inner-glass rv-el">
+                    <span class="exp-d" data-i18n="experience.items.0.date"></span>
+                    <div>
+                        <div class="exp-r" data-i18n="experience.items.0.role"></div>
+                        <div class="exp-c" data-i18n="experience.items.0.company"></div>
+                        <div class="exp-t" data-i18n="experience.items.0.description"></div>
+                        <div class="exp-tags"><span data-i18n="experience.items.0.tags.0"></span><span data-i18n="experience.items.0.tags.1"></span><span data-i18n="experience.items.0.tags.2"></span><span data-i18n="experience.items.0.tags.3"></span><span data-i18n="experience.items.0.tags.4"></span><span data-i18n="experience.items.0.tags.5"></span><span data-i18n="experience.items.0.tags.6"></span></div>
+                    </div>
+                </div>
+
+                <div class="exp-item inner-glass rv-el">
+                    <span class="exp-d" data-i18n="experience.items.1.date"></span>
+                    <div>
+                        <div class="exp-r" data-i18n="experience.items.1.role"></div>
+                        <div class="exp-c" data-i18n="experience.items.1.company"></div>
+                        <div class="exp-t" data-i18n="experience.items.1.description"></div>
+                        <div class="exp-tags"><span data-i18n="experience.items.1.tags.0"></span><span data-i18n="experience.items.1.tags.1"></span><span data-i18n="experience.items.1.tags.2"></span></div>
+                    </div>
+                </div>
+                <div class="exp-item inner-glass rv-el">
+                    <span class="exp-d" data-i18n="experience.items.2.date"></span>
+                    <div>
+                        <div class="exp-r" data-i18n="experience.items.2.role"></div>
+                        <div class="exp-c" data-i18n="experience.items.2.company"></div>
+                        <div class="exp-t" data-i18n="experience.items.2.description"></div>
+                        <div class="exp-tags"><span data-i18n="experience.items.2.tags.0"></span><span data-i18n="experience.items.2.tags.1"></span><span data-i18n="experience.items.2.tags.2"></span></div>
+                    </div>
+                </div>
+                <div class="exp-item inner-glass rv-el">
+                    <span class="exp-d" data-i18n="experience.items.3.date"></span>
+                    <div>
+                        <div class="exp-r" data-i18n="experience.items.3.role"></div>
+                        <div class="exp-c" data-i18n="experience.items.3.company"></div>
+                        <div class="exp-t" data-i18n="experience.items.3.description"></div>
+                        <div class="exp-tags"><span data-i18n="experience.items.3.tags.0"></span><span data-i18n="experience.items.3.tags.1"></span><span data-i18n="experience.items.3.tags.2"></span></div>
+                    </div>
+                </div>
+                <div class="exp-item inner-glass rv-el">
+                    <span class="exp-d" data-i18n="experience.items.4.date"></span>
+                    <div>
+                        <div class="exp-r" data-i18n="experience.items.4.role"></div>
+                        <div class="exp-c" data-i18n="experience.items.4.company"></div>
+                        <div class="exp-t" data-i18n="experience.items.4.description"></div>
+                        <div class="exp-tags"><span data-i18n="experience.items.4.tags.0"></span><span data-i18n="experience.items.4.tags.1"></span><span data-i18n="experience.items.4.tags.2"></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="mq-w"><div class="mq-t"><span class="mq-s" data-i18n="skills.marquee.0"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.1"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.2"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.3"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.4"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.5"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.6"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.7"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.0"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.1"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.2"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.3"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.4"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.5"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.6"></span><span class="mq-d">◆</span><span class="mq-s" data-i18n="skills.marquee.7"></span><span class="mq-d">◆</span></div></div>
+
+<section id="work" class="section">
+    <div class="container">
+        <div class="glass">
+            <div class="slbl rv-el"><span data-i18n="projects.label"></span></div>
+            <h2 class="sh rv-el" data-i18n-html="projects.title"></h2>
+            <div class="pj-grid">
+                <div class="pj rv-el">
+                    <div class="pj-n" data-i18n="projects.items.0.number"></div>
+                    <div class="pj-name" data-i18n="projects.items.0.name"></div>
+                    <div class="pj-org" data-i18n="projects.items.0.org"></div>
+                    <div class="pj-desc" data-i18n="projects.items.0.description"></div>
+                    <div class="pj-tags"><span data-i18n="projects.items.0.tags.0"></span><span data-i18n="projects.items.0.tags.1"></span><span data-i18n="projects.items.0.tags.2"></span></div>
+                </div>
+                <div class="pj rv-el">
+                    <div class="pj-n" data-i18n="projects.items.1.number"></div>
+                    <div class="pj-name" data-i18n="projects.items.1.name"></div>
+                    <div class="pj-org" data-i18n="projects.items.1.org"></div>
+                    <div class="pj-desc" data-i18n="projects.items.1.description"></div>
+                    <div class="pj-tags"><span data-i18n="projects.items.1.tags.0"></span><span data-i18n="projects.items.1.tags.1"></span><span data-i18n="projects.items.1.tags.2"></span></div>
+                </div>
+                <div class="pj rv-el">
+                    <div class="pj-n" data-i18n="projects.items.2.number"></div>
+                    <div class="pj-name" data-i18n="projects.items.2.name"></div>
+                    <div class="pj-org" data-i18n="projects.items.2.org"></div>
+                    <div class="pj-desc" data-i18n="projects.items.2.description"></div>
+                    <div class="pj-tags"><span data-i18n="projects.items.2.tags.0"></span><span data-i18n="projects.items.2.tags.1"></span><span data-i18n="projects.items.2.tags.2"></span></div>
+                </div>
+                <div class="pj rv-el">
+                    <div class="pj-n" data-i18n="projects.items.3.number"></div>
+                    <div class="pj-name" data-i18n="projects.items.3.name"></div>
+                    <div class="pj-org" data-i18n="projects.items.3.org"></div>
+                    <div class="pj-desc" data-i18n="projects.items.3.description"></div>
+                    <div class="pj-tags"><span data-i18n="projects.items.3.tags.0"></span><span data-i18n="projects.items.3.tags.1"></span><span data-i18n="projects.items.3.tags.2"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="oss" class="section">
+    <div class="container">
+        <div class="glass">
+            <div class="slbl rv-el"><span data-i18n="opensource.label"></span></div>
+            <h2 class="sh rv-el" data-i18n-html="opensource.title"></h2>
+            <div class="oss-grid rv-el">
+                <a href="https://maigexr.vercel.app/" target="_blank" class="oss-card">
+                    <div class="oss-badge" data-i18n="opensource.items.0.badge"></div>
+                    <div class="oss-icon" data-i18n="opensource.items.0.icon"></div>
+                    <h3 class="oss-name" data-i18n="opensource.items.0.name"></h3>
+                    <p class="oss-tagline" data-i18n="opensource.items.0.tagline"></p>
+                    <p class="oss-desc" data-i18n="opensource.items.0.description"></p>
+                    <div class="oss-stats"><span data-i18n="opensource.items.0.stats.0"></span><span data-i18n="opensource.items.0.stats.1"></span></div>
+                    <div class="oss-link" data-i18n="opensource.items.0.link"></div>
+                </a>
+                <a href="https://starcade9.github.io/" target="_blank" class="oss-card">
+                    <div class="oss-badge" data-i18n="opensource.items.1.badge"></div>
+                    <div class="oss-icon" data-i18n="opensource.items.1.icon"></div>
+                    <h3 class="oss-name" data-i18n="opensource.items.1.name"></h3>
+                    <p class="oss-tagline" data-i18n="opensource.items.1.tagline"></p>
+                    <p class="oss-desc" data-i18n="opensource.items.1.description"></p>
+                    <div class="oss-stats"><span data-i18n="opensource.items.1.stats.0"></span><span data-i18n="opensource.items.1.stats.1"></span></div>
+                    <div class="oss-link" data-i18n="opensource.items.1.link"></div>
+                </a>
+                <a href="https://github.com/seacloud9/react-babylonjs" target="_blank" class="oss-card">
+                    <div class="oss-badge" data-i18n="opensource.items.2.badge"></div>
+                    <div class="oss-icon" data-i18n="opensource.items.2.icon"></div>
+                    <h3 class="oss-name" data-i18n="opensource.items.2.name"></h3>
+                    <p class="oss-tagline" data-i18n="opensource.items.2.tagline"></p>
+                    <p class="oss-desc" data-i18n="opensource.items.2.description"></p>
+                    <div class="oss-stats"><span data-i18n="opensource.items.2.stats.0"></span><span data-i18n="opensource.items.2.stats.1"></span></div>
+                    <div class="oss-link" data-i18n="opensource.items.2.link"></div>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="contact" class="section">
+    <div class="container">
+        <div class="glass">
+            <div class="slbl rv-el"><span data-i18n="contact.label"></span></div>
+            <h2 class="cta-h rv-el" data-i18n-html="contact.title"></h2>
+            <div class="clinks rv-el">
+                <a href="mailto:Brendonsmith@seacloud9.org" class="cl" data-i18n="contact.links.0.label"></a>
+                <a href="https://github.com/seacloud9" target="_blank" class="cl" data-i18n="contact.links.1.label"></a>
+                <a href="https://www.linkedin.com/in/brendonsmith/" target="_blank" class="cl" data-i18n="contact.links.2.label"></a>
+                <a href="https://x.com/seacloud9" target="_blank" class="cl" data-i18n="contact.links.3.label"></a>
+                <a href="https://seacloud9.studio" target="_blank" class="cl" data-i18n="contact.links.4.label"></a>
+            </div>
+        </div>
+    </div>
+</section>
+<footer><span data-i18n="footer.copyright"></span><span data-i18n="footer.editions.vaporwaveCircuit"></span></footer>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// VAPORWAVE INFINITE RUNNER SHADER SCENE
+// True infinite traversal using custom ShaderMaterials.
+// Flat central track, procedurally generated neon side mountains.
+// ═══════════════════════════════════════════════════════════════
+
+// --- SHADER DEFINITIONS ---
+
+// 1. Endless Terrain Shader
+BABYLON.Effect.ShadersStore["vaporTerrainVertexShader"] = `
+precision highp float;
+attribute vec3 position;
+attribute vec2 uv;
+
+uniform mat4 worldViewProjection;
+uniform float time;
+uniform float speed;
+
+varying vec3 vPosition;
+varying float vDepth;
+varying vec2 vUV;
+
+// Pseudo-random and noise functions
+float random (in vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+float noise (in vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+    float a = random(i);
+    float b = random(i + vec2(1.0, 0.0));
+    float c = random(i + vec2(0.0, 1.0));
+    float d = random(i + vec2(1.0, 1.0));
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+// Fractional Brownian Motion for jagged landscape
+float fbm(vec2 st) {
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100.0);
+    for (int i = 0; i < 5; ++i) {
+        v += a * noise(st);
+        st = st * 2.0 + shift;
+        a *= 0.5;
+    }
+    return v;
+}
+
+void main(void) {
+    vec3 p = position;
+    
+    // Virtual Z coordinate based on continuous time scrolling
+    float zScroll = p.z + time * speed;
+    
+    // The central track area
+    float distFromCenter = abs(p.x);
+    float trackWidth = 14.0;
+    
+    // Smooth transition: flat on the track, mountains outside
+    float landscapeMask = smoothstep(trackWidth, trackWidth + 15.0, distFromCenter);
+    
+    // Generate height
+    float h = fbm(vec2(p.x * 0.05, zScroll * 0.05)) * 40.0; // primary hills
+    h += fbm(vec2(p.x * 0.15, zScroll * 0.15)) * 15.0;      // sharp details
+    
+    p.y += h * landscapeMask;
+    
+    vec4 finalPosition = worldViewProjection * vec4(p, 1.0);
+    gl_Position = finalPosition;
+    
+    // Pass to fragment
+    vPosition = p;
+    vPosition.z = zScroll; // Critical: use the scrolled Z so the grid moves towards us
+    vDepth = finalPosition.z;
+    vUV = uv;
+}
+`;
+
+BABYLON.Effect.ShadersStore["vaporTerrainFragmentShader"] = `
+precision highp float;
+varying vec3 vPosition;
+varying float vDepth;
+varying vec2 vUV;
+
+uniform vec3 gridColor;
+uniform vec3 trackGlowColor;
+uniform vec3 bgColor;
+
+void main(void) {
+    float gridThickness = 0.06;
+    float spacing = 2.0;
+
+    // Generate scrolling grid lines based on world position
+    vec2 gridPos = fract(vPosition.xz / spacing);
+    vec2 distToEdge = min(gridPos, 1.0 - gridPos);
+    
+    // Create sharp glowing lines
+    vec2 lines = smoothstep(gridThickness, gridThickness * 0.2, distToEdge);
+    float gridAlpha = max(lines.x, lines.y);
+    
+    float distFromCenter = abs(vPosition.x);
+    float trackWidth = 14.0;
+    
+    // Check if we are right on the edge of the track
+    float isTrackEdge = smoothstep(trackWidth + 1.0, trackWidth, distFromCenter) 
+                      * smoothstep(trackWidth - 1.0, trackWidth, distFromCenter);
+    
+    // Dark void/mountain base color
+    vec3 finalColor = vec3(0.03, 0.01, 0.06);
+    
+    // Inside track - perfectly flat dark void
+    if (distFromCenter < trackWidth) {
+        finalColor = vec3(0.01, 0.0, 0.02);
+    }
+    
+    // Color interpolation for grid (cyan out in mountains, magenta on track edges)
+    vec3 glowTarget = mix(gridColor, trackGlowColor, smoothstep(trackWidth + 10.0, trackWidth, distFromCenter));
+    glowTarget = mix(glowTarget, trackGlowColor, isTrackEdge);
+    
+    // Apply grid lines
+    finalColor = mix(finalColor, glowTarget, gridAlpha * 0.8);
+    
+    // Apply extreme bright glow to the main track boundaries
+    finalColor += trackGlowColor * (isTrackEdge * 2.5);
+    
+    // Distance fog fade-out
+    float fogFactor = smoothstep(60.0, 220.0, vDepth);
+    finalColor = mix(finalColor, bgColor, fogFactor);
+
+    gl_FragColor = vec4(finalColor, 1.0);
+}
+`;
+
+// 2. Retro Sun Shader
+BABYLON.Effect.ShadersStore["retroSunVertexShader"] = `
+precision highp float;
+attribute vec3 position;
+attribute vec2 uv;
+uniform mat4 worldViewProjection;
+varying vec2 vUV;
+void main(void) {
+    gl_Position = worldViewProjection * vec4(position, 1.0);
+    vUV = uv;
+}
+`;
+
+BABYLON.Effect.ShadersStore["retroSunFragmentShader"] = `
+precision highp float;
+varying vec2 vUV;
+void main(void) {
+    vec2 center = vec2(0.5, 0.5);
+    float dist = distance(vUV, center);
+    
+    // Make it a circle
+    if (dist > 0.48) discard;
+
+    // Classic golden/sunset multi-stop gradient
+    vec3 topColor = vec3(1.0, 0.95, 0.3);   // Bright sun gold
+    vec3 midColor = vec3(1.0, 0.4, 0.0);    // Fiery orange
+    vec3 bottomColor = vec3(0.8, 0.0, 0.4); // Deep pink/purple
+
+    // Smooth multi-stop interpolation
+    float gradY = vUV.y + 0.1;
+    vec3 color = mix(bottomColor, midColor, smoothstep(0.0, 0.4, gradY));
+    color = mix(color, topColor, smoothstep(0.4, 1.0, gradY));
+
+    // Apply denser horizontal scanline cutouts (vaporwave sun slices)
+    float yOffset = 0.5 - vUV.y; // 0 at middle, 0.5 at bottom
+    if (yOffset > 0.02) {
+        // Curve the frequency to make gaps compress towards the horizon line
+        float slice = fract(pow(yOffset, 0.85) * 28.0);
+        // Gap width increases heavily as we go down
+        float gapWidth = 0.15 + (yOffset * 1.3);
+        if (slice < gapWidth) discard;
+    }
+
+    // Add a glowing golden ring on the exact edge
+    float edge = smoothstep(0.45, 0.48, dist);
+    color = mix(color, vec3(1.0, 0.6, 0.0), edge * 0.6);
+
+    // Multiply up for intense bloom
+    gl_FragColor = vec4(color * 1.8, 1.0);
+}
+`;
+
+// --- MAIN ENGINE INITIALIZATION ---
+(()=>{
+const canvas = document.getElementById('renderCanvas');
+const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+
+const createScene = () => {
+    const scene = new BABYLON.Scene(engine);
+    
+    // Core Colors
+    const bgColor = new BABYLON.Color3(0.04, 0.02, 0.08); // Deep dark purple space
+    scene.clearColor = new BABYLON.Color4(bgColor.r, bgColor.g, bgColor.b, 1.0);
+    
+    // Fixed camera, positioned low and looking down the infinite track
+    const camera = new BABYLON.UniversalCamera('cam', new BABYLON.Vector3(0, 3, -10), scene);
+    camera.setTarget(new BABYLON.Vector3(0, 3, 100));
+    camera.fov = 1.2;
+    camera.minZ = 0.1;
+    camera.maxZ = 800;
+    
+    // ─── INFINITE TERRAIN MESH ───
+    // We create a wide ground plane, offset forward so camera is near the back edge
+    const groundWidth = 400;
+    const groundLength = 300; 
+    const terrain = BABYLON.MeshBuilder.CreateGround('terrain', {
+        width: groundWidth,
+        height: groundLength,
+        subdivisions: 150
+    }, scene);
+    
+    // Position it so the camera is at z=-10 and terrain stretches to z=290
+    terrain.position.z = 140;
+    terrain.position.y = -2;
+
+    const speedVal = 55.0; // The feeling of forward momentum
+    
+    // Terrain Shader Material
+    const terrainMat = new BABYLON.ShaderMaterial("vaporTerrainMat", scene, {
+        vertex: "vaporTerrain",
+        fragment: "vaporTerrain"
+    }, {
+        attributes: ["position", "uv"],
+        uniforms: ["worldViewProjection", "time", "speed", "gridColor", "trackGlowColor", "bgColor"]
+    });
+    
+    // Over-multiply colors for intense bloom
+    terrainMat.setColor3("gridColor", new BABYLON.Color3(0.0, 1.8, 1.8));      // Hyper Cyan
+    terrainMat.setColor3("trackGlowColor", new BABYLON.Color3(2.0, 0.0, 1.5)); // Hyper Magenta
+    terrainMat.setColor3("bgColor", bgColor);
+    terrainMat.setFloat("speed", speedVal);
+    terrain.material = terrainMat;
+
+    // ─── RETRO SUN MESH ───
+    const sun = BABYLON.MeshBuilder.CreatePlane("sun", { size: 180 }, scene);
+    sun.position = new BABYLON.Vector3(0, 25, 280); // Far away on the horizon
+    
+    const sunMat = new BABYLON.ShaderMaterial("retroSunMat", scene, {
+        vertex: "retroSun",
+        fragment: "retroSun"
+    }, {
+        attributes: ["position", "uv"],
+        uniforms: ["worldViewProjection"]
+    });
+    sunMat.backFaceCulling = false;
+    sun.material = sunMat;
+
+    // ─── SCENERY OBJECTS (Floating Obelisks) ───
+    // These fly past the camera to enhance the feeling of speed
+    const props = [];
+    const propMat = new BABYLON.StandardMaterial("propMat", scene);
+    propMat.emissiveColor = new BABYLON.Color3(0.0, 1.5, 1.5);
+    propMat.wireframe = true;
+    propMat.disableLighting = true;
+    propMat.alpha = 0.5;
+
+    for (let i = 0; i < 16; i++) {
+        const shape = BABYLON.MeshBuilder.CreateCylinder(`prop${i}`, {
+            diameterTop: 0,
+            diameterBottom: 4 + Math.random() * 3,
+            height: 10 + Math.random() * 15,
+            tessellation: 4
+        }, scene);
+        
+        // Spawn them strictly outside the central track
+        const side = i % 2 === 0 ? 1 : -1;
+        shape.position.x = side * (20 + Math.random() * 30);
+        shape.position.y = -2;
+        shape.position.z = Math.random() * 250;
+        
+        shape.material = propMat;
+        props.push({
+            mesh: shape,
+            rotSpeed: (Math.random() - 0.5) * 0.05
+        });
+    }
+
+    // ─── POST-PROCESSING PIPELINE ───
+    const pipeline = new BABYLON.DefaultRenderingPipeline('pipeline', true, scene, [camera]);
+    
+    // Bloom (The core of neon vaporwave)
+    pipeline.bloomEnabled = true;
+    pipeline.bloomThreshold = 0.4;
+    pipeline.bloomWeight = 1.0;
+    pipeline.bloomKernel = 64;
+    pipeline.bloomScale = 0.5;
+    
+    // Chromatic Aberration for retro CRT feel
+    pipeline.chromaticAberrationEnabled = true;
+    pipeline.chromaticAberration.aberrationAmount = 25;
+    pipeline.chromaticAberration.radialIntensity = 1;
+
+    // Image processing
+    pipeline.imageProcessingEnabled = true;
+    pipeline.imageProcessing.contrast = 1.2;
+    pipeline.imageProcessing.exposure = 1.1;
+
+    // ─── ANIMATION LOOP ───
+    let time = 0;
+    scene.registerBeforeRender(() => {
+        const dt = engine.getDeltaTime() * 0.001;
+        time += dt;
+        
+        // Update shader time for landscape and grid movement
+        terrainMat.setFloat("time", time);
+        
+        // Add subtle camera shake/float to simulate driving
+        camera.position.y = 3 + Math.sin(time * 2.0) * 0.2;
+        camera.position.x = Math.sin(time * 0.5) * 0.5;
+
+        // Move scenery props towards camera to match terrain speed
+        props.forEach((prop) => {
+            prop.mesh.position.z -= speedVal * dt;
+            prop.mesh.rotation.y += prop.rotSpeed;
+            
+            // If they pass behind the camera, recycle them to the far horizon
+            if (prop.mesh.position.z < camera.position.z - 20) {
+                prop.mesh.position.z += 280;
+                // Randomize lateral position again slightly
+                const side = prop.mesh.position.x > 0 ? 1 : -1;
+                prop.mesh.position.x = side * (20 + Math.random() * 30);
+            }
+        });
+        
+        // Pulse Chromatic Aberration based on time
+        pipeline.chromaticAberration.aberrationAmount = 25 + Math.sin(time * 3.0) * 8;
+    });
+
+    return scene;
+};
+
+const scene = createScene();
+engine.runRenderLoop(() => scene.render());
+
+// FPS counter logic
+let lastTime = performance.now(), frames = 0;
+setInterval(() => {
+    const now = performance.now();
+    const fps = Math.round((frames * 1000) / (now - lastTime));
+    document.querySelector('#perf-badge .fps').textContent = fps;
+    frames = 0;
+    lastTime = now;
+}, 1000);
+scene.onAfterRenderObservable.add(() => frames++);
+
+addEventListener('resize', () => engine.resize());
+})();
+
+// Scroll reveal + hamburger navigation logic
+(()=>{
+    const obs = new IntersectionObserver(e=>{
+        e.forEach((en,i)=>{
+            if(en.isIntersecting){
+                setTimeout(()=>en.target.classList.add('vis'), i * 60);
+                obs.unobserve(en.target);
+            }
+        });
+    },{threshold:.08});
+    
+    document.querySelectorAll('.rv-el').forEach(el => obs.observe(el));
+    
+    const btn = document.getElementById('hamburger');
+    const ov = document.getElementById('mobileMenu');
+    
+    btn.addEventListener('click', () => {
+        btn.classList.toggle('open');
+        ov.classList.toggle('open');
+        document.body.style.overflow = ov.classList.contains('open') ? 'hidden' : '';
+    });
+    
+    ov.querySelectorAll('.mob-link').forEach(l => {
+        l.addEventListener('click', e => {
+            e.preventDefault();
+            btn.classList.remove('open');
+            ov.classList.remove('open');
+            document.body.style.overflow = '';
+            document.querySelector(l.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
+        });
+    });
+    
+    document.querySelectorAll('nav a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
+            e.preventDefault();
+            document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
+        });
+    });
+})();
+</script>
+
+<!-- i18n System -->
+<script src="../i18n/config.js"></script>
+<script src="../i18n/i18n.js"></script>
+<script>
+  // Initialize i18n with English
+  i18n.init(i18nConfig);
+</script>
+</body>
+</html>
