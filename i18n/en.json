@@ -29,7 +29,9 @@
     "subtitleExtended": "Crafting immersive digital experiences at the intersection of AI, art & engineering — from AI-powered XR platforms to FDA-approved therapeutics & holographic retail.",
     "scrollHint": "Scroll to explore",
     "location": "Berkeley, CA",
-    "locationAlt": "SF Bay Area"
+    "locationAlt": "SF Bay Area",
+    "locationFull": "Berkeley, California — SF Bay Area",
+    "coordinates": "37.8715° N, 122.2730° W"
   },
   "about": {
     "label": "About",
@@ -66,6 +68,7 @@
   "experience": {
     "label": "Experience",
     "title": "Selected <span class=\"it\">Experience</span>",
+    "count": "6 Positions",
     "items": [
       {
         "date": "2022 — Now",
@@ -248,27 +251,27 @@
     "links": [
       {
         "label": "Email →",
-        "labelExtended": "Send an Email →",
+        "labelExtended": "Send an Email",
         "url": "mailto:Brendonsmith@seacloud9.org"
       },
       {
         "label": "GitHub →",
-        "labelExtended": "View GitHub Profile →",
+        "labelExtended": "View GitHub Profile",
         "url": "https://github.com/seacloud9"
       },
       {
         "label": "LinkedIn →",
-        "labelExtended": "Connect on LinkedIn →",
+        "labelExtended": "Connect on LinkedIn",
         "url": "https://www.linkedin.com/in/brendonsmith/"
       },
       {
         "label": "X →",
-        "labelExtended": "Follow on X →",
+        "labelExtended": "Follow on X",
         "url": "https://x.com/seacloud9"
       },
       {
         "label": "Studio →",
-        "labelExtended": "Visit Creative Studio →",
+        "labelExtended": "Visit Creative Studio",
         "url": "https://seacloud9.studio"
       }
     ]
