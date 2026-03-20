@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QJ1D6ZNY9C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-QJ1D6ZNY9C');
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Brendon Smith — Vaporwave Terrain Edition</title>
@@ -748,6 +756,28 @@ addEventListener('resize', () => engine.resize());
 <script>
   // Initialize i18n with English
   i18n.init(i18nConfig);
+
+  // Easter egg: Konami Code to unlock secret gallery
+  (function() {
+    const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    let konamiIndex = 0;
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === konamiCode[konamiIndex]) {
+        konamiIndex++;
+        if (konamiIndex === konamiCode.length) {
+          // Success! Show easter egg
+          const portal = document.createElement('div');
+          portal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,#00ffff,#ff00ff);padding:2rem;border-radius:1rem;z-index:10000;text-align:center;box-shadow:0 0 50px rgba(0,255,255,0.5);animation:pulse 2s infinite';
+          portal.innerHTML = '<h2 style="color:#000;margin-bottom:1rem;font-family:Orbitron,sans-serif">🎮 SECRET UNLOCKED! 🎮</h2><p style="color:#000;margin-bottom:1rem">You found the hidden gallery!</p><button onclick="window.location.href=\'/holographic-theme-2/\'" style="background:#000;color:#00ffff;border:2px solid #00ffff;padding:1rem 2rem;border-radius:0.5rem;cursor:pointer;font-family:Orbitron,sans-serif;font-weight:bold">ENTER THE MATRIX →</button><button onclick="this.parentElement.remove()" style="background:transparent;color:#000;border:2px solid #000;padding:1rem 2rem;border-radius:0.5rem;cursor:pointer;font-family:Orbitron,sans-serif;margin-left:1rem">Close</button>';
+          document.body.appendChild(portal);
+          konamiIndex = 0;
+        }
+      } else {
+        konamiIndex = 0;
+      }
+    });
+  })();
 </script>
 </body>
 </html>

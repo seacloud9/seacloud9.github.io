@@ -129,6 +129,14 @@ footer{padding:40px 48px;display:flex;justify-content:space-between;font-size:11
   .section{padding:40px 0}
 }
 </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QJ1D6ZNY9C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-QJ1D6ZNY9C');
+</script>
 </head>
 <body>
 <canvas id="webgl-bg"></canvas>
@@ -604,6 +612,36 @@ mobileMenu.querySelectorAll('.mob-link').forEach(link=>{
 <script>
   // Initialize i18n with English
   i18n.init(i18nConfig);
+</script>
+
+<!-- Easter egg: Click any stat card 5 times rapidly -->
+<script>
+(function() {
+  const statCards = document.querySelectorAll('.stat-card');
+  let clickCount = 0;
+  let clickTimer = null;
+
+  statCards.forEach(card => {
+    card.addEventListener('click', () => {
+      clickCount++;
+
+      if (clickTimer) clearTimeout(clickTimer);
+
+      if (clickCount === 5) {
+        // Five rapid clicks detected!
+        const portal = document.createElement('div');
+        portal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,rgba(0,217,255,0.95),rgba(131,56,236,0.95));padding:3rem 4rem;border-radius:1.5rem;z-index:10000;text-align:center;box-shadow:0 0 100px rgba(0,217,255,0.7),0 0 200px rgba(131,56,236,0.4);animation:pulse 2s infinite;backdrop-filter:blur(15px);max-width:90%;border:2px solid rgba(255,255,255,0.2);';
+        portal.innerHTML = '<h2 style="font-family:var(--display);font-size:2.5rem;font-weight:700;margin-bottom:1rem;color:#fff;letter-spacing:-0.02em;">⚡ NEURAL LINK ESTABLISHED ⚡</h2><p style="font-family:var(--serif);font-size:1.3rem;font-style:italic;margin-bottom:2rem;color:rgba(255,255,255,0.9);">Connection to experimental gallery activated.</p><button style="font-family:var(--mono);background:#fff;color:#00d9ff;border:none;padding:1.2rem 3rem;border-radius:0.75rem;cursor:pointer;font-size:1.05rem;font-weight:700;transition:all 0.3s;" onclick="window.location.href=\'/holographic-theme-2/\'">ACCESS GALLERY →</button><button style="font-family:var(--mono);background:transparent;color:#fff;border:2px solid #fff;padding:1.2rem 2.5rem;border-radius:0.75rem;cursor:pointer;font-size:1rem;font-weight:600;margin-left:1rem;transition:all 0.3s;" onclick="this.parentElement.remove()">DISCONNECT</button>';
+        document.body.appendChild(portal);
+        clickCount = 0;
+      }
+
+      clickTimer = setTimeout(() => {
+        clickCount = 0;
+      }, 800);
+    });
+  });
+})();
 </script>
 </body>
 </html>

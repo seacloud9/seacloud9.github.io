@@ -117,6 +117,14 @@ footer{padding:40px 48px;display:flex;justify-content:space-between;font-size:9p
 }
 @media(max-width:480px){.hero{padding:0 16px 48px}.hero-h{font-size:clamp(40px,13vw,60px)}.container{padding:0 16px}.section{padding:60px 0}.glass{padding:22px 16px}.sh{font-size:clamp(24px,7vw,36px)}}
 </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QJ1D6ZNY9C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-QJ1D6ZNY9C');
+</script>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -694,6 +702,41 @@ document.getElementById('weather-badge').innerHTML=`Berkeley, CA<br><span class=
 <script>
   // Initialize i18n with English
   i18n.init(i18nConfig);
+</script>
+
+<!-- Easter egg: Type "matrix" anywhere to unlock secret -->
+<script>
+(function() {
+  const secretCode = 'matrix';
+  let typedKeys = '';
+  let typingTimer = null;
+
+  document.addEventListener('keypress', (e) => {
+    // Ignore if typing in input/textarea
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    typedKeys += e.key.toLowerCase();
+
+    // Keep only last N characters
+    if (typedKeys.length > secretCode.length) {
+      typedKeys = typedKeys.slice(-secretCode.length);
+    }
+
+    if (typedKeys === secretCode) {
+      // Code matched!
+      const portal = document.createElement('div');
+      portal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,rgba(232,65,24,0.95),rgba(139,0,0,0.95));padding:3rem;border-radius:1rem;z-index:10000;text-align:center;box-shadow:0 0 80px rgba(232,65,24,0.8),inset 0 0 40px rgba(255,255,255,0.1);animation:pulse 2s infinite;backdrop-filter:blur(10px);max-width:90%;border:2px solid rgba(255,255,255,0.2);';
+      portal.innerHTML = '<h2 style="font-family:var(--display);font-size:2.5rem;margin-bottom:1rem;color:#fff;text-transform:uppercase;letter-spacing:0.1em;">⚡ STORM WARNING ⚡</h2><p style="font-family:var(--serif);font-size:1.2rem;margin-bottom:1.5rem;color:rgba(255,255,255,0.9);font-style:italic;">You\'ve cracked the code! Access granted to experimental gallery.</p><button style="font-family:var(--mono);background:#fff;color:#e84118;border:none;padding:1rem 2.5rem;border-radius:0.5rem;cursor:pointer;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;transition:all 0.3s;" onclick="window.location.href=\'/holographic-theme-2/\'">ENTER THE STORM →</button><button style="font-family:var(--mono);background:transparent;color:#fff;border:2px solid #fff;padding:1rem 2rem;border-radius:0.5rem;cursor:pointer;font-size:0.9rem;font-weight:600;margin-left:1rem;text-transform:uppercase;transition:all 0.3s;" onclick="this.parentElement.remove()">CLOSE</button>';
+      document.body.appendChild(portal);
+      typedKeys = '';
+    }
+
+    if (typingTimer) clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => {
+      typedKeys = '';
+    }, 2000);
+  });
+})();
 </script>
 </body>
 </html>

@@ -140,6 +140,14 @@ footer{padding:40px 48px;display:flex;justify-content:space-between;font-size:9p
 <footer><span data-i18n="footer.copyright"></span><span data-i18n="footer.editions.terrain"></span></footer>
 </div>
 
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QJ1D6ZNY9C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-QJ1D6ZNY9C');
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════
@@ -344,6 +352,61 @@ const badge=document.getElementById('daytime-badge');
 <script>
   // Initialize i18n with English
   i18n.init(i18nConfig);
+</script>
+
+<!-- Easter egg: Hold spacebar for 3 seconds to reveal secret -->
+<script>
+(function() {
+  let spaceHoldStart = null;
+  let spaceHoldTimer = null;
+  let progressBar = null;
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && !spaceHoldStart) {
+      e.preventDefault();
+      spaceHoldStart = Date.now();
+
+      // Create progress indicator
+      progressBar = document.createElement('div');
+      progressBar.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);width:300px;height:8px;background:rgba(255,255,255,0.1);border-radius:10px;overflow:hidden;z-index:10000;backdrop-filter:blur(10px);border:1px solid rgba(52,211,153,0.3);';
+      const fill = document.createElement('div');
+      fill.style.cssText = 'width:0%;height:100%;background:linear-gradient(90deg,var(--accent),var(--pink));transition:width 0.1s linear;border-radius:10px;';
+      progressBar.appendChild(fill);
+      document.body.appendChild(progressBar);
+
+      // Animate progress
+      const animateProgress = () => {
+        const elapsed = Date.now() - spaceHoldStart;
+        const progress = Math.min((elapsed / 3000) * 100, 100);
+        fill.style.width = progress + '%';
+
+        if (progress < 100) {
+          spaceHoldTimer = requestAnimationFrame(animateProgress);
+        } else {
+          // Success!
+          progressBar.remove();
+          showPortal();
+        }
+      };
+      spaceHoldTimer = requestAnimationFrame(animateProgress);
+    }
+  });
+
+  document.addEventListener('keyup', (e) => {
+    if (e.code === 'Space' && spaceHoldStart) {
+      spaceHoldStart = null;
+      if (spaceHoldTimer) cancelAnimationFrame(spaceHoldTimer);
+      if (progressBar) progressBar.remove();
+    }
+  });
+
+  function showPortal() {
+    const portal = document.createElement('div');
+    portal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,rgba(52,211,153,0.95),rgba(96,165,250,0.95));padding:3rem;border-radius:1.5rem;z-index:10000;text-align:center;box-shadow:0 0 80px rgba(52,211,153,0.6);animation:pulse 2s infinite;backdrop-filter:blur(10px);max-width:90%;';
+    portal.innerHTML = '<h2 style="font-family:var(--display);font-size:2.2rem;font-weight:900;margin-bottom:1rem;color:#fff;">🏔️ SUMMIT REACHED! 🏔️</h2><p style="font-family:var(--display);font-size:1.1rem;margin-bottom:1.5rem;color:rgba(255,255,255,0.9);">You discovered the hidden path to the experimental gallery!</p><button style="font-family:var(--mono);background:#fff;color:#34d399;border:none;padding:1rem 2.5rem;border-radius:0.75rem;cursor:pointer;font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;transition:all 0.3s;" onclick="window.location.href=\'/holographic-theme-2/\'">EXPLORE THE GALLERY →</button><button style="font-family:var(--mono);background:transparent;color:#fff;border:2px solid #fff;padding:1rem 2rem;border-radius:0.75rem;cursor:pointer;font-size:0.95rem;font-weight:600;margin-left:1rem;transition:all 0.3s;" onclick="this.parentElement.remove()">CLOSE</button>';
+    document.body.appendChild(portal);
+  }
+})();
 </script>
 </body>
 </html>

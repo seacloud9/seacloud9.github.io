@@ -423,6 +423,14 @@ footer{padding:48px 56px;display:flex;justify-content:space-between;align-items:
   footer{padding:24px 16px}
 }
 </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QJ1D6ZNY9C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-QJ1D6ZNY9C');
+</script>
 </head>
 <body>
 <div class="scan"></div><div class="vig"></div><div class="grain"></div>
@@ -1405,6 +1413,34 @@ document.querySelectorAll('nav a[href^="#"]').forEach(a=>{
 <script>
   // Initialize i18n with English
   i18n.init(i18nConfig);
+</script>
+
+<!-- Easter egg: Hover over logo 10 times to unlock secret -->
+<script>
+(function() {
+  const logo = document.querySelector('.logo');
+  let hoverCount = 0;
+  let hoverTimer = null;
+
+  logo.addEventListener('mouseenter', () => {
+    hoverCount++;
+
+    if (hoverTimer) clearTimeout(hoverTimer);
+
+    if (hoverCount === 10) {
+      // Ten hovers detected!
+      const portal = document.createElement('div');
+      portal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg,rgba(255,107,53,0.95),rgba(139,92,246,0.95));padding:3.5rem;border-radius:2rem;z-index:10000;text-align:center;box-shadow:0 0 100px rgba(255,107,53,0.6),0 0 150px rgba(0,255,213,0.3);animation:pulse 2s infinite;backdrop-filter:blur(20px);max-width:90%;border:3px solid rgba(0,255,213,0.3);';
+      portal.innerHTML = '<div style="font-size:4rem;margin-bottom:1rem;">✨</div><h2 style="font-family:var(--display);font-size:2.8rem;font-weight:900;margin-bottom:1rem;color:#fff;letter-spacing:-0.03em;">HOLOGRAPHIC UNLOCK</h2><p style="font-family:var(--serif);font-size:1.4rem;font-style:italic;margin-bottom:2rem;color:rgba(255,255,255,0.95);">You discovered the experimental gallery portal!</p><button style="font-family:var(--display);background:linear-gradient(135deg,#00ffd5,#8b5cf6);color:#050507;border:none;padding:1.3rem 3.5rem;border-radius:1rem;cursor:pointer;font-size:1.1rem;font-weight:800;letter-spacing:0.02em;transition:all 0.3s;box-shadow:0 10px 30px rgba(0,255,213,0.3);" onclick="window.location.href=\'/holographic-theme-2/\'">ENTER GALLERY →</button><button style="font-family:var(--mono);background:transparent;color:#fff;border:2px solid rgba(255,255,255,0.6);padding:1.2rem 2.5rem;border-radius:1rem;cursor:pointer;font-size:1rem;font-weight:600;margin-left:1.2rem;transition:all 0.3s;" onclick="this.parentElement.remove()">CLOSE</button>';
+      document.body.appendChild(portal);
+      hoverCount = 0;
+    }
+
+    hoverTimer = setTimeout(() => {
+      hoverCount = 0;
+    }, 3000);
+  });
+})();
 </script>
 </body>
 </html>
