@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brendon Smith — Monoflight Edition</title>
+
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QJ1D6ZNY9C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-QJ1D6ZNY9C');
+</script>
+
+<!-- Monospaced Fonts -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+/* ═══════════════════════════════════════════════════════════════
+   MONOFLIGHT THEME - RESET & BASE
+   Monochrome | Monospace | Minimalist | Aviation
+   ═══════════════════════════════════════════════════════════════ */
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root {
+  /* Grayscale Palette */
+  --black: #000000;
+  --gray-950: #0a0a0a;
+  --gray-900: #141414;
+  --gray-850: #1a1a1a;
+  --gray-800: #262626;
+  --gray-700: #3a3a3a;
+  --gray-600: #525252;
+  --gray-500: #6b6b6b;
+  --gray-400: #a3a3a3;
+  --gray-300: #d4d4d4;
+  --gray-200: #e5e5e5;
+  --gray-100: #f5f5f5;
+  --white: #ffffff;
+
+  /* Functional Colors */
+  --bg: var(--black);
+  --fg: var(--white);
+  --fg-secondary: var(--gray-300);
+  --fg-tertiary: var(--gray-500);
+  --border: var(--gray-800);
+  --border-light: var(--gray-700);
+  --accent: var(--white);
+
+  /* Card/Glass */
+  --card-bg: rgba(255, 255, 255, 0.02);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(0, 0, 0, 0.6);
+
+  /* HUD Elements */
+  --hud-line: rgba(255, 255, 255, 0.15);
+  --hud-glow: rgba(255, 255, 255, 0.4);
+
+  /* Typography */
+  --font-primary: 'IBM Plex Mono', 'Courier New', monospace;
+  --font-display: 'Space Mono', monospace;
+  --font-secondary: 'JetBrains Mono', monospace;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html{scroll-behavior:smooth}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-primary);
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  font-feature-settings: 'liga' 1, 'calt' 1, 'zero' 1;
+}
+
+.mono{font-family:var(--font-primary)}
+.mono-display{font-family:var(--font-display)}
+
+/* ═══════════════════════════════════════════════════════════════
+   CANVAS & OVERLAYS
+   ═══════════════════════════════════════════════════════════════ */
+
+#webgl-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.grid-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scroll-content{position:relative;z-index:10}
+
+/* ═══════════════════════════════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════════════════════════════ */
+
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 20px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.flight-coords {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-primary);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--fg-tertiary);
+  display: flex;
+  gap: 16px;
+}
+
+.coord-label {
+  color: var(--fg-secondary);
+  margin-right: 4px;
+}
+
+.altitude {
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-mid {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+}
+
+.nav-mid a {
+  color: var(--fg-secondary);
+  text-decoration: none;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: all var(--transition-base);
+  padding: 6px 0;
+  position: relative;
+}
+
+.nav-mid a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--accent);
+  transition: width var(--transition-base);
+}
+
+.nav-mid a:hover {
+  color: var(--accent);
+  letter-spacing: 0.15em;
+}
+
+.nav-mid a:hover::after {
+  width: 100%;
+}
+
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  padding: 8px;
+  background: none;
+  border: none;
+}
+
+.hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--fg);
+  transition: all var(--transition-base);
+}
+
+.hamburger.open span:nth-child(1){transform:rotate(45deg) translate(4px,4px)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
+
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 250;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+
+.mobile-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.mobile-overlay a {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--fg);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: all 0.4s;
+}
+
+.mobile-overlay.open a {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.mobile-overlay.open a:nth-child(1){transition-delay:.05s}
+.mobile-overlay.open a:nth-child(2){transition-delay:.1s}
+.mobile-overlay.open a:nth-child(3){transition-delay:.15s}
+.mobile-overlay.open a:nth-child(4){transition-delay:.2s}
+.mobile-overlay.open a:nth-child(5){transition-delay:.25s}
+
+.mobile-overlay a:hover{color:var(--gray-400)}
+
+/* ═══════════════════════════════════════════════════════════════
+   HERO SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.hero {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 0 48px;
+}
+
+.hud-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hud-corner {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+}
+
+.hud-corner.top-left {
+  top: 80px;
+  left: 48px;
+  border-top: 2px solid var(--hud-line);
+  border-left: 2px solid var(--hud-line);
+}
+
+.hud-corner.top-right {
+  top: 80px;
+  right: 48px;
+  border-top: 2px solid var(--hud-line);
+  border-right: 2px solid var(--hud-line);
+}
+
+.callsign {
+  position: absolute;
+  top: -20px;
+  left: -8px;
+  font-family: var(--font-primary);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--fg-tertiary);
+  text-transform: uppercase;
+}
+
+.flight-status {
+  position: absolute;
+  top: -20px;
+  right: -8px;
+  font-family: var(--font-primary);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--fg-tertiary);
+  text-transform: uppercase;
+}
+
+.scanline {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--hud-glow), transparent);
+  animation: scanline 6s linear infinite;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.hero-content {
+  text-align: center;
+  max-width: 900px;
+}
+
+.hero-name {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 10vw, 96px);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  opacity: 0;
+  animation: fadeUp 1s ease 0.6s forwards;
+}
+
+.hero-name span {
+  display: block;
+}
+
+.hero-subtitle {
+  font-family: var(--font-primary);
+  font-size: clamp(14px, 2.5vw, 18px);
+  color: var(--fg-secondary);
+  letter-spacing: 0.05em;
+  margin-bottom: 48px;
+  min-height: 1.5em;
+  opacity: 0;
+  animation: fadeUp 0.9s ease 0.9s forwards;
+}
+
+.scroll-indicator {
+  font-family: var(--font-primary);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--fg-tertiary);
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 1.2s forwards, bounce 2s ease-in-out 1.5s infinite;
+}
+
+.scroll-indicator span:first-child {
+  font-size: 20px;
+}
+
+@keyframes fadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(10px); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.section {
+  padding: 120px 0;
+  position: relative;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+
+.section-header {
+  margin-bottom: 60px;
+}
+
+.section-label {
+  font-family: var(--font-primary);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--fg-tertiary);
+  display: inline-block;
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 6vw, 56px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.body-text {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--fg-secondary);
+  margin-bottom: 20px;
+  max-width: 600px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ABOUT SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 80px;
+  align-items: start;
+}
+
+.flight-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.metric-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 32px 24px;
+  backdrop-filter: blur(8px);
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+
+.metric-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+}
+
+.metric-value {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.metric-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--fg-tertiary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXPERIENCE SECTION (FLIGHT PATH)
+   ═══════════════════════════════════════════════════════════════ */
+
+.experience-timeline {
+  position: relative;
+  padding-left: 60px;
+}
+
+.flight-path {
+  position: absolute;
+  left: 30px;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  opacity: 0.3;
+}
+
+.exp-waypoint {
+  position: relative;
+  margin-bottom: 80px;
+  padding-left: 40px;
+}
+
+.exp-waypoint:last-child {
+  margin-bottom: 0;
+}
+
+.waypoint-marker {
+  position: absolute;
+  left: -35px;
+  top: 8px;
+  width: 20px;
+  height: 20px;
+}
+
+.marker-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--white);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.marker-ring {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--white);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.2); }
+}
+
+.exp-date {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--fg-tertiary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.exp-role {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.exp-company {
+  font-size: 14px;
+  color: var(--fg-secondary);
+  margin-bottom: 12px;
+  letter-spacing: 0.05em;
+}
+
+.exp-desc {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--fg-secondary);
+  max-width: 560px;
+  margin-bottom: 12px;
+}
+
+.exp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  font-size: 9px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid var(--border-light);
+  color: var(--fg-tertiary);
+  letter-spacing: 0.08em;
+  transition: all var(--transition-fast);
+}
+
+.tag:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SKILLS MARQUEE (RADAR SWEEP)
+   ═══════════════════════════════════════════════════════════════ */
+
+.skills-radar {
+  overflow: hidden;
+  padding: 28px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.radar-sweep {
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(to bottom, transparent, var(--white), transparent);
+  animation: sweep 4s linear infinite;
+  z-index: 2;
+}
+
+@keyframes sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100vw); }
+}
+
+.marquee-track {
+  display: flex;
+  gap: 40px;
+  animation: radar-scroll 40s linear infinite;
+  width: max-content;
+}
+
+@keyframes radar-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.skill {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 4vw, 40px);
+  font-weight: 700;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.06);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  transition: color var(--transition-base);
+}
+
+.skill:hover {
+  color: var(--fg-secondary);
+}
+
+.radar-blip {
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.15);
+  align-self: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROJECTS SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.project-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 48px 40px;
+  backdrop-filter: blur(8px);
+  transition: all var(--transition-base);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.project-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--white);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--transition-base);
+}
+
+.project-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+}
+
+.project-card:hover::before {
+  transform: scaleX(1);
+}
+
+.project-card:hover .project-name {
+  animation: glitch 0.3s ease;
+}
+
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+
+.project-number {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.08);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.project-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.project-org {
+  font-size: 13px;
+  color: var(--fg-secondary);
+  margin-bottom: 16px;
+  letter-spacing: 0.05em;
+}
+
+.project-desc {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--fg-secondary);
+}
+
+.project-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OSS SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.oss-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.oss-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 36px 28px;
+  backdrop-filter: blur(8px);
+  text-decoration: none;
+  color: var(--fg);
+  display: block;
+  transition: all var(--transition-base);
+}
+
+.oss-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+}
+
+.oss-badge {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  background: var(--white);
+  color: var(--black);
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.oss-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.oss-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.oss-tagline {
+  font-size: 13px;
+  color: var(--fg-secondary);
+  margin-bottom: 14px;
+  letter-spacing: 0.03em;
+}
+
+.oss-desc {
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--fg-secondary);
+  margin-bottom: 12px;
+}
+
+.oss-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.oss-stats span {
+  font-size: 9px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  color: var(--fg-tertiary);
+  letter-spacing: 0.08em;
+}
+
+.oss-link {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg);
+  transition: letter-spacing var(--transition-fast);
+}
+
+.oss-card:hover .oss-link {
+  letter-spacing: 0.15em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTACT SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.cta-title {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 8vw, 80px);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  margin-bottom: 48px;
+  letter-spacing: 0.01em;
+}
+
+.contact-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.contact-link {
+  text-decoration: none;
+  color: var(--fg-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 14px 28px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  backdrop-filter: blur(8px);
+  transition: all var(--transition-base);
+}
+
+.contact-link:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  letter-spacing: 0.12em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════════════════════ */
+
+footer {
+  padding: 40px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--fg-tertiary);
+  letter-spacing: 0.1em;
+  border-top: 1px solid var(--border);
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REVEAL ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.rv-el {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity var(--transition-slow), transform var(--transition-slow);
+}
+
+.rv-el.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+  .about-grid{grid-template-columns:1fr;gap:48px}
+  .oss-grid{grid-template-columns:repeat(2, 1fr)}
+}
+
+@media (max-width: 768px) {
+  nav{padding:16px 20px}
+  .hamburger{display:flex}
+  .nav-mid{display:none}
+  .mobile-overlay{display:flex}
+  .flight-coords{display:none}
+
+  .container{padding:0 20px}
+  .hero{padding:0 20px}
+  .section{padding:80px 0}
+
+  .hud-corner.top-left{left:20px}
+  .hud-corner.top-right{right:20px}
+
+  .flight-metrics{grid-template-columns:repeat(2, 1fr);gap:12px}
+  .metric-card{padding:24px 20px}
+
+  .experience-timeline{padding-left:40px}
+  .flight-path{left:20px}
+  .waypoint-marker{left:-25px}
+
+  .project-grid,.oss-grid{grid-template-columns:1fr;gap:16px}
+  .project-card{padding:32px 24px}
+  .oss-card{padding:28px 20px}
+
+  .contact-links{flex-direction:column}
+  .contact-link{text-align:center}
+
+  footer{padding:24px 20px;flex-direction:column;gap:8px;text-align:center}
+}
+
+@media (max-width: 480px) {
+  .container{padding:0 16px}
+  .section{padding:60px 0}
+  .metric-card{padding:20px 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- WebGL Canvas -->
+<canvas id="webgl-canvas"></canvas>
+
+<!-- Grid Overlay -->
+<div class="grid-overlay"></div>
+
+<!-- Scroll Content -->
+<div class="scroll-content">
+
+<!-- Navigation -->
+<nav>
+  <div class="logo mono" data-i18n="nav.logo">BS</div>
+
+  <div class="flight-coords">
+    <span><span class="coord-label">LAT</span>37.77°N</span>
+    <span><span class="coord-label">LON</span>122.42°W</span>
+    <span><span class="coord-label">ALT</span><span class="altitude">35,000 FT</span></span>
+  </div>
+
+  <ul class="nav-mid">
+    <li><a href="#about" class="mono" data-i18n="nav.about">ABOUT</a></li>
+    <li><a href="#experience" class="mono" data-i18n="nav.experience">EXPERIENCE</a></li>
+    <li><a href="#work" class="mono" data-i18n="nav.work">WORK</a></li>
+    <li><a href="#oss" class="mono" data-i18n="nav.oss">OSS</a></li>
+    <li><a href="#contact" class="mono" data-i18n="nav.contact">CONTACT</a></li>
+  </ul>
+
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Mobile Menu Overlay -->
+<div class="mobile-overlay" id="mobileMenu">
+  <a href="#about" class="mob-link" data-i18n="nav.about">ABOUT</a>
+  <a href="#experience" class="mob-link" data-i18n="nav.experience">EXPERIENCE</a>
+  <a href="#work" class="mob-link" data-i18n="nav.projects">WORK</a>
+  <a href="#oss" class="mob-link" data-i18n="nav.oss">OSS</a>
+  <a href="#contact" class="mob-link" data-i18n="nav.contact">CONTACT</a>
+</div>
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="hud-overlay">
+    <div class="hud-corner top-left">
+      <div class="scanline"></div>
+      <div class="callsign" data-i18n="hero.tag">ENGINEER</div>
+    </div>
+    <div class="hud-corner top-right">
+      <div class="flight-status">STATUS: ACTIVE</div>
+    </div>
+  </div>
+
+  <div class="hero-content">
+    <h1 class="hero-name mono-display">
+      <span data-i18n="hero.firstName">BRENDON</span>
+      <span data-i18n="hero.lastName">SMITH</span>
+    </h1>
+    <p class="hero-subtitle mono" data-i18n="hero.subtitle"></p>
+    <div class="scroll-indicator">
+      <span>↓</span>
+      <span class="mono" data-i18n="hero.scrollHint">SCROLL</span>
+    </div>
+  </div>
+</section>
+
+<!-- About Section -->
+<section id="about" class="section" data-parallax>
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label mono rv-el" data-i18n="about.label">ABOUT</span>
+      <h2 class="section-title mono-display rv-el" data-i18n-html="about.title">WAYPOINT 01</h2>
+    </div>
+
+    <div class="about-grid">
+      <div class="about-text">
+        <p class="body-text mono rv-el" data-i18n-html="about.bio1"></p>
+        <p class="body-text mono rv-el" data-i18n-html="about.bio2"></p>
+      </div>
+
+      <div class="flight-metrics">
+        <div class="metric-card rv-el">
+          <div class="metric-value mono" data-i18n="about.stats.years.value">15+</div>
+          <div class="metric-label mono" data-i18n="about.stats.years.label">YEARS</div>
+        </div>
+        <div class="metric-card rv-el">
+          <div class="metric-value mono" data-i18n="about.stats.repos.value">300</div>
+          <div class="metric-label mono" data-i18n="about.stats.repos.label">REPOS</div>
+        </div>
+        <div class="metric-card rv-el">
+          <div class="metric-value mono" data-i18n="about.stats.users.value">70M+</div>
+          <div class="metric-label mono" data-i18n="about.stats.users.label">USERS</div>
+        </div>
+        <div class="metric-card rv-el">
+          <div class="metric-value mono" data-i18n="about.stats.ai.value">AI</div>
+          <div class="metric-label mono" data-i18n-html="about.stats.ai.label">SPECIALIST</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Experience Section -->
+<section id="experience" class="section" data-parallax>
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label mono rv-el" data-i18n="experience.label">EXPERIENCE</span>
+      <h2 class="section-title mono-display rv-el" data-i18n-html="experience.title">MISSION LOG</h2>
+    </div>
+
+    <div class="experience-timeline">
+      <svg class="flight-path" viewBox="0 0 2 1000" preserveAspectRatio="none">
+        <path d="M 1 0 L 1 1000" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="10,5"/>
+      </svg>
+
+      <div class="exp-waypoint rv-el">
+        <div class="waypoint-marker">
+          <div class="marker-dot"></div>
+          <div class="marker-ring"></div>
+        </div>
+        <div class="exp-date mono" data-i18n="experience.items.0.date">2022 — NOW</div>
+        <h3 class="exp-role mono-display" data-i18n="experience.items.0.role"></h3>
+        <div class="exp-company mono" data-i18n="experience.items.0.company"></div>
+        <p class="exp-desc mono" data-i18n="experience.items.0.description"></p>
+        <div class="exp-tags">
+          <span class="tag mono" data-i18n="experience.items.0.tags.0"></span>
+          <span class="tag mono" data-i18n="experience.items.0.tags.1"></span>
+          <span class="tag mono" data-i18n="experience.items.0.tags.2"></span>
+          <span class="tag mono" data-i18n="experience.items.0.tags.3"></span>
+          <span class="tag mono" data-i18n="experience.items.0.tags.4"></span>
+          <span class="tag mono" data-i18n="experience.items.0.tags.5"></span>
+          <span class="tag mono" data-i18n="experience.items.0.tags.6"></span>
+        </div>
+      </div>
+
+      <div class="exp-waypoint rv-el">
+        <div class="waypoint-marker">
+          <div class="marker-dot"></div>
+          <div class="marker-ring"></div>
+        </div>
+        <div class="exp-date mono" data-i18n="experience.items.1.date"></div>
+        <h3 class="exp-role mono-display" data-i18n="experience.items.1.role"></h3>
+        <div class="exp-company mono" data-i18n="experience.items.1.company"></div>
+        <p class="exp-desc mono" data-i18n="experience.items.1.description"></p>
+        <div class="exp-tags">
+          <span class="tag mono" data-i18n="experience.items.1.tags.0"></span>
+          <span class="tag mono" data-i18n="experience.items.1.tags.1"></span>
+          <span class="tag mono" data-i18n="experience.items.1.tags.2"></span>
+        </div>
+      </div>
+
+      <div class="exp-waypoint rv-el">
+        <div class="waypoint-marker">
+          <div class="marker-dot"></div>
+          <div class="marker-ring"></div>
+        </div>
+        <div class="exp-date mono" data-i18n="experience.items.2.date"></div>
+        <h3 class="exp-role mono-display" data-i18n="experience.items.2.role"></h3>
+        <div class="exp-company mono" data-i18n="experience.items.2.company"></div>
+        <p class="exp-desc mono" data-i18n="experience.items.2.description"></p>
+        <div class="exp-tags">
+          <span class="tag mono" data-i18n="experience.items.2.tags.0"></span>
+          <span class="tag mono" data-i18n="experience.items.2.tags.1"></span>
+          <span class="tag mono" data-i18n="experience.items.2.tags.2"></span>
+        </div>
+      </div>
+
+      <div class="exp-waypoint rv-el">
+        <div class="waypoint-marker">
+          <div class="marker-dot"></div>
+          <div class="marker-ring"></div>
+        </div>
+        <div class="exp-date mono" data-i18n="experience.items.3.date"></div>
+        <h3 class="exp-role mono-display" data-i18n="experience.items.3.role"></h3>
+        <div class="exp-company mono" data-i18n="experience.items.3.company"></div>
+        <p class="exp-desc mono" data-i18n="experience.items.3.description"></p>
+        <div class="exp-tags">
+          <span class="tag mono" data-i18n="experience.items.3.tags.0"></span>
+          <span class="tag mono" data-i18n="experience.items.3.tags.1"></span>
+          <span class="tag mono" data-i18n="experience.items.3.tags.2"></span>
+        </div>
+      </div>
+
+      <div class="exp-waypoint rv-el">
+        <div class="waypoint-marker">
+          <div class="marker-dot"></div>
+          <div class="marker-ring"></div>
+        </div>
+        <div class="exp-date mono" data-i18n="experience.items.4.date"></div>
+        <h3 class="exp-role mono-display" data-i18n="experience.items.4.role"></h3>
+        <div class="exp-company mono" data-i18n="experience.items.4.company"></div>
+        <p class="exp-desc mono" data-i18n="experience.items.4.description"></p>
+        <div class="exp-tags">
+          <span class="tag mono" data-i18n="experience.items.4.tags.0"></span>
+          <span class="tag mono" data-i18n="experience.items.4.tags.1"></span>
+          <span class="tag mono" data-i18n="experience.items.4.tags.2"></span>
+        </div>
+      </div>
+
+      <div class="exp-waypoint rv-el">
+        <div class="waypoint-marker">
+          <div class="marker-dot"></div>
+          <div class="marker-ring"></div>
+        </div>
+        <div class="exp-date mono" data-i18n="experience.items.5.date"></div>
+        <h3 class="exp-role mono-display" data-i18n="experience.items.5.role"></h3>
+        <div class="exp-company mono" data-i18n="experience.items.5.company"></div>
+        <p class="exp-desc mono" data-i18n="experience.items.5.description"></p>
+        <div class="exp-tags">
+          <span class="tag mono" data-i18n="experience.items.5.tags.0"></span>
+          <span class="tag mono" data-i18n="experience.items.5.tags.1"></span>
+          <span class="tag mono" data-i18n="experience.items.5.tags.2"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Skills Marquee -->
+<div class="skills-radar">
+  <div class="radar-sweep"></div>
+  <div class="marquee-track">
+    <span class="skill" data-i18n="skills.marquee.0">REACT</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.1">BABYLON.JS</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.2">THREE.JS</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.3">REACT NATIVE</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.4">NODE.JS</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.5">AI/ML</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.6">WEBGL</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.7">TYPESCRIPT</span>
+    <span class="radar-blip">•</span>
+    <!-- Duplicate for infinite scroll -->
+    <span class="skill" data-i18n="skills.marquee.0">REACT</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.1">BABYLON.JS</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.2">THREE.JS</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.3">REACT NATIVE</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.4">NODE.JS</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.5">AI/ML</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.6">WEBGL</span>
+    <span class="radar-blip">•</span>
+    <span class="skill" data-i18n="skills.marquee.7">TYPESCRIPT</span>
+    <span class="radar-blip">•</span>
+  </div>
+</div>
+
+<!-- Projects Section -->
+<section id="work" class="section" data-parallax>
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label mono rv-el" data-i18n="projects.label">PROJECTS</span>
+      <h2 class="section-title mono-display rv-el" data-i18n-html="projects.title">FLEET STATUS</h2>
+    </div>
+
+    <div class="project-grid">
+      <div class="project-card rv-el">
+        <div class="project-number mono-display" data-i18n="projects.items.0.number">01</div>
+        <h3 class="project-name mono-display" data-i18n="projects.items.0.name"></h3>
+        <div class="project-org mono" data-i18n="projects.items.0.org"></div>
+        <p class="project-desc mono" data-i18n="projects.items.0.description"></p>
+        <div class="project-tags">
+          <span class="tag mono" data-i18n="projects.items.0.tags.0"></span>
+          <span class="tag mono" data-i18n="projects.items.0.tags.1"></span>
+          <span class="tag mono" data-i18n="projects.items.0.tags.2"></span>
+        </div>
+      </div>
+
+      <div class="project-card rv-el">
+        <div class="project-number mono-display" data-i18n="projects.items.1.number">02</div>
+        <h3 class="project-name mono-display" data-i18n="projects.items.1.name"></h3>
+        <div class="project-org mono" data-i18n="projects.items.1.org"></div>
+        <p class="project-desc mono" data-i18n="projects.items.1.description"></p>
+        <div class="project-tags">
+          <span class="tag mono" data-i18n="projects.items.1.tags.0"></span>
+          <span class="tag mono" data-i18n="projects.items.1.tags.1"></span>
+          <span class="tag mono" data-i18n="projects.items.1.tags.2"></span>
+        </div>
+      </div>
+
+      <div class="project-card rv-el">
+        <div class="project-number mono-display" data-i18n="projects.items.2.number">03</div>
+        <h3 class="project-name mono-display" data-i18n="projects.items.2.name"></h3>
+        <div class="project-org mono" data-i18n="projects.items.2.org"></div>
+        <p class="project-desc mono" data-i18n="projects.items.2.description"></p>
+        <div class="project-tags">
+          <span class="tag mono" data-i18n="projects.items.2.tags.0"></span>
+          <span class="tag mono" data-i18n="projects.items.2.tags.1"></span>
+          <span class="tag mono" data-i18n="projects.items.2.tags.2"></span>
+        </div>
+      </div>
+
+      <div class="project-card rv-el">
+        <div class="project-number mono-display" data-i18n="projects.items.3.number">04</div>
+        <h3 class="project-name mono-display" data-i18n="projects.items.3.name"></h3>
+        <div class="project-org mono" data-i18n="projects.items.3.org"></div>
+        <p class="project-desc mono" data-i18n="projects.items.3.description"></p>
+        <div class="project-tags">
+          <span class="tag mono" data-i18n="projects.items.3.tags.0"></span>
+          <span class="tag mono" data-i18n="projects.items.3.tags.1"></span>
+          <span class="tag mono" data-i18n="projects.items.3.tags.2"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OSS Section -->
+<section id="oss" class="section" data-parallax>
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label mono rv-el" data-i18n="opensource.label">OPEN SOURCE</span>
+      <h2 class="section-title mono-display rv-el" data-i18n-html="opensource.title">HANGAR</h2>
+    </div>
+
+    <div class="oss-grid">
+      <a href="https://maigexr.vercel.app/" target="_blank" class="oss-card rv-el">
+        <div class="oss-badge mono" data-i18n="opensource.items.0.badge">AI + XR</div>
+        <div class="oss-icon" data-i18n="opensource.items.0.icon">🧠</div>
+        <h3 class="oss-name mono-display" data-i18n="opensource.items.0.name"></h3>
+        <p class="oss-tagline mono" data-i18n="opensource.items.0.tagline"></p>
+        <p class="oss-desc mono" data-i18n="opensource.items.0.description"></p>
+        <div class="oss-stats">
+          <span class="mono" data-i18n="opensource.items.0.stats.0"></span>
+          <span class="mono" data-i18n="opensource.items.0.stats.1"></span>
+        </div>
+        <div class="oss-link mono" data-i18n="opensource.items.0.link">VIEW PROJECT →</div>
+      </a>
+
+      <a href="https://starcade9.github.io/" target="_blank" class="oss-card rv-el">
+        <div class="oss-badge mono" data-i18n="opensource.items.1.badge">GAME ENGINE</div>
+        <div class="oss-icon" data-i18n="opensource.items.1.icon">🎮</div>
+        <h3 class="oss-name mono-display" data-i18n="opensource.items.1.name"></h3>
+        <p class="oss-tagline mono" data-i18n="opensource.items.1.tagline"></p>
+        <p class="oss-desc mono" data-i18n="opensource.items.1.description"></p>
+        <div class="oss-stats">
+          <span class="mono" data-i18n="opensource.items.1.stats.0"></span>
+          <span class="mono" data-i18n="opensource.items.1.stats.1"></span>
+        </div>
+        <div class="oss-link mono" data-i18n="opensource.items.1.link">VIEW PROJECT →</div>
+      </a>
+
+      <a href="https://github.com/seacloud9/react-babylonjs" target="_blank" class="oss-card rv-el">
+        <div class="oss-badge mono" data-i18n="opensource.items.2.badge">LIBRARY</div>
+        <div class="oss-icon" data-i18n="opensource.items.2.icon">⚛️</div>
+        <h3 class="oss-name mono-display" data-i18n="opensource.items.2.name"></h3>
+        <p class="oss-tagline mono" data-i18n="opensource.items.2.tagline"></p>
+        <p class="oss-desc mono" data-i18n="opensource.items.2.description"></p>
+        <div class="oss-stats">
+          <span class="mono" data-i18n="opensource.items.2.stats.0"></span>
+          <span class="mono" data-i18n="opensource.items.2.stats.1"></span>
+        </div>
+        <div class="oss-link mono" data-i18n="opensource.items.2.link">VIEW PROJECT →</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Contact Section -->
+<section id="contact" class="section" data-parallax>
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label mono rv-el" data-i18n="contact.label">CONTACT</span>
+      <h2 class="cta-title mono-display rv-el" data-i18n-html="contact.title">TOWER CONTACT</h2>
+    </div>
+
+    <div class="contact-links rv-el">
+      <a href="mailto:Brendonsmith@seacloud9.org" class="contact-link mono" data-i18n="contact.links.0.label">EMAIL →</a>
+      <a href="https://github.com/seacloud9" target="_blank" class="contact-link mono" data-i18n="contact.links.1.label">GITHUB →</a>
+      <a href="https://www.linkedin.com/in/brendonsmith/" target="_blank" class="contact-link mono" data-i18n="contact.links.2.label">LINKEDIN →</a>
+      <a href="https://x.com/seacloud9" target="_blank" class="contact-link mono" data-i18n="contact.links.3.label">TWITTER →</a>
+      <a href="https://seacloud9.studio" target="_blank" class="contact-link mono" data-i18n="contact.links.4.label">PORTFOLIO →</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <span class="mono" data-i18n="footer.copyright">© 2026 BRENDON SMITH</span>
+  <span class="mono">MONOFLIGHT EDITION</span>
+</footer>
+
+</div>
+
+<!-- Three.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- Smooth Scroll & i18n -->
+<script src="../js/smooth-scroll.js"></script>
+<script src="../i18n/config.js"></script>
+<script src="../i18n/i18n.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// MONOFLIGHT - THREE.JS FLIGHT SIMULATION
+// ═══════════════════════════════════════════════════════════════
+
+(function() {
+  const canvas = document.getElementById('webgl-canvas');
+  const isMobile = window.innerWidth < 768;
+
+  // Scene Setup
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x000000, 0.0008);
+
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 150, 0);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 1);
+
+  // Sky Shader (Monochrome Gradient)
+  const skyGeo = new THREE.SphereGeometry(1800, 32, 32);
+  const skyMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      varying vec3 vPos;
+      void main() {
+        vPos = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vPos;
+      uniform float uTime;
+      void main() {
+        float gradient = smoothstep(-1.0, 1.0, normalize(vPos).y);
+        float noise = fract(sin(dot(vPos.xz, vec2(12.9898, 78.233))) * 43758.5453) * 0.02;
+        vec3 color = mix(vec3(0.0), vec3(0.05), gradient) + noise;
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `,
+    side: THREE.BackSide
+  });
+  scene.add(new THREE.Mesh(skyGeo, skyMat));
+
+  // Horizon Grid
+  const gridHelper = new THREE.GridHelper(5000, 100, 0xffffff, 0xffffff);
+  gridHelper.material.opacity = 0.05;
+  gridHelper.material.transparent = true;
+  gridHelper.position.y = 0;
+  scene.add(gridHelper);
+
+  // Geometric Cloud Layers
+  function createCloudLayer(count, altitude) {
+    const group = new THREE.Group();
+    for (let i = 0; i < count; i++) {
+      const size = 40 + Math.random() * 80;
+      const geometry = new THREE.BoxGeometry(size, size * 0.3, size * 0.8);
+      const material = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.02 + Math.random() * 0.04,
+        wireframe: Math.random() > 0.7
+      });
+      const cloud = new THREE.Mesh(geometry, material);
+      cloud.position.set(
+        (Math.random() - 0.5) * 3000,
+        altitude + (Math.random() - 0.5) * 50,
+        (Math.random() - 0.5) * 3000
+      );
+      cloud.rotation.y = Math.random() * Math.PI;
+      group.add(cloud);
+    }
+    return group;
+  }
+
+  const cloudCount = isMobile ? 40 : 120;
+  scene.add(createCloudLayer(Math.floor(cloudCount * 0.4), 200));
+  scene.add(createCloudLayer(Math.floor(cloudCount * 0.3), 100));
+  scene.add(createCloudLayer(Math.floor(cloudCount * 0.3), 50));
+
+  // Flight Path Contrails
+  function createFlightPath() {
+    const start = new THREE.Vector3((Math.random() - 0.5) * 2000, 80 + Math.random() * 200, -1000);
+    const end = new THREE.Vector3((Math.random() - 0.5) * 2000, 80 + Math.random() * 200, 1000);
+    const mid = new THREE.Vector3(
+      (start.x + end.x) / 2 + (Math.random() - 0.5) * 200,
+      (start.y + end.y) / 2 + Math.random() * 100,
+      (start.z + end.z) / 2
+    );
+
+    const curve = new THREE.CatmullRomCurve3([start, mid, end]);
+    const points = curve.getPoints(50);
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.08 });
+    return new THREE.Line(geometry, material);
+  }
+
+  for (let i = 0; i < 12; i++) {
+    scene.add(createFlightPath());
+  }
+
+  // Particle System (Radar Blips)
+  const particleCount = isMobile ? 100 : 200;
+  const particlesGeo = new THREE.BufferGeometry();
+  const positions = new Float32Array(particleCount * 3);
+  const velocities = new Float32Array(particleCount * 3);
+
+  for (let i = 0; i < particleCount; i++) {
+    const i3 = i * 3;
+    positions[i3] = (Math.random() - 0.5) * 2000;
+    positions[i3 + 1] = Math.random() * 400;
+    positions[i3 + 2] = (Math.random() - 0.5) * 2000;
+    velocities[i3] = (Math.random() - 0.5) * 0.5;
+    velocities[i3 + 1] = 0;
+    velocities[i3 + 2] = (Math.random() - 0.5) * 0.5;
+  }
+
+  particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const particlesMat = new THREE.PointsMaterial({ color: 0xffffff, size: 3, transparent: true, opacity: 0.3 });
+  const particles = new THREE.Points(particlesGeo, particlesMat);
+  scene.add(particles);
+
+  // Scroll Integration
+  let scrollY = 0;
+  window.addEventListener('scroll', () => { scrollY = window.pageYOffset; });
+
+  function updateAltitude() {
+    const maxAltitude = 35000;
+    const scrollProgress = scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight);
+    const currentAlt = Math.floor(maxAltitude - (scrollProgress * maxAltitude));
+    const altDisplay = document.querySelector('.altitude');
+    if (altDisplay) {
+      altDisplay.textContent = currentAlt.toLocaleString('en-US', { minimumIntegerDigits: 5, useGrouping: false }) + ' FT';
+    }
+  }
+
+  // Animation Loop
+  let time = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    time += 0.01;
+
+    // Update camera based on scroll
+    const scrollProgress = scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight);
+    camera.position.y = 150 - (scrollProgress * 100);
+    camera.position.z = scrollProgress * 500;
+    camera.lookAt(0, camera.position.y - 20, camera.position.z + 200);
+
+    // Update sky shader
+    skyMat.uniforms.uTime.value = time;
+
+    // Update altitude counter
+    updateAltitude();
+
+    // Animate particles
+    const pos = particlesGeo.attributes.position.array;
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      pos[i3] += velocities[i3];
+      pos[i3 + 2] += velocities[i3 + 2];
+      if (Math.abs(pos[i3]) > 1000) velocities[i3] *= -1;
+      if (Math.abs(pos[i3 + 2]) > 1000) velocities[i3 + 2] *= -1;
+    }
+    particlesGeo.attributes.position.needsUpdate = true;
+
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  // Resize Handler
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// TYPEWRITER EFFECT
+// ═══════════════════════════════════════════════════════════════
+
+function typeWriter(element, text, speed = 40) {
+  let i = 0;
+  element.textContent = '';
+  function type() {
+    if (i < text.length) {
+      element.textContent += text.charAt(i);
+      i++;
+      setTimeout(type, speed);
+    }
+  }
+  type();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MOBILE MENU
+// ═══════════════════════════════════════════════════════════════
+
+(function() {
+  const btn = document.getElementById('hamburger');
+  const overlay = document.getElementById('mobileMenu');
+
+  btn.addEventListener('click', () => {
+    btn.classList.toggle('open');
+    overlay.classList.toggle('open');
+    document.body.style.overflow = overlay.classList.contains('open') ? 'hidden' : '';
+  });
+
+  overlay.querySelectorAll('.mob-link').forEach(link => {
+    link.addEventListener('click', () => {
+      btn.classList.remove('open');
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+    });
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// EASTER EGG: EJECT SEQUENCE
+// ═══════════════════════════════════════════════════════════════
+
+(function() {
+  const secretCode = 'eject';
+  let typedKeys = '';
+  let typingTimer = null;
+
+  document.addEventListener('keypress', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    typedKeys += e.key.toLowerCase();
+    if (typedKeys.length > secretCode.length) {
+      typedKeys = typedKeys.slice(-secretCode.length);
+    }
+
+    if (typedKeys === secretCode) {
+      const body = document.body;
+      body.style.animation = 'shake 0.5s ease';
+      document.documentElement.style.setProperty('--hud-line', 'rgba(255, 0, 0, 0.5)');
+
+      setTimeout(() => {
+        const portal = document.createElement('div');
+        portal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.3s ease';
+        portal.innerHTML = `
+          <div style="text-align:center;padding:3rem;border:2px solid #fff;background:#000;max-width:600px">
+            <div style="font-family:var(--font-primary);font-size:11px;color:#fff;animation:blink 0.5s infinite;margin-bottom:1rem">⚠ WARNING ⚠</div>
+            <h2 style="font-family:var(--font-display);font-size:2.5rem;color:#fff;text-transform:uppercase;margin-bottom:2rem">EJECTION SEQUENCE<br>INITIATED</h2>
+            <p style="font-family:var(--font-primary);font-size:0.9rem;color:rgba(255,255,255,0.7);margin-bottom:2rem;letter-spacing:0.05em">
+              Emergency landing coordinates locked.<br>
+              Redirecting to experimental gallery hangar.
+            </p>
+            <div style="display:flex;gap:1rem;justify-content:center">
+              <button onclick="window.location.href='/holographic-theme-2/'" style="font-family:var(--font-primary);background:#fff;color:#000;border:none;padding:1rem 2rem;font-size:0.9rem;cursor:pointer;text-transform:uppercase;letter-spacing:0.1em;transition:all 0.3s">
+                PROCEED TO HANGAR →
+              </button>
+              <button onclick="this.closest('div[style*=fixed]').remove();document.documentElement.style.setProperty('--hud-line', 'rgba(255, 255, 255, 0.15)')" style="font-family:var(--font-primary);background:transparent;color:#fff;border:1px solid #fff;padding:1rem 2rem;font-size:0.9rem;cursor:pointer;text-transform:uppercase;letter-spacing:0.1em;transition:all 0.3s">
+                ABORT
+              </button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(portal);
+        typedKeys = '';
+      }, 500);
+    }
+
+    if (typingTimer) clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => { typedKeys = ''; }, 2000);
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// INITIALIZE i18n & SMOOTH SCROLL
+// ═══════════════════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Apply parallax to sections
+  document.querySelectorAll('.section').forEach(section => {
+    section.setAttribute('data-parallax', '');
+  });
+
+  // Initialize smooth scroll
+  if (typeof SmoothScroll !== 'undefined') {
+    SmoothScroll.init({
+      parallaxIntensity: 0.12,
+      enableParallax: true,
+      revealThreshold: 0.15,
+      smoothAnchorLinks: true,
+      revealDelay: 60
+    });
+  }
+});
+
+// Initialize i18n
+window.addEventListener('load', () => {
+  if (typeof i18n !== 'undefined' && typeof i18nConfig !== 'undefined') {
+    i18n.init(i18nConfig).then(() => {
+      // Typewriter effect after i18n loads
+      const subtitle = document.querySelector('.hero-subtitle');
+      if (subtitle && subtitle.textContent) {
+        const text = subtitle.textContent;
+        typeWriter(subtitle, text, 40);
+      }
+    });
+  }
+});
+</script>
+
+<style>
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  10%, 30%, 50%, 70%, 90% { transform: translate(-5px, 0); }
+  20%, 40%, 60%, 80% { transform: translate(5px, 0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+</style>
+
+</body>
+</html>

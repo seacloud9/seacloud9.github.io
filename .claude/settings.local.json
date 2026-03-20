@@ -41,7 +41,13 @@
       "Bash(for f in Screenshot*.png)",
       "Bash(do echo \"Found: $f\")",
       "Bash(for dir in ocean-depths storm-edition terrain-edition neural-network holographic-theme)",
-      "Bash(if [ -f \"/Users/brendonsmith/exp/seacloud9.github.io/$dir/index.html\" ])"
+      "Bash(if [ -f \"/Users/brendonsmith/exp/seacloud9.github.io/$dir/index.html\" ])",
+      "Bash(mkdir:*)",
+      "Bash(open http://localhost:8000/monoflight/)",
+      "Bash(for dir in ocean-depths storm-edition terrain-edition neural-network holographic-theme vaporwave-circuit monoflight)",
+      "Bash(do if [ -f \"/Users/brendonsmith/exp/seacloud9.github.io/$dir/README.md\" ])",
+      "Bash(then echo \"$dir: has README\")",
+      "Bash(else echo \"$dir: no README\")"
     ]
   }
 }
