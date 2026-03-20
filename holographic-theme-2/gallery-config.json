@@ -1,0 +1,83 @@
+{
+  "gallery": {
+    "title": "Playground Experiments",
+    "subtitle": "Interactive WebGL demos & game prototypes",
+    "style": "holographic",
+    "layout": "zoom",
+    "showCardBackground": false
+  },
+  "items": [
+    {
+      "id": "asteroids",
+      "title": "Asteroids",
+      "description": "Classic arcade space shooter remake with modern WebGL graphics",
+      "thumbnail": "../playground/Asteroids/asteriods.webp",
+      "link": "../playground/Asteroids/",
+      "tags": ["game", "webgl", "arcade", "retro"],
+      "category": "game"
+    },
+    {
+      "id": "voxel-vader",
+      "title": "Voxel Vader",
+      "description": "Space Invaders meets voxel graphics in this retro-futuristic shooter",
+      "thumbnail": "../playground/demoScene-VoxelVader/demoscene-voxelvader.webp",
+      "link": "../playground/demoScene-VoxelVader/",
+      "tags": ["game", "voxel", "3d", "shooter"],
+      "category": "game"
+    },
+    {
+      "id": "neon-trenchrunner",
+      "title": "Neon Trench Runner",
+      "description": "High-speed flight through neon-lit trenches inspired by Star Wars",
+      "thumbnail": "../playground/neon-trenchrunner/neon-trenchrunner.webp",
+      "link": "../playground/neon-trenchrunner/",
+      "tags": ["game", "3d", "flight", "neon"],
+      "category": "game"
+    },
+    {
+      "id": "vaporwave-rail-shooter",
+      "title": "Vaporwave Rail Shooter",
+      "description": "On-rails shooter with dreamy vaporwave aesthetics",
+      "thumbnail": "../playground/vaporwave-rail-shooter/vaporwave-rail-shooter.webp",
+      "link": "../playground/vaporwave-rail-shooter/",
+      "tags": ["game", "vaporwave", "shooter", "aesthetic"],
+      "category": "game"
+    },
+    {
+      "id": "voxel-wormhole",
+      "title": "Voxel Wormhole",
+      "description": "Fly through an infinite voxel wormhole tunnel",
+      "thumbnail": "../playground/voxelWormHole/voxelwormhole.webp",
+      "link": "../playground/voxelWormHole/",
+      "tags": ["demo", "voxel", "3d", "procedural"],
+      "category": "demo"
+    },
+    {
+      "id": "neo-crux-dungeon",
+      "title": "Neo-Crux Dungeon Crawler",
+      "description": "First-person dungeon crawler with cyberpunk vibes",
+      "thumbnail": "../playground/Neo-Crux_Dungeon_Crawler/neo-crux_dungeon_crawler.webp",
+      "link": "../playground/Neo-Crux_Dungeon_Crawler/",
+      "tags": ["game", "fps", "dungeon", "cyberpunk"],
+      "category": "game"
+    },
+    {
+      "id": "multiverse-drifter",
+      "title": "MultiVerse Drifter",
+      "description": "Journey through parallel dimensions in this space exploration game",
+      "thumbnail": "../playground/MultiVerse_Drifter/multiverse_drifter.webp",
+      "link": "../playground/MultiVerse_Drifter/",
+      "tags": ["game", "space", "exploration", "sci-fi"],
+      "category": "game"
+    },
+    {
+      "id": "resume-quest",
+      "title": "Resume Quest",
+      "description": "Turn your resume into an RPG adventure",
+      "thumbnail": "../playground/ResumeQuest/resumequest.webp",
+      "link": "../playground/ResumeQuest/",
+      "tags": ["game", "rpg", "interactive", "portfolio"],
+      "category": "game"
+    }
+  ]
+}

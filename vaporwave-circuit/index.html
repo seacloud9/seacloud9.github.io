@@ -716,17 +716,30 @@ addEventListener('resize', () => engine.resize());
             btn.classList.remove('open');
             ov.classList.remove('open');
             document.body.style.overflow = '';
-            document.querySelector(l.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
-        });
-    });
-    
-    document.querySelectorAll('nav a[href^="#"]').forEach(a => {
-        a.addEventListener('click', e => {
-            e.preventDefault();
-            document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
+            // Smooth scroll handled by smooth-scroll.js
         });
     });
 })();
+</script>
+
+<!-- Smooth Scroll & Parallax System -->
+<script src="../js/smooth-scroll.js"></script>
+<script>
+  // Add parallax layers to sections for depth
+  document.addEventListener('DOMContentLoaded', () => {
+    // Apply subtle parallax to sections
+    document.querySelectorAll('.section').forEach(section => {
+      section.setAttribute('data-parallax', '');
+    });
+
+    SmoothScroll.init({
+      parallaxIntensity: 0.12,
+      enableParallax: true,
+      revealThreshold: 0.12,
+      smoothAnchorLinks: true,
+      revealDelay: 50
+    });
+  });
 </script>
 
 <!-- i18n System -->

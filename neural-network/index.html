@@ -589,17 +589,14 @@ mobileMenu.querySelectorAll('.mob-link').forEach(link=>{
     hamburger.classList.remove('open');
     mobileMenu.classList.remove('open');
     document.body.style.overflow='';
-    document.querySelector(link.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
   });
 });
 
-document.querySelectorAll('nav a[href^="#"]').forEach(link=>{
-  link.addEventListener('click',e=>{
-    e.preventDefault();
-    document.querySelector(link.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
-  });
-});
+// Smooth scroll handled by smooth-scroll.js
 </script>
+
+<!-- Smooth Scroll & Parallax System -->
+<script src="../js/smooth-scroll.js"></script>
 
 <!-- i18n System -->
 <script src="../i18n/config.js"></script>

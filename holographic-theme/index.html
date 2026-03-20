@@ -1322,42 +1322,9 @@ animate();
 })();
 
 // ═══════════════════════════════════════════════
-// PARALLAX IMAGES — scroll-driven with different speeds
+// PARALLAX & SCROLL EFFECTS
+// Note: Handled by smooth-scroll.js module
 // ═══════════════════════════════════════════════
-(()=>{
-  const imgs = document.querySelectorAll('.px-img');
-  let ticking = false;
-  function updateParallax(){
-    const scrollTop = window.pageYOffset;
-    imgs.forEach(img => {
-      const speed = parseFloat(img.dataset.speed) || 0.05;
-      const rect = img.parentElement.getBoundingClientRect();
-      const offset = (rect.top + scrollTop) - scrollTop;
-      const y = -(scrollTop - offset) * speed * 2;
-      img.style.transform = `translate3d(0, ${y}px, 0)`;
-    });
-    ticking = false;
-  }
-  window.addEventListener('scroll', ()=>{
-    if(!ticking){requestAnimationFrame(updateParallax); ticking=true;}
-  });
-  updateParallax();
-})();
-
-// ═══════════════════════════════════════════════
-// SCROLL REVEAL
-// ═══════════════════════════════════════════════
-(()=>{
-  const obs = new IntersectionObserver((entries)=>{
-    entries.forEach((e,i)=>{
-      if(e.isIntersecting){
-        setTimeout(()=>e.target.classList.add('vis'), i*50);
-        obs.unobserve(e.target);
-      }
-    });
-  },{threshold:.06, rootMargin:'0px 0px -30px 0px'});
-  document.querySelectorAll('.rv-el').forEach(el=>obs.observe(el));
-})();
 
 // ═══════════════════════════════════════════════
 // THEME TOGGLE (light / dark) — desktop + mobile
@@ -1412,6 +1379,24 @@ document.querySelectorAll('nav a[href^="#"]').forEach(a=>{
     document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
   });
 });
+</script>
+
+<!-- Smooth Scroll & Parallax System -->
+<script src="../js/smooth-scroll.js"></script>
+<script>
+  window.SMOOTH_SCROLL_AUTO_INIT = false;
+  document.addEventListener('DOMContentLoaded', () => {
+    // Apply parallax to floating images
+    document.querySelectorAll('.px-img').forEach(el => el.setAttribute('data-parallax', ''));
+
+    SmoothScroll.init({
+      parallaxIntensity: 0.15,
+      enableParallax: true,
+      revealThreshold: 0.08,
+      smoothAnchorLinks: true,
+      revealDelay: 60
+    });
+  });
 </script>
 
 <!-- i18n System -->

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Playground Gallery — Brendon Smith</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #050507;
+  --fg: #f2ede6;
+  --holo: #00ffd5;
+  --violet: #8b5cf6;
+  --pink: #ff00ff;
+  --display: 'Outfit', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Gallery Container */
+#gallery {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* UI Overlay */
+.ui-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Header */
+header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 32px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(5,5,7,0.9) 0%, transparent 100%);
+  backdrop-filter: blur(10px);
+}
+
+.logo {
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--holo), var(--violet));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.back-btn {
+  pointer-events: all;
+  font-family: var(--mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fg);
+  text-decoration: none;
+  padding: 12px 24px;
+  border: 1px solid rgba(0,255,213,0.3);
+  border-radius: 8px;
+  background: rgba(0,255,213,0.05);
+  transition: all 0.3s;
+}
+
+.back-btn:hover {
+  border-color: var(--holo);
+  background: rgba(0,255,213,0.15);
+  box-shadow: 0 0 20px rgba(0,255,213,0.3);
+}
+
+/* Info Panel */
+.info-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 48px;
+  background: linear-gradient(0deg, rgba(5,5,7,0.95) 0%, transparent 100%);
+  backdrop-filter: blur(20px);
+  transition: opacity 0.3s;
+}
+
+.info-panel.hidden {
+  opacity: 0;
+}
+
+.gallery-title {
+  font-family: var(--display);
+  font-size: clamp(32px, 6vw, 64px);
+  font-weight: 700;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, var(--holo), var(--violet), var(--pink));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gallery-subtitle {
+  font-family: var(--mono);
+  font-size: clamp(14px, 2vw, 18px);
+  color: rgba(242,237,230,0.6);
+  margin-bottom: 24px;
+}
+
+.instructions {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: rgba(242,237,230,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.instructions span {
+  display: inline-block;
+  margin-right: 20px;
+  padding: 6px 12px;
+  background: rgba(0,255,213,0.08);
+  border: 1px solid rgba(0,255,213,0.2);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+/* Item Title - Above Gallery */
+.item-title-top {
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  max-width: 800px;
+}
+
+.item-title-top.visible {
+  opacity: 1;
+}
+
+.item-title-top h2 {
+  font-family: var(--display);
+  font-size: 48px;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(135deg, var(--holo), var(--violet));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 20px rgba(0,255,213,0.3);
+}
+
+/* Item Details - Below Gallery */
+.item-details-bottom {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  max-width: 600px;
+}
+
+.item-details-bottom.visible {
+  opacity: 1;
+}
+
+.item-details-bottom p {
+  font-family: var(--mono);
+  font-size: 16px;
+  color: rgba(242,237,230,0.8);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.item-tags {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  background: rgba(0,255,213,0.1);
+  border: 1px solid rgba(0,255,213,0.3);
+  border-radius: 16px;
+  color: var(--holo);
+}
+
+.launch-btn {
+  pointer-events: all;
+  font-family: var(--mono);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--bg);
+  background: linear-gradient(135deg, var(--holo), var(--violet));
+  padding: 16px 32px;
+  border: none;
+  border-radius: 8px;
+  margin-top: 24px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 0 20px rgba(0,255,213,0.4);
+}
+
+.launch-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(0,255,213,0.6);
+}
+
+/* Loading Screen */
+.loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.5s;
+}
+
+.loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(0,255,213,0.2);
+  border-top: 3px solid var(--holo);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--holo);
+  margin-top: 24px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  header {
+    padding: 20px 24px;
+  }
+
+  .logo {
+    font-size: 20px;
+  }
+
+  .back-btn {
+    font-size: 10px;
+    padding: 10px 16px;
+  }
+
+  .info-panel {
+    padding: 32px 24px;
+  }
+
+  .instructions {
+    font-size: 10px;
+  }
+
+  .instructions span {
+    margin-right: 8px;
+    margin-bottom: 4px;
+  }
+
+  .item-title-top {
+    top: 80px;
+  }
+
+  .item-title-top h2 {
+    font-size: 32px;
+  }
+
+  .item-details-bottom {
+    bottom: 40px;
+  }
+
+  .item-details-bottom p {
+    font-size: 14px;
+  }
+
+  .launch-btn {
+    padding: 12px 24px;
+    font-size: 12px;
+  }
+}
+
+/* Grain texture */
+.grain {
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.025;
+  animation: grainMove 0.5s steps(6) infinite;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px;
+}
+
+@keyframes grainMove {
+  0% { transform: translate(0); }
+  20% { transform: translate(-5%, 5%); }
+  40% { transform: translate(5%, -3%); }
+  60% { transform: translate(-3%, -5%); }
+  80% { transform: translate(3%, 3%); }
+  100% { transform: translate(-2%, 2%); }
+}
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div class="loading" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Initializing Gallery...</div>
+</div>
+
+<!-- Grain Texture -->
+<div class="grain"></div>
+
+<!-- 3D Gallery Container -->
+<div id="gallery"></div>
+
+<!-- UI Overlay -->
+<div class="ui-overlay">
+  <header>
+    <div class="logo">PLAYGROUND</div>
+    <a href="../" class="back-btn">← Back to Portfolio</a>
+  </header>
+
+  <div class="info-panel" id="infoPanel">
+    <h1 class="gallery-title" id="galleryTitle">Playground Experiments</h1>
+    <p class="gallery-subtitle" id="gallerySubtitle">Interactive WebGL demos & game prototypes</p>
+    <div class="instructions">
+      <span>↔ Drag to rotate</span>
+      <span>🖱 Mouse wheel</span>
+      <span>← → Arrow keys</span>
+      <span>Click to launch</span>
+    </div>
+  </div>
+
+  <!-- Title above gallery -->
+  <div class="item-title-top" id="itemTitleTop">
+    <h2 id="itemTitle"></h2>
+  </div>
+
+  <!-- Details below gallery -->
+  <div class="item-details-bottom" id="itemDetailsBottom">
+    <p id="itemDescription"></p>
+    <div class="item-tags" id="itemTags"></div>
+    <button class="launch-btn" id="launchBtn">Launch Demo →</button>
+  </div>
+</div>
+
+<!-- Gallery System -->
+<script type="module">
+import GalleryCore from '../js/gallery/gallery-core.js';
+
+let currentItem = null;
+let gallery = null;
+
+// Initialize gallery
+async function initGallery() {
+  try {
+    gallery = new GalleryCore({
+      // Container & Data
+      container: '#gallery',
+      configPath: './gallery-config.json',
+
+      // Layout Mode - Try: 'carousel', 'rolodex', 'coverflow', 'helix'
+      layout: 'carousel',
+      carouselRadius: 6,
+      rolodexTilt: 20,
+      coverflowAngle: 60,
+      helixHeight: 10,
+
+      // Auto-rotation & Physics
+      autoRotate: true,
+      rotateSpeed: 0.2,
+      rotateEasing: 0.08,
+      enableInertia: true,
+      inertiaFriction: 0.95,
+      inertiaDamping: 0.98,
+
+      // Visual Effects
+      holographicEffect: true,
+      enableFade: true,
+      fadeIntensity: 0.7,
+      minOpacity: 0.3,
+
+      // Controls
+      enableMobileControls: true,
+      enableMouseWheel: true,
+      mouseWheelSpeed: 0.001,
+      enableKeyboard: true,
+      keyboardSpeed: 0.2,
+
+      // Auto-center detection
+      autoSelectCenter: true,
+      centerThreshold: 0.3,
+
+      // Callbacks
+      onItemCenter: (item) => {
+        currentItem = item;
+        showItemDetails(item);
+      },
+      onItemHover: (item) => {
+        currentItem = item;
+        showItemDetails(item);
+      },
+      onItemClick: (item) => {
+        if (item.link) {
+          window.open(item.link, '_blank');
+        }
+      }
+    });
+
+    await gallery.init();
+
+    // Hide loading screen
+    setTimeout(() => {
+      document.getElementById('loading').classList.add('hidden');
+    }, 500);
+
+  } catch (error) {
+    console.error('Failed to initialize gallery:', error);
+    document.querySelector('.loading-text').textContent = 'Error loading gallery';
+  }
+}
+
+// Show item details
+function showItemDetails(item) {
+  const titleTop = document.getElementById('itemTitleTop');
+  const detailsBottom = document.getElementById('itemDetailsBottom');
+  const title = document.getElementById('itemTitle');
+  const description = document.getElementById('itemDescription');
+  const tags = document.getElementById('itemTags');
+  const infoPanel = document.getElementById('infoPanel');
+
+  title.textContent = item.title;
+  description.textContent = item.description;
+
+  // Clear and add tags
+  tags.innerHTML = '';
+  if (item.tags) {
+    item.tags.forEach(tag => {
+      const tagEl = document.createElement('span');
+      tagEl.className = 'tag';
+      tagEl.textContent = tag;
+      tags.appendChild(tagEl);
+    });
+  }
+
+  titleTop.classList.add('visible');
+  detailsBottom.classList.add('visible');
+  infoPanel.classList.add('hidden');
+}
+
+// Launch button
+document.getElementById('launchBtn').addEventListener('click', () => {
+  if (currentItem && currentItem.link) {
+    window.open(currentItem.link, '_blank');
+  }
+});
+
+// Hide item details when mouse leaves
+document.addEventListener('mousemove', (e) => {
+  const titleTop = document.getElementById('itemTitleTop');
+  const detailsBottom = document.getElementById('itemDetailsBottom');
+  const infoPanel = document.getElementById('infoPanel');
+
+  // If not hovering over anything, hide details
+  if (!currentItem) {
+    if (titleTop) titleTop.classList.remove('visible');
+    if (detailsBottom) detailsBottom.classList.remove('visible');
+    if (infoPanel) infoPanel.classList.remove('hidden');
+  }
+});
+
+// Initialize on load
+initGallery();
+</script>
+
+</body>
+</html>
