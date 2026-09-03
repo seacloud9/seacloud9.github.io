@@ -1,0 +1,1 @@
+var r=(a=>(a.Boolean="boolean",a.Number="number",a.String="string",a.Enum="enum",a.Color="color",a.Image="image",a.File="file",a.Object="object",a.Array="array",a.ComponentInstance="componentinstance",a))(r||{});function e(a,n){a.propertyControls=n}export{r as C,e as a};

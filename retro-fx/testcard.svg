@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <!-- Original RetroFuture FX test card (fictional demo asset, plan §48.12) -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b0033"/>
+      <stop offset="1" stop-color="#ff2d95"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#sky)"/>
+  <!-- SMPTE-style color bars -->
+  <g>
+    <rect x="0"   y="0" width="114" height="360" fill="#c0c0c0"/>
+    <rect x="114" y="0" width="114" height="360" fill="#c0c000"/>
+    <rect x="228" y="0" width="114" height="360" fill="#00c0c0"/>
+    <rect x="342" y="0" width="114" height="360" fill="#00c000"/>
+    <rect x="456" y="0" width="114" height="360" fill="#c000c0"/>
+    <rect x="570" y="0" width="114" height="360" fill="#c00000"/>
+    <rect x="684" y="0" width="116" height="360" fill="#0000c0"/>
+  </g>
+  <!-- Sun + grid horizon -->
+  <circle cx="400" cy="470" r="90" fill="#ffdd00" opacity="0.9"/>
+  <g stroke="#00ffe1" stroke-width="2" opacity="0.8">
+    <line x1="0" y1="470" x2="800" y2="470"/>
+    <line x1="400" y1="470" x2="120" y2="600"/>
+    <line x1="400" y1="470" x2="680" y2="600"/>
+    <line x1="400" y1="470" x2="400" y2="600"/>
+    <line x1="0" y1="520" x2="800" y2="520"/>
+    <line x1="0" y1="580" x2="800" y2="580"/>
+  </g>
+  <text x="400" y="330" text-anchor="middle" font-family="monospace" font-size="52"
+        fill="#ffffff" font-weight="bold" letter-spacing="4">RETROFUTURE FX</text>
+  <text x="400" y="370" text-anchor="middle" font-family="monospace" font-size="20"
+        fill="#00ffe1">— CRT TEST CARD —</text>
+</svg>

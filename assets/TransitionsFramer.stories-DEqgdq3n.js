@@ -1,0 +1,15 @@
+import{j as t}from"./iframe-ClM0jS1U.js";import{a as b,C as r}from"./index-D8wtoCkM.js";import{b as C}from"./PageTransition-DtbRe_Q-.js";import"./preload-helper-C1FmrZbK.js";import"./math-DUtpe-EO.js";import"./useReducedMotion-BC0jmgEw.js";import"./useAnimationFrame-D0dvpe6q.js";function i(e){const{content:g,preset:x,color:f,duration:T,direction:v,pixelSize:w,style:E}=e;return t.jsx(C,{preset:x,color:f,duration:T,direction:v,pixelSize:w,style:{width:"100%",height:"100%",...E},children:g})}i.defaultProps={preset:"dissolve",duration:700};b(i,{content:{type:r.ComponentInstance,title:"Content"},preset:{type:r.Enum,title:"Effect",options:["dissolve","fade","iris","wipe","bars","crt"],optionTitles:["Dissolve","Fade","Iris","Wipe","Bars","CRT"]},color:{type:r.Color,title:"Color"},duration:{type:r.Number,title:"Duration (ms)",min:200,max:2e3,step:50},direction:{type:r.Enum,title:"Direction",options:["ltr","rtl","ttb","btt"],optionTitles:["→","←","↓","↑"],hidden:e=>!["wipe","bars"].includes(e.preset)},pixelSize:{type:r.Number,title:"Pixel Size",min:8,max:80,step:2,hidden:e=>e.preset!=="dissolve"}});const{expect:S}=__STORYBOOK_MODULE_TEST__,j=t.jsx("div",{style:{width:"100%",height:"100%",display:"grid",placeItems:"center",background:"#0b0217",color:"#e7d7ff",fontFamily:"ui-monospace, monospace"},children:t.jsxs("div",{style:{textAlign:"center"},children:[t.jsx("h1",{style:{margin:0},children:"RETROFUTURE"}),t.jsx("p",{style:{color:"#8a5fb0"},children:"Entrance transition"})]})}),z={title:"Framer/Page Transition",component:i,parameters:{layout:"fullscreen",docs:{description:{component:"The Framer entrance-transition wrapper, rendered live via the `framer` shim. Content dissolves/wipes in on appear."}}},argTypes:{preset:{control:"select",options:["dissolve","fade","iris","wipe","bars","crt"]},duration:{control:{type:"range",min:200,max:2e3,step:50}},color:{control:"color"}},args:{preset:"dissolve",duration:800},render:e=>t.jsx("div",{style:{width:"100%",height:"70vh"},children:t.jsx(i,{...e,content:j})})},s={play:async({canvasElement:e})=>{await S(e.querySelector("[data-rffx-page-transition]")).toBeTruthy()}},o={args:{preset:"crt"}},n={args:{preset:"wipe"}};var a,p,c;s.parameters={...s.parameters,docs:{...(a=s.parameters)==null?void 0:a.docs,source:{originalSource:`{
+  play: async ({
+    canvasElement
+  }) => {
+    await expect(canvasElement.querySelector("[data-rffx-page-transition]")).toBeTruthy();
+  }
+}`,...(c=(p=s.parameters)==null?void 0:p.docs)==null?void 0:c.source}}};var l,d,m;o.parameters={...o.parameters,docs:{...(l=o.parameters)==null?void 0:l.docs,source:{originalSource:`{
+  args: {
+    preset: "crt"
+  }
+}`,...(m=(d=o.parameters)==null?void 0:d.docs)==null?void 0:m.source}}};var u,y,h;n.parameters={...n.parameters,docs:{...(u=n.parameters)==null?void 0:u.docs,source:{originalSource:`{
+  args: {
+    preset: "wipe"
+  }
+}`,...(h=(y=n.parameters)==null?void 0:y.docs)==null?void 0:h.source}}};const I=["Dissolve","CRT","Wipe"];export{o as CRT,s as Dissolve,n as Wipe,I as __namedExportsOrder,z as default};

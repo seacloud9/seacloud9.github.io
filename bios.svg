@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <!-- Original RetroFuture FX BIOS/boot screen (fictional demo asset) -->
+  <rect width="800" height="600" fill="#02140a"/>
+  <g font-family="ui-monospace, monospace" font-size="20" fill="#39ff6a">
+    <text x="40" y="60">RetroFuture BIOS v1.0.0</text>
+    <text x="40" y="86">(C) 2026 RetroFuture Systems, Inc.</text>
+    <text x="40" y="140">CPU    : RF-6502 @ 33 MHz ......... OK</text>
+    <text x="40" y="166">Memory : 640K base, 63488K ext .... OK</text>
+    <text x="40" y="192">GPU    : Phosphor Tube Unit ....... OK</text>
+    <text x="40" y="218">WebGL  : 2.0 ...................... OK</text>
+    <text x="40" y="244">Storage: FX-CARTRIDGE mounted ..... OK</text>
+    <text x="40" y="298">Detecting displays ...</text>
+    <text x="40" y="324">  &gt; CRT-01  ARCADE MONITOR      [READY]</text>
+    <text x="40" y="350">  &gt; CRT-01  GREEN PHOSPHOR       [READY]</text>
+    <text x="40" y="404">Loading RETROFUTURE FX .............</text>
+    <text x="40" y="430">................................ DONE</text>
+    <text x="40" y="500" fill="#8affaf">Press any key to continue_</text>
+  </g>
+</svg>
