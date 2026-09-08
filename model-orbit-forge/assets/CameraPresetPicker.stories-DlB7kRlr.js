@@ -1,4 +1,4 @@
-import{j as r}from"./jsx-runtime-BjG_zV1W.js";import{C as o}from"./CameraPresetPicker-BhUw-kGb.js";import{fn as W}from"./index-DeN4tkzB.js";import{r as N}from"./index-DoKeIHtn.js";import{f as R}from"./flight-helmet-DdOYu_BX.js";import"./context-B97yrZ1_.js";import"./_commonjsHelpers-Cpj98o6Y.js";const _={title:"Controls/CameraPresetPicker",component:o,args:{product:R,onSelect:W()},parameters:{docs:{description:{component:`Camera presets rendered as ordinary buttons **outside** the canvas.
+import{j as r}from"./jsx-runtime-BjG_zV1W.js";import{C as o}from"./CameraPresetPicker-BhUw-kGb.js";import{fn as W}from"./index-DeN4tkzB.js";import{r as N}from"./index-DoKeIHtn.js";import{f as R}from"./flight-helmet-D3F8kep0.js";import"./context-B97yrZ1_.js";import"./_commonjsHelpers-Cpj98o6Y.js";const _={title:"Controls/CameraPresetPicker",component:o,args:{product:R,onSelect:W()},parameters:{docs:{description:{component:`Camera presets rendered as ordinary buttons **outside** the canvas.
 
 Every camera move must be reachable by keyboard and by screen reader, so the
 canvas is never the only way to change the view. The active preset is
