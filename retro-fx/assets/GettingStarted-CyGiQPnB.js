@@ -32,7 +32,7 @@ import { CRT } from "@retrofuture/crt";
 export default function Page() {
   return (
     <CRT preset="green-terminal" style={{ width: "min(90vw, 720px)", aspectRatio: "4 / 3" }}>
-      <img src="/testcard.svg" alt="Boot screen" />
+      <img src="./testcard.svg" alt="Boot screen" />
     </CRT>
   );
 }
